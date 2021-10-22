@@ -1,36 +1,26 @@
 # bgmprovider
 
 #### Description
-Add a provider to JDK to support GMSSL
+BGMProvider aims to provide a GMTLS JAVA implementation.
 
 #### Software Architecture
-Software architecture description
+BGMProvider is another Java Cryptography Architecture(JCA) Provider, 
+including a JCE Provider and a JSSE Provider.
 
 #### Installation
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
-
-#### Instructions
-
-1.  xxxx
-2.  xxxx
-3.  xxxx
+1.  copy bgmprovider-xxxx-jar-with-dependencies.jar to path_to_jre/lib/ext
+2.  edit path_to_jre/lib/security/java.security, add BGMProvider.
+```
+security.provider.1=org.openeuler.BGMProvider
+security.provider.2=sun.security.provider.Sun
+security.provider.3=sun.security.rsa.SunRsaSign
+security.provider.4=sun.security.ec.SunEC
+security.provider.5=com.sun.net.ssl.internal.ssl.Provider
+```
 
 #### Contribution
-
+code contribution is welcome!
 1.  Fork the repository
 2.  Create Feat_xxx branch
 3.  Commit your code
 4.  Create Pull Request
-
-
-#### Gitee Feature
-
-1.  You can use Readme\_XXX.md to support different languages, such as Readme\_en.md, Readme\_zh.md
-2.  Gitee blog [blog.gitee.com](https://blog.gitee.com)
-3.  Explore open source project [https://gitee.com/explore](https://gitee.com/explore)
-4.  The most valuable open source project [GVP](https://gitee.com/gvp)
-5.  The manual of Gitee [https://gitee.com/help](https://gitee.com/help)
-6.  The most popular members  [https://gitee.com/gitee-stars/](https://gitee.com/gitee-stars/)
