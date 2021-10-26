@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+package org.openeuler.tls.sun.security.krb5.auto;
+
+import org.junit.Test;
+import org.openeuler.BGMJSSEProvider;
+import org.openeuler.BGMJCEProvider;
+
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivilegedActionException;
+import java.util.HashMap;
+import java.util.Map;
+import javax.security.auth.login.LoginException;
+import java.security.Security;
+
+/*
+ * @test
+ * @bug 8025123 8208350
+ * @summary Checks if an unbound server uses a service principal
+ *          from sun.security.krb5.principal system property if specified
+ * @run main/othervm -Dsun.net.spi.nameservice.provider.1=ns,mock UnboundSSLPrincipalProperty
+ *                              unbound.ssl.jaas.conf server_star
+ * @run main/othervm -Dsun.net.spi.nameservice.provider.1=ns,mock UnboundSSLPrincipalProperty
+ *                              unbound.ssl.jaas.conf server_multiple_principals
+ */
+
+public class UnboundSSLPrincipalPropertyTest1 {
+    @Test
+    public void testUnboundSSLPrincipalProperty() throws
+            PrivilegedActionException, LoginException, NoSuchAlgorithmException, InterruptedException, IOException {
+        System.setProperty("sun.net.spi.nameservice.provider.1", "ns,mock");
+        UnboundSSLPrincipalProperty.main(new String[]{"unbound.ssl.jaas.conf",
+            "server_star"});
+    }
+}
