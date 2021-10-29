@@ -158,22 +158,22 @@ public class GMJSSEUtil extends JSSEUtil {
     private void setKeyEntryByPEMFile(KeyStore ks, String keyAlias, char[] destKeyPasswd,
                                       String certificateKeyFile, String certificateFile,
                                       String certificateChainFile, String certificatePassword) throws Exception {
-        PEMFile privateKeyPEMFile = new PEMFile(certificateKeyFile, certificatePassword);
-        PEMFile certificatePEMFile = new PEMFile(certificateFile);
-        Collection<Certificate> chain = new ArrayList<>(privateKeyPEMFile.getCertificates());
-        chain.addAll(certificatePEMFile.getCertificates());
-        if (certificateChainFile != null) {
-            PEMFile certificateChainPEMFile = new PEMFile(certificateChainFile);
-            chain.addAll(certificateChainPEMFile.getCertificates());
-        }
-        ks.setKeyEntry(keyAlias, privateKeyPEMFile.getPrivateKey(), destKeyPasswd,
-                chain.toArray(new Certificate[0]));
         log.info(String.format("Load PEM file : { \n" +
                 "\tkeyAlias : %s \n" +
                 "\tcertificateKeyFile : %s \n" +
                 "\tcertificateFile : %s \n" +
                 "\tcertificateChainFile : %s \n" +
                 "}", keyAlias, certificateKeyFile, certificateFile, certificateChainFile));
+        PEMFile privateKeyPEMFile = new PEMFile(certificateKeyFile, certificatePassword);
+        PEMFile certificatePEMFile = new PEMFile(certificateFile);
+        Collection<Certificate> chain = new ArrayList<>(privateKeyPEMFile.getCertificates());
+        chain.addAll(certificatePEMFile.getCertificates());
+        if (!isEmpty(certificateChainFile)) {
+            PEMFile certificateChainPEMFile = new PEMFile(certificateChainFile);
+            chain.addAll(certificateChainPEMFile.getCertificates());
+        }
+        ks.setKeyEntry(keyAlias, privateKeyPEMFile.getPrivateKey(), destKeyPasswd,
+                chain.toArray(new Certificate[0]));
         log.info(String.format("Set key entry : %s", keyAlias));
     }
 
@@ -398,10 +398,30 @@ public class GMJSSEUtil extends JSSEUtil {
 
     /**
      * Verify and obtain the split certificateChainFile value.
+     * If certificateChainFile.length is more than certCount , throw IllegalArgumentException.
+     * If certificateChainFile.length is equal to certCount , just return.
+     * If certificateChainFile.length is less than certCount , create a new array and copy the old array
+     * to the new arraythe , rest of the array elements are filled with null.
      */
     private String[] getCertificateChainFiles(int certCount) {
-        return getAttrValues("certificateChainFile",
-                certificate.getCertificateChainFile(), certCount);
+        String[] certificateChainFiles = getAttrValues("certificateChainFile",
+                certificate.getCertificateChainFile(), false);
+
+        // throw IllegalArgumentException.
+        if (certificateChainFiles.length > certCount) {
+            throw new IllegalArgumentException("The num of certificateChainFile is not less than " + certCount);
+        }
+
+        // just return
+        if (certificateChainFiles.length == certCount) {
+            return certificateChainFiles;
+        }
+
+        // the rest of the array elements are filled with null
+        String[] newChainFiles = new String[certCount];
+        System.arraycopy(certificateChainFiles, 0, newChainFiles,
+                0, certificateChainFiles.length);
+        return newChainFiles;
     }
 
     private String[] getAttrValues(String attrKey, String attrValue) {
