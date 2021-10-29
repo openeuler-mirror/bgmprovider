@@ -26,27 +26,52 @@ package org.openeuler.tomcat;
 
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
-import org.apache.tomcat.util.file.ConfigFileLoader;
 import org.apache.tomcat.util.net.SSLHostConfigCertificate;
 import org.apache.tomcat.util.net.SSLUtilBase;
 import org.apache.tomcat.util.net.jsse.JSSEUtil;
 import org.apache.tomcat.util.net.jsse.PEMFile;
 import org.apache.tomcat.util.res.StringManager;
-import org.apache.tomcat.util.security.KeyStoreUtil;
 
-import javax.net.ssl.*;
+import javax.net.ssl.CertPathTrustManagerParameters;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.ManagerFactoryParameters;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import java.io.IOException;
-import java.io.InputStream;
-import java.security.*;
-import java.security.cert.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.security.GeneralSecurityException;
+import java.security.Key;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CRLException;
+import java.security.cert.CertPathParameters;
 import java.security.cert.Certificate;
-import java.util.*;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 public class GMJSSEUtil extends JSSEUtil {
     private static final Log log = LogFactory.getLog(GMJSSEUtil.class);
-    private static final StringManager sm = StringManager.getManager(SSLUtilBase.class);
+    private static final StringManager sm = StringManager.getManager(GMJSSEUtil.class);
+
     // validate gm keystore type , only support PKCS12 and JKS.
     private final Set<String> VALIDATE_GM_KEYSTORE_TYPE = new HashSet<>(Arrays.asList("PKCS12", "JKS"));
+
+    // SSLUtilBase#getStore method
+    private static Method getStoreMethod;
 
     public GMJSSEUtil(SSLHostConfigCertificate certificate) {
         super(certificate);
@@ -130,7 +155,7 @@ public class GMJSSEUtil extends JSSEUtil {
      * @param keyPass    The certificateKeyPassword attribute value or
      *                   certificateKeystorePassword attribute value
      */
-    private KeyStore loadKeyStoreByPEMFile(String[] keyAliases, String keyPass) throws Exception {
+    private KeyStore loadKeyStoreByPEMFile(String[] keyAliases, String keyPass) throws IOException {
         // Get the attribute value related to the PEM file
         String[] certificateFiles = getCertificateFiles();
         int certCount = certificateFiles.length;
@@ -157,23 +182,28 @@ public class GMJSSEUtil extends JSSEUtil {
 
     private void setKeyEntryByPEMFile(KeyStore ks, String keyAlias, char[] destKeyPasswd,
                                       String certificateKeyFile, String certificateFile,
-                                      String certificateChainFile, String certificatePassword) throws Exception {
+                                      String certificateChainFile, String certificatePassword)
+            throws IOException {
         log.info(String.format("Load PEM file : { \n" +
                 "\tkeyAlias : %s \n" +
                 "\tcertificateKeyFile : %s \n" +
                 "\tcertificateFile : %s \n" +
                 "\tcertificateChainFile : %s \n" +
                 "}", keyAlias, certificateKeyFile, certificateFile, certificateChainFile));
-        PEMFile privateKeyPEMFile = new PEMFile(certificateKeyFile, certificatePassword);
-        PEMFile certificatePEMFile = new PEMFile(certificateFile);
-        Collection<Certificate> chain = new ArrayList<>(privateKeyPEMFile.getCertificates());
-        chain.addAll(certificatePEMFile.getCertificates());
-        if (!isEmpty(certificateChainFile)) {
-            PEMFile certificateChainPEMFile = new PEMFile(certificateChainFile);
-            chain.addAll(certificateChainPEMFile.getCertificates());
+        try {
+            PEMFile privateKeyPEMFile = new PEMFile(certificateKeyFile, certificatePassword);
+            PEMFile certificatePEMFile = new PEMFile(certificateFile);
+            Collection<Certificate> chain = new ArrayList<>(privateKeyPEMFile.getCertificates());
+            chain.addAll(certificatePEMFile.getCertificates());
+            if (!isEmpty(certificateChainFile)) {
+                PEMFile certificateChainPEMFile = new PEMFile(certificateChainFile);
+                chain.addAll(certificateChainPEMFile.getCertificates());
+            }
+            ks.setKeyEntry(keyAlias, privateKeyPEMFile.getPrivateKey(), destKeyPasswd,
+                    chain.toArray(new Certificate[0]));
+        } catch (IOException | GeneralSecurityException e) {
+            throw new IOException(e);
         }
-        ks.setKeyEntry(keyAlias, privateKeyPEMFile.getPrivateKey(), destKeyPasswd,
-                chain.toArray(new Certificate[0]));
         log.info(String.format("Set key entry : %s", keyAlias));
     }
 
@@ -209,19 +239,16 @@ public class GMJSSEUtil extends JSSEUtil {
         Set<String> keyAliasSet = new HashSet<>(Arrays.asList(keyAliases));
         KeyStore destKeyStore;
         String destStorePassword = storePasswords[0];
-        try {
-            // Create a empty dest keystore.
-            destKeyStore = loadEmptyKeyStore(storeTypes[0]);
-            for (int i = 0; i < keyStoreCount; i++) {
-                // Load the keystore file.
-                KeyStore srcKeyStore = getStore(storeTypes[i], storeProviders[i],
-                        storeFiles[i], storePasswords[i]);
-                // Copy the key store to the dest key store.
-                copyStore(keyAliasSet, srcKeyStore, storePasswords[i].toCharArray(),
-                        destKeyStore, destStorePassword.toCharArray());
-            }
-        } catch (Exception e) {
-            throw new IOException(e.getMessage());
+
+        // Create a empty dest keystore.
+        destKeyStore = loadEmptyKeyStore(storeTypes[0]);
+        for (int i = 0; i < keyStoreCount; i++) {
+            // Load the keystore file.
+            KeyStore srcKeyStore = getStore(storeTypes[i], storeProviders[i],
+                    storeFiles[i], storePasswords[i]);
+            // Copy the key store to the dest key store.
+            copyStore(keyAliasSet, srcKeyStore, storePasswords[i].toCharArray(),
+                    destKeyStore, destStorePassword.toCharArray());
         }
         return destKeyStore;
     }
@@ -229,9 +256,14 @@ public class GMJSSEUtil extends JSSEUtil {
     /**
      * Load a empty key store.
      */
-    private KeyStore loadEmptyKeyStore(String keyStoreType) throws Exception {
-        KeyStore destKeyStore = KeyStore.getInstance(keyStoreType);
-        destKeyStore.load(null, null);
+    private KeyStore loadEmptyKeyStore(String keyStoreType) throws IOException {
+        KeyStore destKeyStore;
+        try {
+            destKeyStore = KeyStore.getInstance(keyStoreType);
+            destKeyStore.load(null, null);
+        } catch (KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
+            throw new IOException(e);
+        }
         return destKeyStore;
     }
 
@@ -252,32 +284,35 @@ public class GMJSSEUtil extends JSSEUtil {
      * @param destStorePassword The dest store password
      */
     private static void copyStore(Set<String> keyAliasSet, KeyStore srcStore, char[] srcStorePassword,
-                                  KeyStore destStore, char[] destStorePassword)
-            throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException {
-        for (Enumeration<String> e = srcStore.aliases(); e.hasMoreElements(); ) {
-            String alias = e.nextElement();
-            // If the entry name in the source keystore is not in the keyAliasSet, skip directly.
-            if (keyAliasSet != null && !keyAliasSet.contains(alias)) {
-                log.info(String.format("Skip entry : %s", alias));
-                continue;
-            }
+                                  KeyStore destStore, char[] destStorePassword) throws IOException {
+        try {
+            for (Enumeration<String> e = srcStore.aliases(); e.hasMoreElements(); ) {
+                String alias = e.nextElement();
+                // If the entry name in the source keystore is not in the keyAliasSet, skip directly.
+                if (keyAliasSet != null && !keyAliasSet.contains(alias)) {
+                    log.info(String.format("Skip entry : %s", alias));
+                    continue;
+                }
 
-            // Get the key and certificates.
-            if (srcStore.isCertificateEntry(alias)) {
-                Certificate cert = srcStore.getCertificate(alias);
-                if (cert instanceof X509Certificate) {
-                    destStore.setCertificateEntry(alias, cert);
-                    log.info(String.format("Set certificate entry : %s", alias));
-                }
-            } else if (srcStore.isKeyEntry(alias)) {
-                Certificate[] certs = srcStore.getCertificateChain(alias);
-                if ((certs != null) && (certs.length > 0) &&
-                        (certs[0] instanceof X509Certificate)) {
-                    Key key = srcStore.getKey(alias, srcStorePassword);
-                    destStore.setKeyEntry(alias, key, destStorePassword, certs);
-                    log.info(String.format("Set key entry : %s", alias));
+                // Get the key and certificates.
+                if (srcStore.isCertificateEntry(alias)) {
+                    Certificate cert = srcStore.getCertificate(alias);
+                    if (cert instanceof X509Certificate) {
+                        destStore.setCertificateEntry(alias, cert);
+                        log.info(String.format("Set certificate entry : %s", alias));
+                    }
+                } else if (srcStore.isKeyEntry(alias)) {
+                    Certificate[] certs = srcStore.getCertificateChain(alias);
+                    if ((certs != null) && (certs.length > 0) &&
+                            (certs[0] instanceof X509Certificate)) {
+                        Key key = srcStore.getKey(alias, srcStorePassword);
+                        destStore.setKeyEntry(alias, key, destStorePassword, certs);
+                        log.info(String.format("Set key entry : %s", alias));
+                    }
                 }
             }
+        } catch (KeyStoreException | NoSuchAlgorithmException | UnrecoverableKeyException e) {
+            throw new IOException(e);
         }
     }
 
@@ -289,51 +324,28 @@ public class GMJSSEUtil extends JSSEUtil {
      * @param path     The store path
      * @param pass     The store password
      */
-    static KeyStore getStore(String type, String provider, String path, String pass)
-            throws IOException {
+    static KeyStore getStore(String type, String provider, String path, String pass) throws IOException {
         log.info(String.format("Load store : { \n" +
                 "\ttype : %s \n" +
                 "\tprovider : %s \n" +
                 "\tpath : %s \n" +
                 "}", type, provider, path));
-        KeyStore ks;
-        InputStream istream = null;
-        try {
-            if (provider == null) {
-                ks = KeyStore.getInstance(type);
-            } else {
-                ks = KeyStore.getInstance(type, provider);
-            }
 
-            if (!("PKCS11".equalsIgnoreCase(type) ||
-                    path.isEmpty()) ||
-                    "NONE".equalsIgnoreCase(path)) {
-                istream = ConfigFileLoader.getInputStream(path);
+        if (getStoreMethod == null) {
+            try {
+                getStoreMethod = SSLUtilBase.class.getDeclaredMethod("getStore",
+                        String.class, String.class, String.class, String.class);
+            } catch (NoSuchMethodException e) {
+                throw new IOException(e);
             }
-
-            char[] storePass = null;
-            if (pass != null && (!"".equals(pass) ||
-                    "JKS".equalsIgnoreCase(type) || "PKCS12".equalsIgnoreCase(type))) {
-                storePass = pass.toCharArray();
-            }
-            KeyStoreUtil.load(ks, istream, storePass);
-        } catch (IOException fnfe) {
-            throw fnfe;
-        } catch (Exception ex) {
-            String msg = sm.getString("sslUtilBase.keystore_load_failed", type, path,
-                    ex.getMessage());
-            log.error(msg, ex);
-            throw new IOException(msg);
-        } finally {
-            if (istream != null) {
-                try {
-                    istream.close();
-                } catch (IOException ioe) {
-                    // Do nothing
-                }
-            }
+            getStoreMethod.setAccessible(true);
         }
-        return ks;
+
+        try {
+            return (KeyStore) getStoreMethod.invoke(null, type, provider, path, pass);
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            throw new IOException(e);
+        }
     }
 
     /**
@@ -529,20 +541,17 @@ public class GMJSSEUtil extends JSSEUtil {
         KeyStore destKeyStore;
         char[] destStorePassword = storePasswords[0] != null ? storePasswords[0].toCharArray() : null;
 
-        try {
-            // Create a empty dest keystore.
-            destKeyStore = loadEmptyKeyStore(storeTypes[0]);
-            for (int i = 0; i < trustStoreCount; i++) {
-                // Load the truststore file.
-                KeyStore srcKeyStore = getStore(storeTypes[i], storeProviders[i],
-                        storeFiles[i], storePasswords[i]);
-                // Copy the key store to the dest key store.
-                char[] srcStorePassword = storePasswords[i] != null ? storePasswords[i].toCharArray() : null;
-                copyStore(null, srcKeyStore, srcStorePassword,
-                        destKeyStore, destStorePassword);
-            }
-        } catch (Exception e) {
-            throw new IOException(e.getMessage());
+
+        // Create a empty dest keystore.
+        destKeyStore = loadEmptyKeyStore(storeTypes[0]);
+        for (int i = 0; i < trustStoreCount; i++) {
+            // Load the truststore file.
+            KeyStore srcKeyStore = getStore(storeTypes[i], storeProviders[i],
+                    storeFiles[i], storePasswords[i]);
+            // Copy the key store to the dest key store.
+            char[] srcStorePassword = storePasswords[i] != null ? storePasswords[i].toCharArray() : null;
+            copyStore(null, srcKeyStore, srcStorePassword,
+                    destKeyStore, destStorePassword);
         }
         return destKeyStore;
     }
