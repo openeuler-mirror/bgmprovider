@@ -69,7 +69,7 @@ public class GMTlsMasterSecretGenerator extends KeyGeneratorSpi {
         }
         protocolVersion = (spec.getMajorVersion() << 8)
                 | spec.getMinorVersion();
-        if (protocolVersion != 0x0101) {
+        if (protocolVersion != 0x0101 && protocolVersion != 0x0303) {
             throw new InvalidAlgorithmParameterException(
                     "Only GM TLS 1.1 supported");
         }

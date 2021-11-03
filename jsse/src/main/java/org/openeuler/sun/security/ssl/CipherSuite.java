@@ -298,20 +298,20 @@ enum CipherSuite {
 
     ECC_SM4_CBC_SM3(
             0xE013, true, "ECC_SM4_CBC_SM3", "ECC_SM4_SM3",
-            ProtocolVersion.PROTOCOLS_OF_GMTLS,
+            ProtocolVersion.PROTOCOLS_OF_GMTLS_AND_12,
             K_ECC, B_SM4, M_SM3, H_NONE),
     ECDHE_SM4_CBC_SM3(
             0xE011, true, "ECDHE_SM4_CBC_SM3", "ECDHE_SM4_SM3",
-            ProtocolVersion.PROTOCOLS_OF_GMTLS,
+            ProtocolVersion.PROTOCOLS_OF_GMTLS_AND_12,
             K_SM2_SM2, B_SM4, M_SM3, H_NONE),
     ECC_SM4_GCM_SM3(
         0xE053, true, "ECC_SM4_GCM_SM3", "",
-        ProtocolVersion.PROTOCOLS_OF_GMTLS,
-        K_ECC, B_SM4_GCM, M_NULL, H_NONE),
+            ProtocolVersion.PROTOCOLS_OF_GMTLS_AND_12,
+            K_ECC, B_SM4_GCM, M_NULL, H_NONE),
     ECDHE_SM4_GCM_SM3(
         0xE051, true, "ECDHE_SM4_GCM_SM3", "",
-        ProtocolVersion.PROTOCOLS_OF_GMTLS,
-        K_SM2_SM2, B_SM4_GCM, M_NULL, H_NONE),
+            ProtocolVersion.PROTOCOLS_OF_GMTLS_AND_12,
+            K_SM2_SM2, B_SM4_GCM, M_NULL, H_NONE),
 
     // Definition of the CipherSuites that are supported but not enabled
     // by default.
@@ -926,6 +926,11 @@ enum CipherSuite {
             }
         }
         return cipherSuites;
+    }
+
+    static List<CipherSuite> getGMCipherSuites() {
+        return Arrays.asList(ECC_SM4_CBC_SM3, ECC_SM4_GCM_SM3,
+                ECDHE_SM4_CBC_SM3, ECDHE_SM4_GCM_SM3);
     }
 
     /**
