@@ -7,7 +7,6 @@
         <groupId>org.openeuler</groupId>
         <artifactId>gmssl</artifactId>
         <version>1.0.0</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>jca</artifactId>
