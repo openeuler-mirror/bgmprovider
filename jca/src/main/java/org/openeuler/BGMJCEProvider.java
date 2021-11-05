@@ -78,7 +78,7 @@ public class BGMJCEProvider extends Provider {
         if (!"false".equalsIgnoreCase(props.getProperty("jce.algorithmParameters"))) {
             putAlgorithmParameters(map);
         }
-        if (!"false".equalsIgnoreCase("jce.keyStore")) {
+        if (!"false".equalsIgnoreCase(props.getProperty("jce.keyStore"))) {
             putKeyStore(map);
         }
     }
