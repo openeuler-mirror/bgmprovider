@@ -248,12 +248,12 @@ enum SSLTrafficKeyDerivation implements SSLKeyDerivationGenerator {
 
             byte majorVersion = protocolVersion.major;
             byte minorVersion = protocolVersion.minor;
-            if (protocolVersion.id >= ProtocolVersion.TLS12.id) {
-                keyMaterialAlg = "SunTls12KeyMaterial";
-                hashAlg = cipherSuite.hashAlg;
-            } else if (protocolVersion.id == ProtocolVersion.GMTLS.id) {
+            if (protocolVersion.id == ProtocolVersion.GMTLS.id || context.t12WithGMCipherSuite) {
                 keyMaterialAlg = "GMTlsKeyMaterial";
                 hashAlg = H_SM3;
+            } else if (protocolVersion.id >= ProtocolVersion.TLS12.id) {
+                keyMaterialAlg = "SunTls12KeyMaterial";
+                hashAlg = cipherSuite.hashAlg;
             } else {
                 keyMaterialAlg = "SunTlsKeyMaterial";
                 hashAlg = H_NONE;

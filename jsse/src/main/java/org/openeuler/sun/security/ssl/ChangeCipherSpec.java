@@ -98,11 +98,13 @@ final class ChangeCipherSpec {
                                     "clientWriteIv" : "serverWriteIv");
             IvParameterSpec iv = (writeIv == null) ? null :
                     new IvParameterSpec(writeIv.getEncoded());
+            ProtocolVersion protocolVersion = hc.t12WithGMCipherSuite ?
+                    ProtocolVersion.GMTLS : hc.negotiatedProtocol;
             SSLWriteCipher writeCipher;
             try {
                 writeCipher = ncs.bulkCipher.createWriteCipher(
                         writeAuthenticator,
-                        hc.negotiatedProtocol, writeKey, iv,
+                        protocolVersion, writeKey, iv,
                         hc.sslContext.getSecureRandom());
             } catch (GeneralSecurityException gse) {
                 // unlikely
@@ -168,11 +170,13 @@ final class ChangeCipherSpec {
                                     "clientWriteIv" : "serverWriteIv");
             IvParameterSpec iv = (writeIv == null) ? null :
                     new IvParameterSpec(writeIv.getEncoded());
+            ProtocolVersion protocolVersion = hc.t12WithGMCipherSuite ?
+                    ProtocolVersion.GMTLS : hc.negotiatedProtocol;
             SSLWriteCipher writeCipher;
             try {
                 writeCipher = ncs.bulkCipher.createWriteCipher(
                         writeAuthenticator,
-                        hc.negotiatedProtocol, writeKey, iv,
+                        protocolVersion, writeKey, iv,
                         hc.sslContext.getSecureRandom());
             } catch (GeneralSecurityException gse) {
                 // unlikely
@@ -265,11 +269,13 @@ final class ChangeCipherSpec {
                                         "serverWriteIv" : "clientWriteIv");
                 IvParameterSpec iv = (readIv == null) ? null :
                         new IvParameterSpec(readIv.getEncoded());
+                ProtocolVersion protocolVersion = hc.t12WithGMCipherSuite ?
+                        ProtocolVersion.GMTLS : hc.negotiatedProtocol;
                 SSLReadCipher readCipher;
                 try {
                     readCipher = ncs.bulkCipher.createReadCipher(
                             readAuthenticator,
-                            hc.negotiatedProtocol, readKey, iv,
+                            protocolVersion, readKey, iv,
                             hc.sslContext.getSecureRandom());
                 } catch (GeneralSecurityException gse) {
                     // unlikely
@@ -359,11 +365,13 @@ final class ChangeCipherSpec {
                                         "serverWriteIv" : "clientWriteIv");
                 IvParameterSpec iv = (readIv == null) ? null :
                         new IvParameterSpec(readIv.getEncoded());
+                ProtocolVersion protocolVersion = hc.t12WithGMCipherSuite ?
+                        ProtocolVersion.GMTLS : hc.negotiatedProtocol;
                 SSLReadCipher readCipher;
                 try {
                     readCipher = ncs.bulkCipher.createReadCipher(
                             readAuthenticator,
-                            hc.negotiatedProtocol, readKey, iv,
+                            protocolVersion, readKey, iv,
                             hc.sslContext.getSecureRandom());
                 } catch (GeneralSecurityException gse) {
                     // unlikely

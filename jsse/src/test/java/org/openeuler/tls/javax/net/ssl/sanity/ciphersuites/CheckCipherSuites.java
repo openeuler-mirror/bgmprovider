@@ -87,7 +87,11 @@ class CheckCipherSuites {
         "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
         "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
         "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-        "TLS_EMPTY_RENEGOTIATION_INFO_SCSV"
+        "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
+        "ECC_SM4_CBC_SM3",
+        "ECDHE_SM4_CBC_SM3",
+        "ECC_SM4_GCM_SM3",
+        "ECDHE_SM4_GCM_SM3"
     };
 
     // List of enabled cipher suites when the "crypto.policy" security
@@ -115,7 +119,11 @@ class CheckCipherSuites {
         "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
         "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
         "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-        "TLS_EMPTY_RENEGOTIATION_INFO_SCSV"
+        "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
+        "ECC_SM4_CBC_SM3",
+        "ECDHE_SM4_CBC_SM3",
+        "ECC_SM4_GCM_SM3",
+        "ECDHE_SM4_GCM_SM3"
     };
 
     // List of supported cipher suites when the "crypto.policy" security

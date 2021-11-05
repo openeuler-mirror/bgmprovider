@@ -80,8 +80,10 @@ final class Finished {
         FinishedMessage(HandshakeContext context) throws IOException {
             super(context);
 
+            ProtocolVersion protocolVersion = context.t12WithGMCipherSuite ?
+                    ProtocolVersion.GMTLS : context.negotiatedProtocol;
             VerifyDataScheme vds =
-                    VerifyDataScheme.valueOf(context.negotiatedProtocol);
+                    VerifyDataScheme.valueOf(protocolVersion);
 
             byte[] vd = null;
             try {
@@ -114,8 +116,10 @@ final class Finished {
             this.verifyData = new byte[verifyDataLen];
             m.get(verifyData);
 
+            ProtocolVersion protocolVersion = context.t12WithGMCipherSuite ?
+                    ProtocolVersion.GMTLS : context.negotiatedProtocol;
             VerifyDataScheme vd =
-                    VerifyDataScheme.valueOf(context.negotiatedProtocol);
+                    VerifyDataScheme.valueOf(protocolVersion);
             byte[] myVerifyData;
             try {
                 myVerifyData = vd.createVerifyData(context, true);

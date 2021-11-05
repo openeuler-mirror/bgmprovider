@@ -134,7 +134,7 @@ final class SM2ServerKeyExchange {
                 useExplicitSigAlgorithm = false;
             } else {
                 useExplicitSigAlgorithm =
-                        shc.negotiatedProtocol.useTLS12PlusSpec();
+                        shc.negotiatedProtocol.useTLS12PlusSpec() && !shc.t12WithGMCipherSuite;
                 Signature signer = null;
                 if (useExplicitSigAlgorithm) {
                     Map.Entry<SignatureScheme, Signature> schemeAndSigner =
@@ -242,7 +242,7 @@ final class SM2ServerKeyExchange {
             }
 
             this.useExplicitSigAlgorithm =
-                    chc.negotiatedProtocol.useTLS12PlusSpec();
+                    chc.negotiatedProtocol.useTLS12PlusSpec() && !chc.t12WithGMCipherSuite;
             if (useExplicitSigAlgorithm) {
                 int ssid = Record.getInt16(m);
                 signatureScheme = SignatureScheme.valueOf(ssid);

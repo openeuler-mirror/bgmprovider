@@ -481,6 +481,10 @@ enum SSLHandshake implements SSLConsumer, HandshakeProducer {
             protocolVersion = hc.negotiatedProtocol;
         }
 
+        if (hc.t12WithGMCipherSuite) {
+            protocolVersion = ProtocolVersion.GMTLS;
+        }
+
         for (Map.Entry<SSLConsumer,
                 ProtocolVersion[]> phe : handshakeConsumers) {
             for (ProtocolVersion pv : phe.getValue()) {
@@ -524,6 +528,10 @@ enum SSLHandshake implements SSLConsumer, HandshakeProducer {
             }
         } else {
             protocolVersion = hc.negotiatedProtocol;
+        }
+
+        if (hc.t12WithGMCipherSuite) {
+            protocolVersion = ProtocolVersion.GMTLS;
         }
 
         for (Map.Entry<HandshakeProducer,

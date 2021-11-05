@@ -135,16 +135,18 @@ final class SM2KeyExchange {
         @Override
         public SSLPossession createPossession(HandshakeContext context) {
             NamedGroup preferableNamedGroup = null;
+            ProtocolVersion protocolVersion = context.t12WithGMCipherSuite ?
+                    ProtocolVersion.GMTLS : context.negotiatedProtocol;
             if ((context.clientRequestedNamedGroups != null) &&
                     (!context.clientRequestedNamedGroups.isEmpty())) {
                 preferableNamedGroup = SupportedGroups.getPreferredGroup(
-                        context.negotiatedProtocol,
+                        protocolVersion,
                         context.algorithmConstraints,
                         NamedGroupType.NAMED_GROUP_ECDHE,
                         context.clientRequestedNamedGroups);
             } else {
                 preferableNamedGroup = SupportedGroups.getPreferredGroup(
-                        context.negotiatedProtocol,
+                        protocolVersion,
                         context.algorithmConstraints,
                         NamedGroupType.NAMED_GROUP_ECDHE);
             }

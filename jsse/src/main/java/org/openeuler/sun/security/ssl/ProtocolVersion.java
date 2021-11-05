@@ -101,6 +101,10 @@ public enum ProtocolVersion {
             GMTLS
     };
 
+    static final ProtocolVersion[] PROTOCOLS_OF_GMTLS_AND_12 = new ProtocolVersion[]{
+            GMTLS, TLS12
+    };
+
     // TLS ProtocolVersion array for TLS 1.1.
     static final ProtocolVersion[] PROTOCOLS_OF_11 = new ProtocolVersion[] {
             TLS11

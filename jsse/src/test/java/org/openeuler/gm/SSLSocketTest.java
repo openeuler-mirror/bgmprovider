@@ -787,6 +787,24 @@ public class SSLSocketTest extends BaseTest {
     }
 
     @Test
+    public void testTLSGMCipherSuite() {
+        System.setProperty("bgmprovider.t12gmciphersuite", "true");
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.2"}, new String[]
+                {"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "ECC_SM4_CBC_SM3"},
+                "TLSv1.2", "ECC_SM4_CBC_SM3");
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.2"}, new String[]
+                        {"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "ECDHE_SM4_CBC_SM3"},
+                true, "TLSv1.2", "ECDHE_SM4_CBC_SM3");
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.3"}, new String[]
+                        {"TLS_AES_128_GCM_SHA256", "ECC_SM4_CBC_SM3"},
+                "TLSv1.3", "TLS_AES_128_GCM_SHA256");
+        System.setProperty("bgmprovider.t12gmciphersuite", "false");
+    }
+
+    @Test
     public void testServerRenegotiate() {
         test("TLS", null, null,
                 "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
@@ -819,6 +837,12 @@ public class SSLSocketTest extends BaseTest {
         test("TLS", null, null,
                 "TLS", new String[]{"TLSv1.2"}, new String[]{"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"},
                 Status.SESSION_RESUMPTION_START);
+        System.setProperty("bgmprovider.t12gmciphersuite", "true");
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.2"}, new String[]
+                {"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "ECC_SM4_CBC_SM3"},
+                Status.SESSION_RESUMPTION_START);
+        System.setProperty("bgmprovider.t12gmciphersuite", "false");
     }
 
     @Test
@@ -944,6 +968,14 @@ public class SSLSocketTest extends BaseTest {
         test(null, null, serverContextProtocol, serverEnableProtocols, serverEnableCipherSuites,
                 clientContextProtocol, clientEnableProtocols, clientEnableCipherSuites,
                 Status.NORMAL, KMF_ALGORITHM, clientAuthType, null, null);
+    }
+
+    private void test(String serverContextProtocol, String[] serverEnableProtocols, String[] serverEnableCipherSuites,
+                      String clientContextProtocol, String[] clientEnableProtocols, String[] clientEnableCipherSuites,
+                      boolean clientAuthType, String expectProtocol, String expectCipherSuite) {
+        test(null, null, serverContextProtocol, serverEnableProtocols, serverEnableCipherSuites,
+                clientContextProtocol, clientEnableProtocols, clientEnableCipherSuites,
+                Status.NORMAL, KMF_ALGORITHM, clientAuthType, expectProtocol, expectCipherSuite);
     }
 
     private void test(String serverContextProtocol, String[] serverEnableProtocols, String[] serverEnableCipherSuites,

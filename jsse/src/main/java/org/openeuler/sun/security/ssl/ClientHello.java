@@ -722,8 +722,21 @@ final class ClientHello {
                     "Negotiated protocol version: " + negotiatedProtocol.name);
             }
 
+            // GMCipherSuites can only be used for TLS1.2
+            if (System.getProperty("bgmprovider.t12gmciphersuite", "false").
+                    equalsIgnoreCase("true") &&
+                    negotiatedProtocol == ProtocolVersion.TLS12) {
+                List<CipherSuite> gmCipherSuites = CipherSuite.getGMCipherSuites();
+                for (CipherSuite cs : clientHello.cipherSuites) {
+                    if (gmCipherSuites.contains(cs)) {
+                        context.t12WithGMCipherSuite = true;
+                        break;
+                    }
+                }
+            }
+
             // Consume the handshake message for the specific protocol version.
-            if (negotiatedProtocol.useGMTLSSpec()) {
+            if (negotiatedProtocol.useGMTLSSpec() || context.t12WithGMCipherSuite) {
                 gmtlsHandshakeConsumer.consume(context, clientHello);
             } else if (negotiatedProtocol.useTLS13PlusSpec()) {
                 t13HandshakeConsumer.consume(context, clientHello);

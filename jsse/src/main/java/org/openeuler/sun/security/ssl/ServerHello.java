@@ -35,6 +35,7 @@ import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -795,8 +796,10 @@ final class ServerHello {
                 shc.handshakeSession.setSuite(credentials.cipherSuite);
                 shc.handshakePossessions.addAll(
                         Arrays.asList(credentials.possessions));
+                ProtocolVersion protocolVersion = shc.t12WithGMCipherSuite ?
+                        ProtocolVersion.GMTLS : shc.negotiatedProtocol;
                 shc.handshakeHash.determine(
-                        shc.negotiatedProtocol, shc.negotiatedCipherSuite);
+                        protocolVersion, shc.negotiatedCipherSuite);
 
                 // Check the incoming OCSP stapling extensions and attempt
                 // to get responses.  If the resulting stapleParams is non
@@ -835,8 +838,10 @@ final class ServerHello {
                 shc.negotiatedProtocol =
                         shc.resumingSession.getProtocolVersion();
                 shc.negotiatedCipherSuite = shc.resumingSession.getSuite();
+                ProtocolVersion protocolVersion = shc.t12WithGMCipherSuite ?
+                        ProtocolVersion.GMTLS : shc.negotiatedProtocol;
                 shc.handshakeHash.determine(
-                        shc.negotiatedProtocol, shc.negotiatedCipherSuite);
+                        protocolVersion, shc.negotiatedCipherSuite);
             }
 
             // Generate the ServerHello handshake message.
@@ -894,6 +899,18 @@ final class ServerHello {
             } else {
                 preferred = clientHello.cipherSuites;
                 proposed = shc.activeCipherSuites;
+            }
+            if (shc.t12WithGMCipherSuite) {
+                List<CipherSuite> gmPreferred = new ArrayList<>();
+                List<CipherSuite> gmCipherSuite = CipherSuite.getGMCipherSuites();
+                // Compatible with 360 GM browser.
+                // If TLS1.2 includes GMCipherSuites, use GMCipherSuites.
+                for (CipherSuite cs : preferred) {
+                    if (gmCipherSuite.contains(cs)) {
+                        gmPreferred.add(cs);
+                    }
+                }
+                preferred = gmPreferred;
             }
 
             List<CipherSuite> legacySuites = new LinkedList<>();
@@ -1200,11 +1217,15 @@ final class ServerHello {
                     "A potential protocol version downgrade attack");
             }
 
+            if (CipherSuite.getGMCipherSuites().contains(serverHello.cipherSuite)) {
+                chc.t12WithGMCipherSuite = true;
+            }
+
             // Consume the handshake message for the specific protocol version.
-            if (serverVersion.useTLS13PlusSpec()) {
-                t13HandshakeConsumer.consume(chc, serverHello);
-            } else if (serverVersion.useGMTLSSpec()) {
+            if (serverVersion.useGMTLSSpec() || chc.t12WithGMCipherSuite) {
                 gmtlsHandshakeConsumer.consume(chc, serverHello);
+            } else if (serverVersion.useTLS13PlusSpec()) {
+                t13HandshakeConsumer.consume(chc, serverHello);
             } else {
                 // TLS 1.3 key share extension may have produced client
                 // possessions for TLS 1.3 key exchanges.
@@ -1439,8 +1460,10 @@ final class ServerHello {
 
             // chc.negotiatedProtocol = serverHello.serverVersion;
             chc.negotiatedCipherSuite = serverHello.cipherSuite;
+            ProtocolVersion protocolVersion = chc.t12WithGMCipherSuite ?
+                    ProtocolVersion.GMTLS : chc.negotiatedProtocol;
             chc.handshakeHash.determine(
-                    chc.negotiatedProtocol, chc.negotiatedCipherSuite);
+                    protocolVersion, chc.negotiatedCipherSuite);
             chc.serverHelloRandom = serverHello.serverRandom;
             if (chc.negotiatedCipherSuite.keyExchange == null) {
                 throw chc.conContext.fatal(Alert.PROTOCOL_VERSION,

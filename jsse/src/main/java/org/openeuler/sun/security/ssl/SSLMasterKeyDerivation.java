@@ -98,19 +98,19 @@ enum SSLMasterKeyDerivation implements SSLKeyDerivationGenerator {
 
             byte majorVersion = protocolVersion.major;
             byte minorVersion = protocolVersion.minor;
-            if (protocolVersion.id >= ProtocolVersion.TLS12.id) {
-                masterAlg = "SunTls12MasterSecret";
-                hashAlg = cipherSuite.hashAlg;
-            } else if (protocolVersion.useGMTLSSpec()) {
+            if (protocolVersion.useGMTLSSpec() || context.t12WithGMCipherSuite) {
                 masterAlg = "GMTlsMasterSecret";
                 hashAlg = H_SM3;
+            } else if (protocolVersion.id >= ProtocolVersion.TLS12.id) {
+                masterAlg = "SunTls12MasterSecret";
+                hashAlg = cipherSuite.hashAlg;
             } else {
                 masterAlg = "SunTlsMasterSecret";
                 hashAlg = H_NONE;
             }
 
             TlsMasterSecretParameterSpec spec;
-            if (context.handshakeSession.useExtendedMasterSecret) {
+            if (context.handshakeSession.useExtendedMasterSecret && !context.t12WithGMCipherSuite) {
                 // reset to use the extended master secret algorithm
                 masterAlg = "SunTlsExtendedMasterSecret";
 

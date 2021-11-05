@@ -109,6 +109,7 @@ abstract class HandshakeContext implements ConnectionContext {
 
     ProtocolVersion                         negotiatedProtocol;
     CipherSuite                             negotiatedCipherSuite;
+    boolean                                 t12WithGMCipherSuite;
     final List<SSLPossession>               handshakePossessions;
     final List<SSLCredentials>              handshakeCredentials;
     SSLKeyDerivation                        handshakeKeyDerivation;
