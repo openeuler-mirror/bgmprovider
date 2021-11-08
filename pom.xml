@@ -16,8 +16,8 @@
     </modules>
 
     <name>gmssl</name>
-    <!-- FIXME change it to the project's website -->
-    <url>http://www.example.com</url>
+    <url>https://gitee.com/openeuler/bgmprovider</url>
+    <description>Java Support for GMTLS</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
