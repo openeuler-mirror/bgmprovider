@@ -26,10 +26,10 @@ package org.openeuler.tomcat;
 
 import org.apache.juli.logging.Log;
 import org.apache.juli.logging.LogFactory;
+import org.apache.tomcat.util.net.SSLHostConfig;
 import org.apache.tomcat.util.net.SSLHostConfigCertificate;
 import org.apache.tomcat.util.net.SSLUtilBase;
 import org.apache.tomcat.util.net.jsse.JSSEUtil;
-import org.apache.tomcat.util.net.jsse.PEMFile;
 import org.apache.tomcat.util.res.StringManager;
 
 import javax.net.ssl.CertPathTrustManagerParameters;
@@ -47,12 +47,18 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CRL;
 import java.security.cert.CRLException;
 import java.security.cert.CertPathParameters;
+import java.security.cert.CertStore;
+import java.security.cert.CertStoreParameters;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
+import java.security.cert.CollectionCertStoreParameters;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.X509CertSelector;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,12 +79,77 @@ public class GMJSSEUtil extends JSSEUtil {
     // SSLUtilBase#getStore method
     private static Method getStoreMethod;
 
-    public GMJSSEUtil(SSLHostConfigCertificate certificate) {
-        super(certificate);
+    // SSLHostConfig#getRevocationEnabled method
+    private static Method getRevocationEnabledMethod;
+
+    // SSLHostConfig#isCertificateVerificationDepthConfigured method
+    private static Method isCertificateVerificationDepthConfiguredMethod;
+
+    // SSLHostConfig
+    private final SSLHostConfig sslHostConfig;
+
+    static {
+        initReflectionMethod();
     }
 
-    public GMJSSEUtil(SSLHostConfigCertificate certificate, boolean warnOnSkip) {
-        super(certificate, warnOnSkip);
+    /**
+     * Obtain the following methods through reflection:
+     * SSLUtilBase#getStore
+     * SSLHostConfig#getRevocationEnabled
+     * SSLHostConfig#isCertificateVerificationDepthConfigured
+     */
+    private static void initReflectionMethod() {
+        getStoreMethod = getStoreMethod();
+        getRevocationEnabledMethod = getRevocationEnabledMethod();
+        isCertificateVerificationDepthConfiguredMethod = isCertificateVerificationDepthConfiguredMethod();
+    }
+
+    private static Method getStoreMethod() {
+        Method method;
+        try {
+            method = SSLUtilBase.class.getDeclaredMethod("getStore",
+                    String.class, String.class, String.class, String.class);
+        } catch (NoSuchMethodException e) {
+            log.warn("SSLUtilBase class does not define getStore method , " +
+                    "try to call the JSSEUtil getStore method.");
+            try {
+                method = JSSEUtil.class.getDeclaredMethod("getStore",
+                        String.class, String.class, String.class, String.class);
+                log.info("Call JSSEUtil getStore method success");
+            } catch (NoSuchMethodException noSuchMethodException) {
+                log.error("JSSEUtil class does not define getStore method.");
+                throw new InternalError(e);
+            }
+        }
+        method.setAccessible(true);
+        return method;
+    }
+
+    private static Method getRevocationEnabledMethod() {
+        Method method = null;
+        try {
+            method = SSLHostConfig.class.getDeclaredMethod("getRevocationEnabled");
+            method.setAccessible(true);
+        } catch (NoSuchMethodException e) {
+            log.warn("SSLHostConfig class does not define getRevocationEnabled method.");
+        }
+        return method;
+    }
+
+    private static Method isCertificateVerificationDepthConfiguredMethod() {
+        Method method = null;
+        try {
+            method = SSLHostConfig.class.getDeclaredMethod("isCertificateVerificationDepthConfigured");
+            method.setAccessible(true);
+        } catch (NoSuchMethodException e) {
+            log.warn("SSLHostConfig class does not define isCertificateVerificationDepthConfigured method.");
+        }
+        return method;
+    }
+
+    public GMJSSEUtil(SSLHostConfigCertificate certificate) {
+        super(certificate);
+        this.sslHostConfig = certificate.getSSLHostConfig();
     }
 
     @Override
@@ -324,25 +395,14 @@ public class GMJSSEUtil extends JSSEUtil {
      * @param path     The store path
      * @param pass     The store password
      */
-    static KeyStore getStore(String type, String provider, String path, String pass) throws IOException {
+    private KeyStore getStore(String type, String provider, String path, String pass) throws IOException {
         log.info(String.format("Load store : { \n" +
                 "\ttype : %s \n" +
                 "\tprovider : %s \n" +
                 "\tpath : %s \n" +
                 "}", type, provider, path));
-
-        if (getStoreMethod == null) {
-            try {
-                getStoreMethod = SSLUtilBase.class.getDeclaredMethod("getStore",
-                        String.class, String.class, String.class, String.class);
-            } catch (NoSuchMethodException e) {
-                throw new IOException(e);
-            }
-            getStoreMethod.setAccessible(true);
-        }
-
         try {
-            return (KeyStore) getStoreMethod.invoke(null, type, provider, path, pass);
+            return (KeyStore) getStoreMethod.invoke(this, type, provider, path, pass);
         } catch (InvocationTargetException | IllegalAccessException e) {
             throw new IOException(e);
         }
@@ -499,11 +559,11 @@ public class GMJSSEUtil extends JSSEUtil {
             checkTrustStoreEntries(trustStore);
             String algorithm = sslHostConfig.getTruststoreAlgorithm();
             String crlf = sslHostConfig.getCertificateRevocationListFile();
-            boolean revocationEnabled = sslHostConfig.getRevocationEnabled();
+            boolean revocationEnabled = getRevocationEnabled(sslHostConfig);
 
             if ("PKIX".equalsIgnoreCase(algorithm)) {
                 TrustManagerFactory tmf = TrustManagerFactory.getInstance(algorithm);
-                CertPathParameters params = getParameters(crlf, trustStore, revocationEnabled);
+                CertPathParameters params = getCertPathParameters(crlf, trustStore, revocationEnabled);
                 ManagerFactoryParameters mfp = new CertPathTrustManagerParameters(params);
                 tmf.init(mfp);
                 tms = tmf.getTrustManagers();
@@ -515,12 +575,55 @@ public class GMJSSEUtil extends JSSEUtil {
                     throw new CRLException(sm.getString("sslUtilBase.noCrlSupport", algorithm));
                 }
                 // Only warn if the attribute has been explicitly configured
-                if (sslHostConfig.isCertificateVerificationDepthConfigured()) {
+                if (isCertificateVerificationDepthConfigured(sslHostConfig)) {
                     log.warn(sm.getString("sslUtilBase.noVerificationDepth", algorithm));
                 }
             }
         }
         return tms;
+    }
+
+    private boolean getRevocationEnabled(SSLHostConfig sslHostConfig) {
+        if (getRevocationEnabledMethod == null) {
+            return false;
+        }
+
+        try {
+            return (boolean) getRevocationEnabledMethod.invoke(sslHostConfig);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            log.warn("Failed to call getRevocationEnabled method of SSLHostConfig");
+        }
+        return false;
+    }
+
+    private boolean isCertificateVerificationDepthConfigured(SSLHostConfig sslHostConfig) {
+        if (isCertificateVerificationDepthConfiguredMethod == null) {
+            return false;
+        }
+
+        try {
+            return (boolean) isCertificateVerificationDepthConfiguredMethod.invoke(sslHostConfig);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            log.warn("Failed to call isCertificateVerificationDepthConfigured method of SSLHostConfig");
+        }
+        return false;
+    }
+
+    private CertPathParameters getCertPathParameters(String crlf, KeyStore trustStore,
+                                                     boolean revocationEnabled) throws Exception {
+        PKIXBuilderParameters xparams =
+                new PKIXBuilderParameters(trustStore, new X509CertSelector());
+        if (crlf != null && crlf.length() > 0) {
+            Collection<? extends CRL> crls = getCRLs(crlf);
+            CertStoreParameters csp = new CollectionCertStoreParameters(crls);
+            CertStore store = CertStore.getInstance("Collection", csp);
+            xparams.addCertStore(store);
+            xparams.setRevocationEnabled(true);
+        } else {
+            xparams.setRevocationEnabled(revocationEnabled);
+        }
+        xparams.setMaxPathLength(sslHostConfig.getCertificateVerificationDepth());
+        return xparams;
     }
 
     private KeyStore loadTrustStore() throws IOException {

@@ -13,7 +13,7 @@
     <packaging>jar</packaging>
 
     <properties>
-        <tomcat.version>8.5.66</tomcat.version>
+        <tomcat.version>8.5.2</tomcat.version>
     </properties>
 
     <dependencies>
@@ -35,5 +35,22 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
