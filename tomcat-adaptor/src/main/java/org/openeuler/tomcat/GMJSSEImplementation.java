@@ -32,7 +32,13 @@ import org.apache.tomcat.util.net.SSLUtil;
 import org.apache.tomcat.util.net.jsse.JSSEImplementation;
 
 import java.lang.reflect.Field;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 
 /**
  * JSSEImplementation support GMTLS
@@ -119,6 +125,10 @@ public class GMJSSEImplementation extends JSSEImplementation {
             aliasCiphers.add(gmCipher.cipherName);
         }
     }
+    
+    public GMJSSEImplementation() {
+        super();
+    }
 
     @Override
     public SSLUtil getSSLUtil(SSLHostConfigCertificate certificate) {
@@ -147,9 +157,9 @@ public class GMJSSEImplementation extends JSSEImplementation {
             field = sslHostConfig.getClass().getDeclaredField("explicitlyRequestedProtocols");
             field.setAccessible(true);
             explicitlyRequestedProtocols = (Set<String>) field.get(sslHostConfig);
-            field.setAccessible(false);
         } catch (NoSuchFieldException | IllegalAccessException e) {
-            throw new RuntimeException("getExplicitlyRequestedProtocol failed", e);
+            log.warn("The explicitlyRequestedProtocols field is not defined in the SSLHostConfig class.");
+            explicitlyRequestedProtocols = new HashSet<>();
         }
         return explicitlyRequestedProtocols;
     }
