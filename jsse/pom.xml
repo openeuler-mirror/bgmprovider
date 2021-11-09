@@ -6,15 +6,14 @@
     <parent>
         <groupId>org.openeuler</groupId>
         <artifactId>gmssl</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.1</version>
     </parent>
 
     <artifactId>jsse</artifactId>
     <packaging>jar</packaging>
 
     <name>jsse</name>
-    <!-- FIXME change it to the project's website -->
-    <url>http://www.example.com</url>
+    <url>https://gitee.com/openeuler/bgmprovider</url>
 
     <properties>
 
