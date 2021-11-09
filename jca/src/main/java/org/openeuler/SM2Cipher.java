@@ -86,6 +86,11 @@ public class SM2Cipher extends GMCipherSpi {
         return ConstructKeys.constructKey(unWrappedKey, wrappedKeyAlgorithm, wrappedKeyType);
     }
 
+    @Override
+    public int engineGetOutputSize(int i) {
+        throw new UnsupportedOperationException("engineGetOutputSize");
+    }
+
     private static class DerSM2Engine extends SM2Engine {
         private boolean forEncryption;
         private final int digestLength;
