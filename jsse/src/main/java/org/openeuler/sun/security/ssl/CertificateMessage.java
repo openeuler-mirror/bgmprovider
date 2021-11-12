@@ -54,6 +54,8 @@ import javax.net.ssl.X509ExtendedTrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import static org.openeuler.sun.security.ssl.ClientAuthType.CLIENT_AUTH_REQUIRED;
+
+import org.openeuler.gm.GMTlsUtil;
 import org.openeuler.sun.security.ssl.ClientHello.ClientHelloMessage;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Credentials;
@@ -1719,6 +1721,9 @@ final class CertificateMessage {
                     "Failed to parse server certificates", ce);
             }
 
+            // Adjust certificates.
+            adjustCerts(x509Certs, shc);
+
             checkClientCerts(shc, x509Certs);
 
             //
@@ -1762,6 +1767,9 @@ final class CertificateMessage {
                 throw chc.conContext.fatal(Alert.BAD_CERTIFICATE,
                     "Failed to parse server certificates", ce);
             }
+
+            // Adjust certificates.
+            adjustCerts(x509Certs, chc);
 
             // Allow server certificate change in client side during
             // renegotiation after a session-resumption abbreviated
@@ -1812,6 +1820,68 @@ final class CertificateMessage {
                     popEncCerts
              ));
             chc.handshakeSession.setPeerCertificates(x509Certs);
+        }
+
+        /*
+         * The following conditions will alert bad_certificate:
+         *    1.The length of certificate chain is less than 2
+         *    2.The the SM2 encryption certificate or signing certificate does not exist in the certificate chain
+         *
+         * If the first certificate is not a signing certificate or the second certificate is not an encryption
+         * certificate, adjust the certificates.
+         */
+        private void adjustCerts(X509Certificate[] x509Certs , HandshakeContext context)
+                throws SSLException {
+            // Invalid length
+            if (x509Certs.length < 2) {
+                throw context.conContext.fatal(Alert.BAD_CERTIFICATE,
+                        String.format("The length of the %s certificate chain is less than 2", getEndPoint(context)));
+            }
+
+            // The certificate chain is ordered correctly , just return.
+            if (GMTlsUtil.isSignCert(x509Certs[0]) && GMTlsUtil.isEncCert(x509Certs[1])) {
+                return;
+            }
+
+            // The certificate chain is not ordered correctly , adjust the certificate chain.
+            boolean existSigCert = false;
+            boolean existEncCert = false;
+            X509Certificate[] newX509Certs = new X509Certificate[x509Certs.length];
+            System.arraycopy(x509Certs, 0, newX509Certs, 0, x509Certs.length);
+            int beginIndex = 2;
+            for (X509Certificate newX509Cert : newX509Certs) {
+                if (GMTlsUtil.isSignCert(newX509Cert)) {
+                    x509Certs[0] = newX509Cert;
+                    existSigCert = true;
+                } else if (GMTlsUtil.isEncCert(newX509Cert)) {
+                    x509Certs[1] = newX509Cert;
+                    existEncCert = true;
+                } else {
+                    x509Certs[beginIndex++] = newX509Cert;
+                }
+            }
+
+            // No SM2 signing certificate
+            if(!existSigCert) {
+                throw context.conContext.fatal(Alert.BAD_CERTIFICATE, String.format("The SM2 signing certificate" +
+                                " does not exist in the certificate chain of the %s", getEndPoint(context)));
+            }
+
+            // No SM2 encryption certificate
+            if(!existEncCert) {
+                throw context.conContext.fatal(Alert.BAD_CERTIFICATE, String.format("The SM2 encryption certificate" +
+                                " does not exist in the certificate chain of the %s", getEndPoint(context)));
+            }
+        }
+
+        /*
+         * client or server
+         */
+        private String getEndPoint(HandshakeContext context) {
+            if (context.sslConfig.isClientMode) {
+                return "client";
+            }
+            return "server";
         }
 
         /*

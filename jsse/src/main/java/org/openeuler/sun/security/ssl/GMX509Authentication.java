@@ -35,6 +35,7 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Map;
 
 import org.openeuler.gm.GMConstants;
+import org.openeuler.gm.GMTlsUtil;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 
@@ -180,10 +181,10 @@ enum GMX509Authentication implements SSLAuthentication {
                 }
 
                 // Choose signing and encryption
-                if (isSignCert(serverCerts[0]) && signCerts == null) {
+                if (GMTlsUtil.isSignCert(serverCerts[0]) && signCerts == null) {
                     signPrivateKey = serverPrivateKey;
                     signCerts = serverCerts;
-                } else if (isEncCert(serverCerts[0]) && encCerts == null) {
+                } else if (GMTlsUtil.isEncCert(serverCerts[0]) && encCerts == null) {
                     encPrivateKey = serverPrivateKey;
                     encCerts = serverCerts;
                 } else {
@@ -235,21 +236,6 @@ enum GMX509Authentication implements SSLAuthentication {
         // Determine whether it is a valid double certificate
         private boolean isValidDoubleCertificate(X509Certificate[] signCerts, X509Certificate[] encCerts) {
             return signCerts != null && encCerts != null;
-        }
-
-        // Determine whether it is a signed certificate
-        private boolean isSignCert(X509Certificate certificate) {
-            boolean[] keyUsage = certificate.getKeyUsage();
-            return keyUsage != null && keyUsage[0];
-        }
-
-        // Determine whether it is an encryption certificate
-        private boolean isEncCert(X509Certificate certificate) {
-            boolean[] keyUsage = certificate.getKeyUsage();
-            if (keyUsage == null) {
-                return false;
-            }
-            return keyUsage[2] || keyUsage[3] || keyUsage[4];
         }
     }
 
