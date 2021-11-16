@@ -267,4 +267,31 @@ public class GMTlsUtil {
             }
         }
     }
+
+    // Determine whether it is a signed certificate
+    public static boolean isSignCert(X509Certificate certificate) {
+        if (isCA(certificate)) {
+            return false;
+        }
+        boolean[] keyUsage = certificate.getKeyUsage();
+        return keyUsage != null && keyUsage[0];
+    }
+
+    // Determine whether it is an encryption certificate
+    public static boolean isEncCert(X509Certificate certificate) {
+        if (isCA(certificate)) {
+            return false;
+        }
+        boolean[] keyUsage = certificate.getKeyUsage();
+        if (keyUsage == null) {
+            return false;
+        }
+        return keyUsage[2] || keyUsage[3] || keyUsage[4];
+    }
+
+    // Determine whether it is a CA certificate
+    private static boolean isCA(X509Certificate certificate) {
+        return certificate.getBasicConstraints() != -1;
+    }
+
 }
