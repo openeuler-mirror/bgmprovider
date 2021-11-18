@@ -1724,8 +1724,6 @@ final class CertificateMessage {
             // Adjust certificates.
             adjustCerts(x509Certs, shc);
 
-            checkClientCerts(shc, x509Certs);
-
             //
             // update
             //
@@ -1737,6 +1735,10 @@ final class CertificateMessage {
                 System.arraycopy(x509Certs, 2, popSignCerts, 1, x509Certs.length - 2);
                 System.arraycopy(x509Certs, 2, popEncCerts, 1, x509Certs.length - 2);
             }
+
+            checkClientCerts(shc, popEncCerts);
+            checkClientCerts(shc, popSignCerts);
+
             shc.handshakeCredentials.add(new GMX509Credentials(
                     x509Certs[0].getPublicKey(),
                     popSignCerts,
@@ -1792,18 +1794,6 @@ final class CertificateMessage {
                 }
             }
 
-            // ask the trust manager to verify the chain
-            if (chc.staplingActive) {
-                // Defer the certificate check until after we've received the
-                // CertificateStatus message.  If that message doesn't come in
-                // immediately following this message we will execute the
-                // check from CertificateStatus' absent handler.
-                chc.deferredCerts = x509Certs;
-            } else {
-                // We're not doing stapling, so perform the check right now
-                checkServerCerts(chc, x509Certs);
-            }
-
             // update
             X509Certificate[] popSignCerts = new X509Certificate[x509Certs.length - 1];
             X509Certificate[] popEncCerts = new X509Certificate[x509Certs.length - 1];
@@ -1813,6 +1803,20 @@ final class CertificateMessage {
                 System.arraycopy(x509Certs, 2, popSignCerts, 1, x509Certs.length - 2);
                 System.arraycopy(x509Certs, 2, popEncCerts, 1, x509Certs.length - 2);
             }
+
+            // ask the trust manager to verify the chain
+            if (chc.staplingActive) {
+                // Defer the certificate check until after we've received the
+                // CertificateStatus message.  If that message doesn't come in
+                // immediately following this message we will execute the
+                // check from CertificateStatus' absent handler.
+                chc.deferredCerts = x509Certs;
+            } else {
+                // We're not doing stapling, so perform the check right now
+                checkServerCerts(chc, popEncCerts);
+                checkServerCerts(chc, popSignCerts);
+            }
+
             chc.handshakeCredentials.add(new GMX509Credentials(
                     x509Certs[0].getPublicKey(),
                     popSignCerts,

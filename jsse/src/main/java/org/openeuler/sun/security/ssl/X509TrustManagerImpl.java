@@ -200,9 +200,12 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
 
             // create the algorithm constraints
             boolean isExtSession = (session instanceof ExtendedSSLSession);
+            boolean t12WithGMCipherSuite =
+                    ((SSLSocketImpl) sslSocket).conContext.handshakeContext.t12WithGMCipherSuite;
             AlgorithmConstraints constraints;
             if (isExtSession &&
-                    ProtocolVersion.useTLS12PlusSpec(session.getProtocol())) {
+                    ProtocolVersion.useTLS12PlusSpec(session.getProtocol()) &&
+                        !t12WithGMCipherSuite) {
                 ExtendedSSLSession extSession = (ExtendedSSLSession)session;
                 String[] localSupportedSignAlgs =
                         extSession.getLocalSupportedSignatureAlgorithms();
@@ -255,9 +258,12 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
 
             // create the algorithm constraints
             boolean isExtSession = (session instanceof ExtendedSSLSession);
+            boolean t12WithGMCipherSuite =
+                    ((SSLEngineImpl)engine).conContext.handshakeContext.t12WithGMCipherSuite;
             AlgorithmConstraints constraints;
             if (isExtSession &&
-                    ProtocolVersion.useTLS12PlusSpec(session.getProtocol())) {
+                    ProtocolVersion.useTLS12PlusSpec(session.getProtocol()) &&
+                    !t12WithGMCipherSuite) {
                 ExtendedSSLSession extSession = (ExtendedSSLSession)session;
                 String[] localSupportedSignAlgs =
                         extSession.getLocalSupportedSignatureAlgorithms();
