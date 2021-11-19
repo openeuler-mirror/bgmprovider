@@ -235,7 +235,17 @@ class EndEntityChecker {
      */
     private void checkTLSClient(X509Certificate cert, Set<String> exts)
             throws CertificateException {
-        if (checkKeyUsage(cert, KU_SIGNATURE) == false) {
+        // For GMTLS
+        if (cert.getSigAlgName().equals("1.2.156.10197.1.501") ||
+                cert.getSigAlgName().equalsIgnoreCase("SM3withSM2")) {
+            if (checkKeyUsage(cert, KU_KEY_ENCIPHERMENT) == false &&
+                    checkKeyUsage(cert, KU_SIGNATURE) == false) {
+                throw new ValidatorException
+                        ("KeyUsage does not allow key encipherment or " +
+                                "digital signatures for ECC",
+                                ValidatorException.T_EE_EXTENSIONS, cert);
+            }
+        } else if (checkKeyUsage(cert, KU_SIGNATURE) == false) {
             throw new ValidatorException
                 ("KeyUsage does not allow digital signatures",
                 ValidatorException.T_EE_EXTENSIONS, cert);
@@ -267,7 +277,17 @@ class EndEntityChecker {
      */
     private void checkTLSServer(X509Certificate cert, String parameter,
             Set<String> exts) throws CertificateException {
-        if (KU_SERVER_ENCRYPTION.contains(parameter)) {
+        // For GMTLS
+        if (cert.getSigAlgName().equals("1.2.156.10197.1.501") ||
+                cert.getSigAlgName().equalsIgnoreCase("SM3withSM2")) {
+            if (checkKeyUsage(cert, KU_KEY_ENCIPHERMENT) == false &&
+                    checkKeyUsage(cert, KU_SIGNATURE) == false) {
+                throw new ValidatorException
+                        ("KeyUsage does not allow key encipherment or " +
+                                "digital signatures for ECC",
+                                ValidatorException.T_EE_EXTENSIONS, cert);
+            }
+        } else if (KU_SERVER_ENCRYPTION.contains(parameter)) {
             if (checkKeyUsage(cert, KU_KEY_ENCIPHERMENT) == false) {
                 throw new ValidatorException
                         ("KeyUsage does not allow key encipherment",
