@@ -78,9 +78,6 @@ public class BGMJCEProvider extends Provider {
         if (!"false".equalsIgnoreCase(props.getProperty("jce.algorithmParameters"))) {
             putAlgorithmParameters(map);
         }
-        if (!"false".equalsIgnoreCase(props.getProperty("jce.keyStore"))) {
-            putKeyStore(map);
-        }
     }
 
     private static void putSM4(Map<Object, Object> map) {
@@ -120,9 +117,5 @@ public class BGMJCEProvider extends Provider {
 
     private static void putAlgorithmParameters(Map<Object, Object> map) {
         map.put("AlgorithmParameters.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.AlgorithmParametersSpi");
-    }
-
-    private static void putKeyStore(Map<Object, Object> map) {
-        map.put("KeyStore.PKCS12", "org.bouncycastle.jcajce.provider.keystore.pkcs12.PKCS12KeyStoreSpi$BCPKCS12KeyStore");
     }
 }

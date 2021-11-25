@@ -130,7 +130,7 @@ class SSLEngineSimpleDemo {
     private static String keyStoreFile = SSLEngineSimpleDemo.class.
             getClassLoader().getResource("server.pfx").getPath();
     private static String trustStoreFile = SSLEngineSimpleDemo.class.
-            getClassLoader().getResource("server.pfx").getPath();
+            getClassLoader().getResource("server.truststore").getPath();
 
     /*
      * Main entry point for this demo.
