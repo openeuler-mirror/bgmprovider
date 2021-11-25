@@ -90,11 +90,13 @@ public class TrustStoreManagerTest extends BaseTest {
         String expectedPath = getPath("server-rsa.truststore");
         System.setProperty("javax.net.ssl.trustStore", Objects.requireNonNull(expectedPath));
         System.setProperty("javax.net.ssl.trustStoreType", PKCS12);
+        System.setProperty("javax.net.ssl.trustStorePassword", PASSWD);
         try {
-            test(expectedPath, PKCS12);
+            test(expectedPath, PKCS12, PASSWD);
         } finally {
             System.getProperties().remove("javax.net.ssl.trustStore");
             System.getProperties().remove("javax.net.ssl.trustStoreType");
+            System.getProperties().remove("javax.net.ssl.trustStorePassword");
         }
     }
 
@@ -109,11 +111,13 @@ public class TrustStoreManagerTest extends BaseTest {
         String expectedType = PKCS12;
         System.setProperty("javax.net.ssl.trustStore", arrayToString(expectedPaths));
         System.setProperty("javax.net.ssl.trustStoreType", expectedType);
+        System.setProperty("javax.net.ssl.trustStorePassword", PASSWD);
         try {
-            test(expectedPaths, expectedType);
+            test(expectedPaths, expectedType, PASSWD);
         } finally {
             System.getProperties().remove("javax.net.ssl.trustStore");
             System.getProperties().remove("javax.net.ssl.trustStoreType");
+            System.getProperties().remove("javax.net.ssl.trustStorePassword");
         }
     }
 
@@ -352,6 +356,7 @@ public class TrustStoreManagerTest extends BaseTest {
             try {
                 System.setProperty("javax.net.ssl.trustStore", arrayToString(expectedPaths));
                 System.setProperty("javax.net.ssl.trustStoreType", PKCS12);
+                System.setProperty("javax.net.ssl.trustStorePassword", PASSWD);
 
                 SSLContext sslContext;
                 if (provider != null) {
@@ -397,6 +402,7 @@ public class TrustStoreManagerTest extends BaseTest {
                 }
                 System.getProperties().remove("javax.net.ssl.trustStore");
                 System.getProperties().remove("javax.net.ssl.trustStoreType");
+                System.getProperties().remove("javax.net.ssl.trustStorePassword");
             }
         }
     }
@@ -478,6 +484,16 @@ public class TrustStoreManagerTest extends BaseTest {
         return Arrays.asList(expectedInfo, actualInfo);
     }
 
+    private List<StoreInfo> test(String[] expectedPaths, String expectedType, String expectedPassword)
+            throws Exception {
+        String[] expectedTypes = new String[expectedPaths.length];
+        Arrays.fill(expectedTypes, expectedType);
+        String[] expectedPasswords = new String[expectedPaths.length];
+        Arrays.fill(expectedPasswords, expectedPassword);
+        return test(expectedPaths, expectedTypes, expectedPasswords);
+    }
+
+
     private List<StoreInfo> test(String[] expectedPaths, String expectedType) throws Exception {
         String[] expectedTypes = new String[expectedPaths.length];
         Arrays.fill(expectedTypes, expectedType);
@@ -522,5 +538,5 @@ public class TrustStoreManagerTest extends BaseTest {
         Class<?> clazz = Class.forName(SUN_TRUSTSTOREMANAGER_CLASS_NAME);
         clearBGMKeyStoreRef(clazz);
     }
-    
+
 }
