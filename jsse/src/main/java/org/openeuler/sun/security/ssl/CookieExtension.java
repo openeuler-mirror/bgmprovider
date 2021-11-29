@@ -36,7 +36,7 @@ import org.openeuler.sun.security.ssl.SSLExtension.ExtensionConsumer;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SSLExtension.SSLExtensionSpec;
 import org.openeuler.sun.security.ssl.ServerHello.ServerHelloMessage;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 public class CookieExtension {
     static final HandshakeProducer chNetworkProducer =

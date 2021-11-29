@@ -26,8 +26,6 @@
 
 package org.openeuler;
 
-import com.sun.crypto.provider.SunJCE;
-
 import java.security.Key;
 import java.security.PublicKey;
 import java.security.PrivateKey;

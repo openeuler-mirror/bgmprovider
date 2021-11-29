@@ -44,7 +44,7 @@ import org.openeuler.sun.security.ssl.SSLExtension.SSLExtensionSpec;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerValue;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * Pack of "status_request" and "status_request_v2" extensions.

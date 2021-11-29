@@ -25,6 +25,8 @@
 
 package org.openeuler.sun.security.ssl;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.Permission;
@@ -33,38 +35,92 @@ import java.security.PrivilegedAction;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
-import sun.security.ssl.Krb5Proxy;
-
 /**
  * A helper class for Kerberos APIs.
  */
 public final class Krb5Helper {
 
-    private Krb5Helper() { }
+    private Krb5Helper() {
+    }
 
     // loads Krb5Proxy implementation class if available
     private static final String IMPL_CLASS =
-        "sun.security.ssl.krb5.Krb5ProxyImpl";
+            "sun.security.ssl.krb5.Krb5ProxyImpl";
 
-    private static final Krb5Proxy proxy =
-        AccessController.doPrivileged(new PrivilegedAction<Krb5Proxy>() {
-            @Override
-            public Krb5Proxy run() {
-                try {
-                    Class<?> c = Class.forName(IMPL_CLASS, true, null);
-                    return (Krb5Proxy)c.newInstance();
-                } catch (ClassNotFoundException cnf) {
-                    return null;
-                } catch (InstantiationException e) {
-                    throw new AssertionError(e);
-                } catch (IllegalAccessException e) {
-                    throw new AssertionError(e);
+    private static final Class<?> proxyClass =
+            AccessController.doPrivileged(new PrivilegedAction<Class<?>>() {
+                @Override
+                public Class<?> run() {
+                    try {
+                        return Class.forName(IMPL_CLASS, true, null);
+                    } catch (ClassNotFoundException cnf) {
+                        return null;
+                    }
                 }
-            }});
+            });
+
+    private static Object proxy;
+    private static Method getClientSubject;
+    private static Method getServerSubject;
+    private static Method getServiceCreds;
+    private static Method getServerPrincipalName;
+    private static Method getPrincipalHostName;
+    private static Method getServicePermission;
+    private static Method isRelated;
+    private static Exception exception;
+
+    static {
+        AccessController.doPrivileged(new PrivilegedAction<Object>() {
+            @Override
+            public Object run() {
+                try {
+                    init();
+                } catch (InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+                    exception = e;
+                }
+                return null;
+            }
+        });
+    }
+
+    private static void init() throws InstantiationException,
+            IllegalAccessException, NoSuchMethodException {
+        if (proxyClass == null) {
+            return;
+        }
+        proxy = proxyClass.newInstance();
+        getClientSubject = proxyClass.getDeclaredMethod("getClientSubject",
+                AccessControlContext.class);
+        getServerSubject = proxyClass.getDeclaredMethod("getServerSubject",
+                AccessControlContext.class);
+        getServiceCreds = proxyClass.getDeclaredMethod("getServiceCreds",
+                AccessControlContext.class);
+        getServerPrincipalName = proxyClass.getDeclaredMethod("getServerPrincipalName",
+                Object.class);
+        getPrincipalHostName = proxyClass.getDeclaredMethod("getPrincipalHostName",
+                Principal.class);
+        getServicePermission = proxyClass.getDeclaredMethod("getServicePermission",
+                String.class, String.class);
+        isRelated = proxyClass.getDeclaredMethod("isRelated",
+                Subject.class, Principal.class);
+    }
 
     private static void ensureAvailable() {
-        if (proxy == null)
+        if (exception != null) {
+            throw new AssertionError(exception);
+        }
+
+        if (proxy == null) {
             throw new AssertionError("Kerberos should be available");
+        }
+    }
+
+    private static Object invoke(Method method, Object... args) {
+        try {
+            return method.invoke(proxy, args);
+        } catch (InvocationTargetException | IllegalAccessException e) {
+            throw new AssertionError(e);
+        }
     }
 
     /**
@@ -73,7 +129,7 @@ public final class Krb5Helper {
     public static Subject getClientSubject(AccessControlContext acc)
             throws LoginException {
         ensureAvailable();
-        return proxy.getClientSubject(acc);
+        return (Subject) invoke(getClientSubject, acc);
     }
 
     /**
@@ -82,7 +138,7 @@ public final class Krb5Helper {
     public static Subject getServerSubject(AccessControlContext acc)
             throws LoginException {
         ensureAvailable();
-        return proxy.getServerSubject(acc);
+        return (Subject) invoke(getServerSubject, acc);
     }
 
     /**
@@ -91,7 +147,7 @@ public final class Krb5Helper {
     public static Object getServiceCreds(AccessControlContext acc)
             throws LoginException {
         ensureAvailable();
-        return proxy.getServiceCreds(acc);
+        return invoke(getServiceCreds, acc);
     }
 
     /**
@@ -99,7 +155,7 @@ public final class Krb5Helper {
      */
     public static String getServerPrincipalName(Object serviceCreds) {
         ensureAvailable();
-        return proxy.getServerPrincipalName(serviceCreds);
+        return (String) invoke(getServerPrincipalName, serviceCreds);
     }
 
     /**
@@ -107,16 +163,16 @@ public final class Krb5Helper {
      */
     public static String getPrincipalHostName(Principal principal) {
         ensureAvailable();
-        return proxy.getPrincipalHostName(principal);
+        return (String) invoke(getPrincipalHostName, principal);
     }
 
     /**
      * Returns a ServicePermission for the principal name and action.
      */
     public static Permission getServicePermission(String principalName,
-            String action) {
+                                                  String action) {
         ensureAvailable();
-        return proxy.getServicePermission(principalName, action);
+        return (Permission) invoke(getServicePermission, principalName, action);
     }
 
     /**
@@ -124,6 +180,6 @@ public final class Krb5Helper {
      */
     public static boolean isRelated(Subject subject, Principal princ) {
         ensureAvailable();
-        return proxy.isRelated(subject, princ);
+        return (boolean) invoke(isRelated, subject, princ);
     }
 }

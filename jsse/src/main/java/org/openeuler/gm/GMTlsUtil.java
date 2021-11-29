@@ -294,4 +294,27 @@ public class GMTlsUtil {
         return certificate.getBasicConstraints() != -1;
     }
 
+    public static int javaVersion() {
+        return majorVersionFromJavaSpecificationVersion();
+    }
+
+    private static int majorVersionFromJavaSpecificationVersion() {
+        return majorVersion(System.getProperty("java.specification.version", "1.6"));
+    }
+
+    private static int majorVersion(final String javaSpecVersion) {
+        final String[] components = javaSpecVersion.split("\\.");
+        final int[] version = new int[components.length];
+        for (int i = 0; i < components.length; i++) {
+            version[i] = Integer.parseInt(components[i]);
+        }
+
+        if (version[0] == 1) {
+            assert version[1] >= 6;
+            return version[1];
+        } else {
+            return version[0];
+        }
+    }
+
 }

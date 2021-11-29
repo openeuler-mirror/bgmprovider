@@ -43,7 +43,7 @@ import org.openeuler.sun.security.ssl.DHKeyExchange.DHECredentials;
 import org.openeuler.sun.security.ssl.DHKeyExchange.DHEPossession;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * Pack of the "ClientKeyExchange" handshake message.
