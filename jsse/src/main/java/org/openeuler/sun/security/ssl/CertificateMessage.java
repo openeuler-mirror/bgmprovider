@@ -1597,6 +1597,10 @@ final class CertificateMessage {
 
         private X509Certificate[] getLocalCerts(X509Certificate[] sigCertChain,
                                                 X509Certificate[] encCertChain) {
+            if (sigCertChain.length == 0 || encCertChain.length == 0) {
+                return new X509Certificate[0];
+            }
+
             X509Certificate[] localCerts = new X509Certificate[sigCertChain.length + 1];
             localCerts[0] = sigCertChain[0];
             localCerts[1] = encCertChain[0];
@@ -1618,15 +1622,16 @@ final class CertificateMessage {
             }
 
             // Report to the server if no appropriate cert was found.
+            // For GMTLS, uses an empty cert chain.
             if (gmx509Possession == null) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.fine(
                             "No X.509 certificate for client authentication, " +
-                                    "send a no_certificate alert");
+                                    "use empty Certificate message instead");
                 }
-
-                chc.conContext.warning(Alert.NO_CERTIFICATE);
-                return null;
+                gmx509Possession = new GMX509Possession(null,
+                        new X509Certificate[0], null, new X509Certificate[0]
+                );
             }
 
             chc.handshakeSession.setLocalPrivateKey(
