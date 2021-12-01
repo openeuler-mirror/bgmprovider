@@ -307,12 +307,6 @@ public class GMJSSEUtil extends JSSEUtil {
         String[] keyPasswords = getCertificateKeyPasswords(keyAliases.length, false);
         String[] storeProviders = getCertificateKeystoreProviders(keyStoreCount);
 
-        // If keystore count is 1 , just load the keystore.
-        if (keyStoreCount == 1) {
-            return getStore(storeTypes[0], storeProviders[0],
-                    storeFiles[0], storePasswords[0]);
-        }
-
         // Create a empty dest keystore.
         KeyStore destKeyStore = loadEmptyKeyStore(storeTypes[0]);
         // Use the first key password or store password as the dest key password.
