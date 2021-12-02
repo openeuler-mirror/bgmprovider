@@ -31,7 +31,7 @@ import java.text.MessageFormat;
 import java.util.*;
 
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * SSL/TLS extensions in a handshake message.

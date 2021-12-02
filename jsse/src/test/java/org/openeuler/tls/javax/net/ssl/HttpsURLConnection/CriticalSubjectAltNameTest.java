@@ -87,6 +87,7 @@ class CriticalSubjectAltName implements HostnameVerifier {
     static String pathToStores = CriticalSubjectAltName.class.getClassLoader()
         .getResource("tls/javax/net/ssl/HttpsURLConnection").getPath();
     static String keyStoreFile = "crisubn.jks";
+    static String keyStoreType = "jks";
     static String trustStoreFile = "trusted.jks";
     static String passwd = "passphrase";
 
@@ -187,6 +188,7 @@ class CriticalSubjectAltName implements HostnameVerifier {
 
         System.setProperty("javax.net.ssl.keyStore", keyFilename);
         System.setProperty("javax.net.ssl.keyStorePassword", passwd);
+        System.setProperty("javax.net.ssl.keyStoreType", keyStoreType);
         System.setProperty("javax.net.ssl.trustStore", trustFilename);
         System.setProperty("javax.net.ssl.trustStorePassword", passwd);
 

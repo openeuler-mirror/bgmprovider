@@ -109,6 +109,7 @@ public class BGMJCEProvider extends Provider {
         map.put("KeyFactory.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi$EC");
         map.put("Alg.Alias.KeyFactory.SM2", "EC");
         map.put("Alg.Alias.KeyFactory.1.2.840.10045.2.1", "EC");
+        map.put("Alg.Alias.KeyFactory.OID.1.2.840.10045.2.1", "EC");
     }
 
     private static void putKeyPairGenerator(Map<Object, Object> map) {
@@ -117,5 +118,7 @@ public class BGMJCEProvider extends Provider {
 
     private static void putAlgorithmParameters(Map<Object, Object> map) {
         map.put("AlgorithmParameters.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.AlgorithmParametersSpi");
+        map.put("Alg.Alias.AlgorithmParameters.1.2.840.10045.2.1", "EC");
+        map.put("Alg.Alias.AlgorithmParameters.OID.1.2.840.10045.2.1", "EC");
     }
 }

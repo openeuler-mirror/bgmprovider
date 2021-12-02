@@ -52,7 +52,7 @@ import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Credentials;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Possession;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 import sun.security.util.KeyUtil;
 
 /**

@@ -27,20 +27,16 @@
 package org.openeuler.sun.security.ssl;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.security.AccessControlContext;
-import java.security.AccessController;
 import java.security.Principal;
-import java.security.PrivilegedAction;
 import java.text.MessageFormat;
 import java.util.Locale;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SNIHostName;
 import javax.net.ssl.StandardConstants;
 
-import sun.security.ssl.KrbClientKeyExchangeHelper;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 import org.openeuler.sun.security.ssl.KrbKeyExchange.KrbPremasterSecret;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 
@@ -72,40 +68,11 @@ final class KrbClientKeyExchange {
     private static final
             class KrbClientKeyExchangeMessage extends HandshakeMessage {
 
-        private static final String KRB5_CLASS_NAME =
-                "sun.security.ssl.krb5.KrbClientKeyExchangeHelperImpl";
-
-        private static final Class<?> krb5Class = AccessController.doPrivileged(
-                new PrivilegedAction<Class<?>>() {
-                    @Override
-                    public Class<?> run() {
-                        try {
-                            return Class.forName(KRB5_CLASS_NAME, true, null);
-                        } catch (ClassNotFoundException cnf) {
-                            return null;
-                        }
-                    }
-                });
-
-        private static KrbClientKeyExchangeHelper newKrb5Instance() {
-            if (krb5Class != null) {
-                try {
-                    return (KrbClientKeyExchangeHelper)krb5Class.
-                            getDeclaredConstructor().newInstance();
-                } catch (InstantiationException | IllegalAccessException |
-                        NoSuchMethodException | InvocationTargetException e) {
-                    throw new AssertionError(e);
-                }
-            }
-            return null;
-        }
-
         private final KrbClientKeyExchangeHelper krb5Helper;
 
         private KrbClientKeyExchangeMessage(HandshakeContext context) {
             super(context);
-            if ((krb5Helper = newKrb5Instance()) == null)
-                throw new IllegalStateException("Kerberos is unavailable");
+            krb5Helper = new KrbClientKeyExchangeHelper();
         }
 
         KrbClientKeyExchangeMessage(HandshakeContext context,

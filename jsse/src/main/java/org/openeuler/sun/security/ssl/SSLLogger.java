@@ -43,7 +43,7 @@ import java.util.logging.Level;
 import java.util.Map;
 
 import sun.security.action.GetPropertyAction;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 import sun.security.x509.*;
 
 /**

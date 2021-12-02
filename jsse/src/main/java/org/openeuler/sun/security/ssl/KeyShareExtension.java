@@ -48,7 +48,7 @@ import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroupType;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * Pack of the "key_share" extensions.

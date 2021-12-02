@@ -53,7 +53,7 @@ import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Credentials;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Possession;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * Pack of the ServerKeyExchange handshake message.

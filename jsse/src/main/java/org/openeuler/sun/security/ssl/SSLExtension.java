@@ -33,7 +33,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Locale;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 enum SSLExtension implements SSLStringizer {
     // Extensions defined in RFC 6066

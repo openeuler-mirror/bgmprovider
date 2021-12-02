@@ -37,7 +37,7 @@ import org.openeuler.sun.security.ssl.X509Authentication.X509Credentials;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Possession;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Possession;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * Pack of the CertificateVerify handshake message.

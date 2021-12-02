@@ -38,7 +38,7 @@ import java.util.Locale;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Possession;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * Pack of the ServerKeyExchange handshake message.

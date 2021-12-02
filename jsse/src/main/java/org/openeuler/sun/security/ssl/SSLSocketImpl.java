@@ -48,7 +48,7 @@ import javax.net.ssl.SSLProtocolException;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
-import sun.misc.SharedSecrets;
+import org.openeuler.sun.misc.SharedSecrets;
 
 /**
  * Implementation of an SSL socket.
@@ -1482,7 +1482,7 @@ public final class SSLSocketImpl
             return;
         }
 
-        String originalHostname = SharedSecrets.getJavaNetAccess().getOriginalHostName(inetAddress);
+        String originalHostname = SharedSecrets.getOriginalHostName(inetAddress);
         if (originalHostname != null && !originalHostname.isEmpty()) {
 
             this.peerHost = originalHostname;

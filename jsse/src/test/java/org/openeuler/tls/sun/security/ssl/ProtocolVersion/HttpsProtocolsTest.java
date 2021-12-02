@@ -69,6 +69,7 @@ class HttpsProtocols implements HostnameVerifier {
     static String pathToStores = HttpsProtocols.class.getClassLoader()
         .getResource("tls/javax/net/ssl/etc").getPath();
     static String keyStoreFile = "keystore";
+    static String keyStoreType = "jks";
     static String trustStoreFile = "truststore";
     static String passwd = "passphrase";
 
@@ -205,6 +206,7 @@ class HttpsProtocols implements HostnameVerifier {
 
         System.setProperty("javax.net.ssl.keyStore", keyFilename);
         System.setProperty("javax.net.ssl.keyStorePassword", passwd);
+        System.setProperty("javax.net.ssl.keyStoreType", keyStoreType);
         System.setProperty("javax.net.ssl.trustStore", trustFilename);
         System.setProperty("javax.net.ssl.trustStorePassword", passwd);
 

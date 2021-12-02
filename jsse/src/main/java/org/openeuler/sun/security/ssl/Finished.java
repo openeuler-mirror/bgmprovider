@@ -50,7 +50,7 @@ import org.openeuler.sun.security.ssl.SSLBasicKeyDerivation.SecretSizeSpec;
 import org.openeuler.sun.security.ssl.SSLCipher.SSLReadCipher;
 import org.openeuler.sun.security.ssl.SSLCipher.SSLWriteCipher;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * Pack of the Finished handshake message.

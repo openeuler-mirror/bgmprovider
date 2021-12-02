@@ -42,7 +42,7 @@ import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Possession;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 
 /**
  * Pack of the "ClientKeyExchange" handshake message.
