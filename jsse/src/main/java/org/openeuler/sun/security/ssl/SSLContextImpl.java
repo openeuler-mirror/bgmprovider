@@ -1231,9 +1231,12 @@ final class AbstractTrustManagerWrapper extends X509ExtendedTrustManager
                                     identityAlg, checkClientTrusted);
             }
 
+            boolean t12WithGMCipherSuite =
+                    ((SSLSocketImpl)sslSocket).conContext.handshakeContext.t12WithGMCipherSuite;
             // try the best to check the algorithm constraints
             AlgorithmConstraints constraints;
-            if (ProtocolVersion.useTLS12PlusSpec(session.getProtocol())) {
+            if (ProtocolVersion.useTLS12PlusSpec(session.getProtocol()) &&
+                    !t12WithGMCipherSuite) {
                 if (session instanceof ExtendedSSLSession) {
                     ExtendedSSLSession extSession =
                                     (ExtendedSSLSession)session;
@@ -1271,9 +1274,12 @@ final class AbstractTrustManagerWrapper extends X509ExtendedTrustManager
                                     identityAlg, checkClientTrusted);
             }
 
+            boolean t12WithGMCipherSuite =
+                    ((SSLEngineImpl)engine).conContext.handshakeContext.t12WithGMCipherSuite;
             // try the best to check the algorithm constraints
             AlgorithmConstraints constraints;
-            if (ProtocolVersion.useTLS12PlusSpec(session.getProtocol())) {
+            if (ProtocolVersion.useTLS12PlusSpec(session.getProtocol()) &&
+                    !t12WithGMCipherSuite) {
                 if (session instanceof ExtendedSSLSession) {
                     ExtendedSSLSession extSession =
                                     (ExtendedSSLSession)session;
