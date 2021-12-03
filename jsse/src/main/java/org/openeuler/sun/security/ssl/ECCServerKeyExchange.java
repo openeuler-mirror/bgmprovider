@@ -60,6 +60,11 @@ final class ECCServerKeyExchange {
         // signature bytes, none-null as no anonymous ECC key exchange.
         private final byte[] paramsSignature;
 
+        // TLSv1.2 + GM cipher needs to send SignatureScheme id.
+        private final boolean useExplicitSigAlgorithm;
+
+        // the signature algorithm used by this ServerKeyExchange message
+        private final SignatureScheme signatureScheme;
 
         private ECCServerKeyExchangeMessage(HandshakeContext handshakeContext,
                                             GMX509Possession gmx509Possession)
@@ -69,6 +74,18 @@ final class ECCServerKeyExchange {
             // This happens in server side only.
             ServerHandshakeContext shc =
                     (ServerHandshakeContext)handshakeContext;
+
+            this.useExplicitSigAlgorithm = shc.t12WithGMCipherSuite;
+            if (useExplicitSigAlgorithm) {
+                if (shc.peerRequestedSignatureSchemes == null ||
+                        !shc.peerRequestedSignatureSchemes.contains(SignatureScheme.ECDSA_SM3)) {
+                    throw shc.conContext.fatal(Alert.INTERNAL_ERROR,
+                            "No supported signature algorithm");
+                }
+                this.signatureScheme = SignatureScheme.ECDSA_SM3;
+            } else {
+                this.signatureScheme = null;
+            }
 
             byte[] signature;
             try {
@@ -98,8 +115,6 @@ final class ECCServerKeyExchange {
             ClientHandshakeContext chc =
                     (ClientHandshakeContext)handshakeContext;
 
-            this.paramsSignature = Record.getBytes16(m);
-
             GMX509Credentials gmx509Credentials = null;
             for (SSLCredentials cd : chc.handshakeCredentials) {
                 if (cd instanceof GMX509Credentials) {
@@ -112,6 +127,30 @@ final class ECCServerKeyExchange {
                 throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
                     "No ECC credentials negotiated for server key exchange");
             }
+
+            this.useExplicitSigAlgorithm = chc.t12WithGMCipherSuite;
+            if (useExplicitSigAlgorithm) {
+                int ssid = Record.getInt16(m);
+                signatureScheme = SignatureScheme.valueOf(ssid);
+
+                // If the signatureScheme is null or signatureScheme is not ECDSA_SM3
+                if (signatureScheme == null || signatureScheme != SignatureScheme.ECDSA_SM3) {
+                    throw chc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
+                            "Invalid signature algorithm (" + ssid +
+                                    ") used in ECC ServerKeyExchange handshake message");
+                }
+
+                if (!chc.localSupportedSignAlgs.contains(signatureScheme)) {
+                    throw chc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
+                            "Unsupported signature algorithm (" +
+                                    signatureScheme.name +
+                                    ") used in ECC ServerKeyExchange handshake message");
+                }
+            }else {
+                signatureScheme = null;
+            }
+
+            this.paramsSignature = Record.getBytes16(m);
 
             try {
                 Signature signer = Signature.getInstance("SM3withSM2");
@@ -137,32 +176,61 @@ final class ECCServerKeyExchange {
 
         @Override
         int messageLength() {
-            return 2 + this.paramsSignature.length;
+            int sigLen = 2 + this.paramsSignature.length;;
+            if (this.useExplicitSigAlgorithm) {
+                sigLen += SignatureScheme.sizeInRecord();
+            }
+            return sigLen;
         }
 
         @Override
         void send(HandshakeOutStream hos) throws IOException {
+            if (this.useExplicitSigAlgorithm) {
+                hos.putInt16(signatureScheme.id);
+            }
             hos.putBytes16(paramsSignature);
         }
 
         @Override
         public String toString() {
-            MessageFormat messageFormat = new MessageFormat(
-                "\"ECC ServerKeyExchange\": '{'\n" +
-                "  \"digital signature\":  '{'\n" +
-                "    \"signature\": '{'\n" +
-                "{0}\n" +
-                "    '}',\n" +
-                "  '}'\n" +
-                "'}'",
-                Locale.ENGLISH);
+            if (useExplicitSigAlgorithm) {
+                MessageFormat messageFormat = new MessageFormat(
+                        "\"ECDH ServerKeyExchange\": '{'\n" +
+                                "  \"digital signature\":  '{'\n" +
+                                "    \"signature algorithm\": \"{0}\"\n" +
+                                "    \"signature\": '{'\n" +
+                                "{1}\n" +
+                                "    '}',\n" +
+                                "  '}'\n" +
+                                "'}'",
+                        Locale.ENGLISH);
 
-            HexDumpEncoder hexEncoder = new HexDumpEncoder();
-            Object[] messageFields = {
-                Utilities.indent(
-                        hexEncoder.encodeBuffer(paramsSignature), "      ")
-            };
-            return messageFormat.format(messageFields);
+                HexDumpEncoder hexEncoder = new HexDumpEncoder();
+                Object[] messageFields = {
+                        signatureScheme.name,
+                        Utilities.indent(
+                                hexEncoder.encodeBuffer(paramsSignature), "      ")
+                };
+                return messageFormat.format(messageFields);
+
+            } else {
+                MessageFormat messageFormat = new MessageFormat(
+                        "\"ECC ServerKeyExchange\": '{'\n" +
+                                "  \"digital signature\":  '{'\n" +
+                                "    \"signature\": '{'\n" +
+                                "{0}\n" +
+                                "    '}',\n" +
+                                "  '}'\n" +
+                                "'}'",
+                        Locale.ENGLISH);
+
+                HexDumpEncoder hexEncoder = new HexDumpEncoder();
+                Object[] messageFields = {
+                        Utilities.indent(
+                                hexEncoder.encodeBuffer(paramsSignature), "      ")
+                };
+                return messageFormat.format(messageFields);
+            }
         }
 
         /*

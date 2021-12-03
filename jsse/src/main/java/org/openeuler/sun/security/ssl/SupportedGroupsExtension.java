@@ -285,7 +285,7 @@ final class SupportedGroupsExtension {
                             ProtocolVersion.PROTOCOLS_TO_12),
 
         // sm2p256v1
-        SM2P256V1   (0xFF03, "sm2p256v1", "1.2.156.10197.1.301", false,
+        SM2P256V1   (0x00F9, "sm2p256v1", "1.2.156.10197.1.301", false,
                               ProtocolVersion.PROTOCOLS_OF_GMTLS_AND_12);
 
         final int id;               // hash + signature

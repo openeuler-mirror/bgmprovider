@@ -110,7 +110,7 @@ enum SSLMasterKeyDerivation implements SSLKeyDerivationGenerator {
             }
 
             TlsMasterSecretParameterSpec spec;
-            if (context.handshakeSession.useExtendedMasterSecret && !context.t12WithGMCipherSuite) {
+            if (context.handshakeSession.useExtendedMasterSecret && !protocolVersion.useGMTLSSpec()) {
                 // reset to use the extended master secret algorithm
                 masterAlg = "SunTlsExtendedMasterSecret";
 

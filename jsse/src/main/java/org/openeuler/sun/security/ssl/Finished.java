@@ -631,7 +631,7 @@ final class Finished {
             FinishedMessage fm = new FinishedMessage(shc);
 
             // Change write cipher and delivery ChangeCipherSpec message.
-            ChangeCipherSpec.t10Producer.produce(shc, message);
+            ChangeCipherSpec.gmtlsProducer.produce(shc, message);
 
             if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                 SSLLogger.fine(
