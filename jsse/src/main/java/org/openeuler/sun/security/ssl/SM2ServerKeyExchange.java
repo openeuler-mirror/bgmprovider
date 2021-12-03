@@ -82,12 +82,9 @@ final class SM2ServerKeyExchange {
         // the signature algorithm used by this ServerKeyExchange message
         private final SignatureScheme signatureScheme;
 
-        private final int curveId;
-
         SM2ServerKeyExchangeMessage(
                 HandshakeContext handshakeContext) throws IOException {
             super(handshakeContext);
-            this.curveId = 23;
 
             // This happens in server side only.
             ServerHandshakeContext shc =
@@ -133,45 +130,36 @@ final class SM2ServerKeyExchange {
                 signatureScheme = null;
                 useExplicitSigAlgorithm = false;
             } else {
-                useExplicitSigAlgorithm =
-                        shc.negotiatedProtocol.useTLS12PlusSpec() && !shc.t12WithGMCipherSuite;
-                Signature signer = null;
+                useExplicitSigAlgorithm = shc.t12WithGMCipherSuite;
                 if (useExplicitSigAlgorithm) {
-                    Map.Entry<SignatureScheme, Signature> schemeAndSigner =
-                            SignatureScheme.getSignerOfPreferableAlgorithm(
-                                shc.peerRequestedSignatureSchemes,
-                                new X509Authentication.X509Possession(
-                                gmx509Possession.popSignPrivateKey, gmx509Possession.popSignCerts),
-                                shc.negotiatedProtocol);
-                    if (schemeAndSigner == null) {
-                        // Unlikely, the credentials generator should have
-                        // selected the preferable signature algorithm properly.
+                    if (shc.peerRequestedSignatureSchemes == null ||
+                            !shc.peerRequestedSignatureSchemes.contains(SignatureScheme.ECDSA_SM3)) {
                         throw shc.conContext.fatal(Alert.INTERNAL_ERROR,
                                 "No supported signature algorithm for " +
-                                gmx509Possession.popSignPrivateKey.getAlgorithm() +
-                                "  key");
-                    } else {
-                        signatureScheme = schemeAndSigner.getKey();
-                        signer = schemeAndSigner.getValue();
+                                        gmx509Possession.popSignPrivateKey.getAlgorithm() +
+                                        "  key");
                     }
+                    signatureScheme = SignatureScheme.ECDSA_SM3;
                 } else {
                     signatureScheme = null;
-                    try {
-                        signer = getSignature(
-                                gmx509Possession.popSignPrivateKey.getAlgorithm(),
-                                gmx509Possession.popSignPrivateKey);
-                    } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-                        throw shc.conContext.fatal(Alert.INTERNAL_ERROR,
-                            "Unsupported signature algorithm: " +
-                            gmx509Possession.popSignPrivateKey.getAlgorithm(), e);
-                    }
                 }
 
-                byte[] signature = null;
+                Signature signer;
+                try {
+                    signer = getSignature(
+                            gmx509Possession.popSignPrivateKey.getAlgorithm(),
+                            gmx509Possession.popSignPrivateKey);
+                } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+                    throw shc.conContext.fatal(Alert.INTERNAL_ERROR,
+                            "Unsupported signature algorithm: " +
+                                    gmx509Possession.popSignPrivateKey.getAlgorithm(), e);
+                }
+
+                byte[] signature;
                 try {
                     updateSignature(signer, shc.clientHelloRandom.randomBytes,
                             shc.serverHelloRandom.randomBytes,
-                            curveId, publicPoint);
+                            namedGroup.id, publicPoint);
                     signature = signer.sign();
                 } catch (SignatureException ex) {
                     throw shc.conContext.fatal(Alert.INTERNAL_ERROR,
@@ -197,11 +185,11 @@ final class SM2ServerKeyExchange {
                     "Unsupported ECCurveType: " + curveType);
             }
 
-            this.curveId = Record.getInt16(m);
-            this.namedGroup = NamedGroup.SM2P256V1;
-            if (curveId != 23) {
+            int namedGroupId = Record.getInt16(m);
+            this.namedGroup = NamedGroup.valueOf(namedGroupId);
+            if (namedGroup != NamedGroup.SM2P256V1) {
                 throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
-                    "Unknown named group ID: " + curveId);
+                        "Unknown named group ID: " + namedGroupId);
             }
 
             if (!SupportedGroups.isSupported(namedGroup)) {
@@ -241,12 +229,11 @@ final class SM2ServerKeyExchange {
                 return;
             }
 
-            this.useExplicitSigAlgorithm =
-                    chc.negotiatedProtocol.useTLS12PlusSpec() && !chc.t12WithGMCipherSuite;
+            this.useExplicitSigAlgorithm = chc.t12WithGMCipherSuite;
             if (useExplicitSigAlgorithm) {
                 int ssid = Record.getInt16(m);
-                signatureScheme = SignatureScheme.valueOf(ssid);
-                if (signatureScheme == null) {
+                this.signatureScheme = SignatureScheme.valueOf(ssid);
+                if (this.signatureScheme != SignatureScheme.ECDSA_SM3) {
                     throw chc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
                         "Invalid signature algorithm (" + ssid +
                         ") used in SM2 ServerKeyExchange handshake message");
@@ -259,39 +246,28 @@ final class SM2ServerKeyExchange {
                         ") used in SM2 ServerKeyExchange handshake message");
                 }
             } else {
-                signatureScheme = null;
+                this.signatureScheme = null;
             }
 
             // read and verify the signature
             paramsSignature = Record.getBytes16(m);
+
             Signature signer;
-            if (useExplicitSigAlgorithm) {
-                try {
-                    signer = signatureScheme.getVerifier(
-                            x509Credentials.popSignPublicKey);
-                } catch (NoSuchAlgorithmException | InvalidKeyException |
-                        InvalidAlgorithmParameterException nsae) {
-                    throw chc.conContext.fatal(Alert.INTERNAL_ERROR,
-                        "Unsupported signature algorithm: " +
-                        signatureScheme.name, nsae);
-                }
-            } else {
-                try {
-                    signer = getSignature(
-                            x509Credentials.popSignPublicKey.getAlgorithm(),
-                            x509Credentials.popSignPublicKey);
-                } catch (NoSuchAlgorithmException | InvalidKeyException e) {
-                    throw chc.conContext.fatal(Alert.INTERNAL_ERROR,
-                        "Unsupported signature algorithm: " +
-                        x509Credentials.popSignPublicKey.getAlgorithm(), e);
-                }
+            try {
+                signer = getSignature(
+                        x509Credentials.popSignPublicKey.getAlgorithm(),
+                        x509Credentials.popSignPublicKey);
+            } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+                throw chc.conContext.fatal(Alert.INTERNAL_ERROR,
+                    "Unsupported signature algorithm: " +
+                    x509Credentials.popSignPublicKey.getAlgorithm(), e);
             }
 
             try {
                 updateSignature(signer,
                         chc.clientHelloRandom.randomBytes,
                         chc.serverHelloRandom.randomBytes,
-                        curveId, publicPoint);
+                        namedGroup.id, publicPoint);
 
                 if (!signer.verify(paramsSignature)) {
                     throw chc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
@@ -324,7 +300,7 @@ final class SM2ServerKeyExchange {
         @Override
         public void send(HandshakeOutStream hos) throws IOException {
             hos.putInt8(CURVE_NAMED_CURVE);
-            hos.putInt16(23);
+            hos.putInt16(namedGroup.id);
             hos.putBytes8(publicPoint);
             if (paramsSignature != null) {
                 if (useExplicitSigAlgorithm) {
