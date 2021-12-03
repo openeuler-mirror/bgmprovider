@@ -276,16 +276,29 @@ final class CertificateRequest {
      */
     static final class GMTlsCertificateRequestMessage extends HandshakeMessage {
         final byte[] types;                 // certificate types
+        final int[] algorithmIds;           // supported signature algorithms
         final List<byte[]> authorities;     // certificate authorities
 
         GMTlsCertificateRequestMessage(HandshakeContext handshakeContext,
-                X509Certificate[] trustedCerts, KeyExchange keyExchange) {
+                X509Certificate[] trustedCerts, KeyExchange keyExchange,
+                List<SignatureScheme> signatureSchemes) throws IOException {
             super(handshakeContext);
 
             this.authorities = new ArrayList<>(trustedCerts.length);
             for (X509Certificate cert : trustedCerts) {
                 X500Principal x500Principal = cert.getSubjectX500Principal();
                 authorities.add(x500Principal.getEncoded());
+            }
+
+            // TLSv1.2 needs to produce algorithmIds.
+            if (handshakeContext.t12WithGMCipherSuite) {
+                this.algorithmIds = new int[signatureSchemes.size()];
+                int i = 0;
+                for (SignatureScheme scheme : signatureSchemes) {
+                    algorithmIds[i++] = scheme.id;
+                }
+            } else {
+                this.algorithmIds = null;
             }
 
             this.types = ClientCertificateType.CERT_TYPES;
@@ -295,15 +308,60 @@ final class CertificateRequest {
                 ByteBuffer m) throws IOException {
             super(handshakeContext);
 
+            // GMTLS
             // struct {
             //     ClientCertificateType certificate_types<1..2^8-1>;
             //     DistinguishedName certificate_authorities<0..2^16-1>;
             // } CertificateRequest;
-            if (m.remaining() < 4) {
+
+            // TLSv1.2 + GM cipher suites
+            // struct {
+            //     ClientCertificateType certificate_types<1..2^8-1>;
+            //     SignatureAndHashAlgorithm
+            //       supported_signature_algorithms<2..2^16-2>;
+            //     DistinguishedName certificate_authorities<0..2^16-1>;
+            // } CertificateRequest;
+
+            // certificate_authorities
+            int minLen = handshakeContext.t12WithGMCipherSuite ? 8 : 4;
+            if (m.remaining() < minLen) {
                 throw handshakeContext.conContext.fatal(Alert.ILLEGAL_PARAMETER,
                     "Incorrect CertificateRequest message: no sufficient data");
             }
             this.types = Record.getBytes8(m);
+
+            // supported_signature_algorithms
+            // TLSv1.2 needs to consumer algorithmIds.
+            if (minLen == 8) {
+                if (m.remaining() < 6) {
+                    throw handshakeContext.conContext.fatal(Alert.ILLEGAL_PARAMETER,
+                            "Invalid CertificateRequest handshake message: " +
+                                    "no sufficient data");
+                }
+
+                byte[] algs = Record.getBytes16(m);
+                if (algs == null || algs.length == 0 || (algs.length & 0x01) != 0) {
+                    throw handshakeContext.conContext.fatal(Alert.ILLEGAL_PARAMETER,
+                            "Invalid CertificateRequest handshake message: " +
+                                    "incomplete signature algorithms");
+                }
+
+                this.algorithmIds = new int[(algs.length >> 1)];
+                for (int i = 0, j = 0; i < algs.length;) {
+                    byte hash = algs[i++];
+                    byte sign = algs[i++];
+                    algorithmIds[j++] = ((hash & 0xFF) << 8) | (sign & 0xFF);
+                }
+            } else {
+                this.algorithmIds = null;
+            }
+
+            // certificate_authorities
+            if (m.remaining() < 2) {
+                throw handshakeContext.conContext.fatal(Alert.ILLEGAL_PARAMETER,
+                        "Invalid CertificateRequest handshake message: " +
+                                "no sufficient data");
+            }
 
             int listLen = Record.getInt16(m);
             if (listLen > m.remaining()) {
@@ -346,6 +404,9 @@ final class CertificateRequest {
         @Override
         public int messageLength() {
             int len = 1 + types.length + 2;
+            if (algorithmIds != null) {
+                len += (algorithmIds.length << 1) + 2;
+            }
             for (byte[] encoded : authorities) {
                 len += encoded.length + 2;
             }
@@ -355,6 +416,13 @@ final class CertificateRequest {
         @Override
         public void send(HandshakeOutStream hos) throws IOException {
             hos.putBytes8(types);
+
+            if (algorithmIds != null) {
+                hos.putInt16(algorithmIds.length << 1);
+                for (int algorithmId : algorithmIds) {
+                    hos.putInt16(algorithmId);
+                }
+            }
 
             int listLen = 0;
             for (byte[] encoded : authorities) {
@@ -369,29 +437,62 @@ final class CertificateRequest {
 
         @Override
         public String toString() {
-            MessageFormat messageFormat = new MessageFormat(
-                    "\"CertificateRequest\": '{'\n" +
-                    "  \"certificate types\": {0}\n" +
-                    "  \"certificate authorities\": {1}\n" +
-                    "'}'",
-                    Locale.ENGLISH);
+            if (algorithmIds != null) {
+                MessageFormat messageFormat = new MessageFormat(
+                        "\"CertificateRequest\": '{'\n" +
+                                "  \"certificate types\": {0}\n" +
+                                "  \"supported signature algorithms\": {1}\n" +
+                                "  \"certificate authorities\": {2}\n" +
+                                "'}'",
+                        Locale.ENGLISH);
 
-            List<String> typeNames = new ArrayList<>(types.length);
-            for (byte type : types) {
-                typeNames.add(ClientCertificateType.nameOf(type));
+                List<String> typeNames = new ArrayList<>(types.length);
+                for (byte type : types) {
+                    typeNames.add(ClientCertificateType.nameOf(type));
+                }
+
+                List<String> algorithmNames = new ArrayList<>(algorithmIds.length);
+                for (int algorithmId : algorithmIds) {
+                    algorithmNames.add(SignatureScheme.nameOf(algorithmId));
+                }
+
+                List<String> authorityNames = new ArrayList<>(authorities.size());
+                for (byte[] encoded : authorities) {
+                    X500Principal principal = new X500Principal(encoded);
+                    authorityNames.add(principal.toString());
+                }
+                Object[] messageFields = {
+                        typeNames,
+                        algorithmNames,
+                        authorityNames
+                };
+
+                return messageFormat.format(messageFields);
+            } else {
+                MessageFormat messageFormat = new MessageFormat(
+                        "\"CertificateRequest\": '{'\n" +
+                                "  \"certificate types\": {0}\n" +
+                                "  \"certificate authorities\": {1}\n" +
+                                "'}'",
+                        Locale.ENGLISH);
+
+                List<String> typeNames = new ArrayList<>(types.length);
+                for (byte type : types) {
+                    typeNames.add(ClientCertificateType.nameOf(type));
+                }
+
+                List<String> authorityNames = new ArrayList<>(authorities.size());
+                for (byte[] encoded : authorities) {
+                    X500Principal principal = new X500Principal(encoded);
+                    authorityNames.add(principal.toString());
+                }
+                Object[] messageFields = {
+                        typeNames,
+                        authorityNames
+                };
+
+                return messageFormat.format(messageFields);
             }
-
-            List<String> authorityNames = new ArrayList<>(authorities.size());
-            for (byte[] encoded : authorities) {
-                X500Principal principal = new X500Principal(encoded);
-                authorityNames.add(principal.toString());
-            }
-            Object[] messageFields = {
-                typeNames,
-                authorityNames
-            };
-
-            return messageFormat.format(messageFields);
         }
     }
 
@@ -576,6 +677,20 @@ final class CertificateRequest {
             chc.handshakeProducers.put(SSLHandshake.CERTIFICATE.id,
                     SSLHandshake.CERTIFICATE);
 
+            // TLSv1.2 need to consumer algorithmIds.
+            if (chc.t12WithGMCipherSuite) {
+                List<SignatureScheme> sss = new LinkedList<>();
+                for (int id : crm.algorithmIds) {
+                    SignatureScheme ss = SignatureScheme.valueOf(id);
+                    if (ss != null) {
+                        sss.add(ss);
+                    }
+                }
+                chc.peerRequestedSignatureSchemes = sss;
+                chc.peerRequestedCertSignSchemes = sss;     // use the same schemes
+                chc.handshakeSession.setPeerSupportedSignatureAlgorithms(sss);
+            }
+
             chc.peerSupportedAuthorities = crm.getAuthorities();
 
             // GMTLS only supports SM2 now , may need to be modified later.
@@ -602,10 +717,28 @@ final class CertificateRequest {
             // The producing happens in server side only.
             ServerHandshakeContext shc = (ServerHandshakeContext)context;
 
+            List<SignatureScheme> localSupportedSignAlgs = null;
+            // TLSv1.2 need to use localSupportedSignAlgs to produce algorithmIds.
+            if (shc.t12WithGMCipherSuite) {
+                if (shc.localSupportedSignAlgs == null) {
+                    shc.localSupportedSignAlgs =
+                            SignatureScheme.getSupportedAlgorithms(
+                                    shc.sslConfig,
+                                    shc.algorithmConstraints, shc.activeProtocols);
+                }
+
+                if (shc.localSupportedSignAlgs == null ||
+                        shc.localSupportedSignAlgs.isEmpty()) {
+                    throw shc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
+                            "No supported signature algorithm");
+                }
+                localSupportedSignAlgs = shc.localSupportedSignAlgs;
+            }
+
             X509Certificate[] caCerts =
                     shc.sslContext.getX509TrustManager().getAcceptedIssuers();
             GMTlsCertificateRequestMessage crm = new GMTlsCertificateRequestMessage(
-                    shc, caCerts, shc.negotiatedCipherSuite.keyExchange);
+                    shc, caCerts, shc.negotiatedCipherSuite.keyExchange, localSupportedSignAlgs);
             if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                 SSLLogger.fine(
                     "Produced CertificateRequest handshake message", crm);
