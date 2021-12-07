@@ -487,6 +487,9 @@ final class CertificateVerify {
      * The CertificateVerify handshake message (GMTLS).
      */
     static final class GMTlsCertificateVerifyMessage extends HandshakeMessage {
+        // the signature algorithm
+        private final SignatureScheme signatureScheme;
+
         // signature bytes
         private final byte[] signature;
 
@@ -514,6 +517,13 @@ final class CertificateVerify {
             }
 
             this.signature = temproary;
+
+            // TLSv1.2 need to produce signatureScheme.
+            if (chc.t12WithGMCipherSuite) {
+                this.signatureScheme = SignatureScheme.ECDSA_SM3;
+            } else {
+                this.signatureScheme = null;
+            }
         }
 
         GMTlsCertificateVerifyMessage(HandshakeContext context,
@@ -523,6 +533,7 @@ final class CertificateVerify {
             // This happens in server side only.
             ServerHandshakeContext shc = (ServerHandshakeContext)context;
 
+            //  GMTLS
             //  digitally-signed struct {
             //    select(SignatureAlgorithm) {
             //        case anonymous: struct { };
@@ -535,13 +546,41 @@ final class CertificateVerify {
             //            opaque sm3_hash[32];
             //    };
             //  } Signature;
-            if (m.remaining() < 2) {
+
+            // TLSv1.2 + GM cipher suites
+            // struct {
+            //     SignatureAndHashAlgorithm algorithm;
+            //     opaque signature<0..2^16-1>;
+            // } DigitallySigned;
+
+            int minLen = shc.t12WithGMCipherSuite ? 4 : 2;
+            if (m.remaining() < minLen) {
                 throw shc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
                     "Invalid CertificateVerify message: no sufficient data");
             }
 
+            // SignatureAndHashAlgorithm algorithm
+            if (minLen == 4) {
+                int ssid = Record.getInt16(m);
+                this.signatureScheme = SignatureScheme.valueOf(ssid);
+                if (signatureScheme != SignatureScheme.ECDSA_SM3) {
+                    throw shc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
+                            "Invalid signature algorithm (" + ssid +
+                                    ") used in CertificateVerify handshake message");
+                }
+
+                if (!shc.localSupportedSignAlgs.contains(signatureScheme)) {
+                    throw shc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
+                            "Unsupported signature algorithm (" +
+                                    signatureScheme.name +
+                                    ") used in CertificateVerify handshake message");
+                }
+
+            } else {
+                this.signatureScheme = null;
+            }
+
             // read and verify the signature
-            this.signature = Record.getBytes16(m);
             GMX509Credentials gmx509Credentials = null;
             for (SSLCredentials cd : shc.handshakeCredentials) {
                 if (cd instanceof GMX509Credentials) {
@@ -556,6 +595,7 @@ final class CertificateVerify {
                     "No X509 credentials negotiated for CertificateVerify");
             }
 
+            this.signature = Record.getBytes16(m);
             String algorithm = gmx509Credentials.popSignPublicKey.getAlgorithm();
             try {
                 Signature signer =
@@ -583,31 +623,59 @@ final class CertificateVerify {
 
         @Override
         public int messageLength() {
+            if (signatureScheme != null) {
+                //  2: signature algorithm
+                // +2: length of signature
+                return 4 + signature.length;
+            }
             return 2 + signature.length;    //  2: length of signature
         }
 
         @Override
         public void send(HandshakeOutStream hos) throws IOException {
+            if (signatureScheme != null) {
+                hos.putInt16(signatureScheme.id);
+            }
             hos.putBytes16(signature);
         }
 
         @Override
         public String toString() {
-            MessageFormat messageFormat = new MessageFormat(
-                    "\"CertificateVerify\": '{'\n" +
-                    "  \"signature\": '{'\n" +
-                    "{0}\n" +
-                    "  '}'\n" +
-                    "'}'",
-                    Locale.ENGLISH);
+            if (signatureScheme != null) {
+                MessageFormat messageFormat = new MessageFormat(
+                        "\"CertificateVerify\": '{'\n" +
+                                "  \"signature algorithm\": {0}\n" +
+                                "  \"signature\": '{'\n" +
+                                "{1}\n" +
+                                "  '}'\n" +
+                                "'}'",
+                        Locale.ENGLISH);
 
-            HexDumpEncoder hexEncoder = new HexDumpEncoder();
-            Object[] messageFields = {
-                Utilities.indent(
-                        hexEncoder.encodeBuffer(signature), "    ")
-            };
+                HexDumpEncoder hexEncoder = new HexDumpEncoder();
+                Object[] messageFields = {
+                        signatureScheme.name,
+                        Utilities.indent(
+                                hexEncoder.encodeBuffer(signature), "    ")
+                };
 
-            return messageFormat.format(messageFields);
+                return messageFormat.format(messageFields);
+            } else  {
+                MessageFormat messageFormat = new MessageFormat(
+                        "\"CertificateVerify\": '{'\n" +
+                                "  \"signature\": '{'\n" +
+                                "{0}\n" +
+                                "  '}'\n" +
+                                "'}'",
+                        Locale.ENGLISH);
+
+                HexDumpEncoder hexEncoder = new HexDumpEncoder();
+                Object[] messageFields = {
+                        Utilities.indent(
+                                hexEncoder.encodeBuffer(signature), "    ")
+                };
+
+                return messageFormat.format(messageFields);
+            }
         }
 
         /*
