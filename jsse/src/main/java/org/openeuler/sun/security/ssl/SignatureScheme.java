@@ -146,6 +146,12 @@ enum SignatureScheme {
                                     ProtocolVersion.PROTOCOLS_TO_12),
     RSA_MD5                 (0x0101, "rsa_md5", "MD5withRSA",
                                     "RSA", 511,
+                                    ProtocolVersion.PROTOCOLS_TO_12),
+
+    // SM3
+    ECDSA_SM3               (0x0703, "ecdsa_sm3", "SM3withSM2",
+                                    "SM2",
+                                    NamedGroup.SM2P256V1,
                                     ProtocolVersion.PROTOCOLS_TO_12);
 
     final int id;                       // hash + signature

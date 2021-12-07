@@ -1217,7 +1217,8 @@ final class ServerHello {
                     "A potential protocol version downgrade attack");
             }
 
-            if (CipherSuite.getGMCipherSuites().contains(serverHello.cipherSuite)) {
+            if (serverVersion == ProtocolVersion.TLS12 &&
+                    CipherSuite.getGMCipherSuites().contains(serverHello.cipherSuite)) {
                 chc.t12WithGMCipherSuite = true;
             }
 
