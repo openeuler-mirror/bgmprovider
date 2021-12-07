@@ -137,7 +137,7 @@ enum SSLExtension implements SSLStringizer {
     // extensions defined in RFC 4492 (ECC)
     CH_SUPPORTED_GROUPS     (0x000A, "supported_groups",
                                 SSLHandshake.CLIENT_HELLO,
-                                ProtocolVersion.PROTOCOLS_TO_13,
+                                ProtocolVersion.PROTOCOLS_TO_13_AND_GMTLS,
                                 SupportedGroupsExtension.chNetworkProducer,
                                 SupportedGroupsExtension.chOnLoadConsumer,
                                 null,

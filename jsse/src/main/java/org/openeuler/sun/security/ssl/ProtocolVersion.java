@@ -87,6 +87,11 @@ public enum ProtocolVersion {
             TLS13, TLS12, TLS11, TLS10, SSL30
         };
 
+    // TLS ProtocolVersion array for TLS 1.3 and previous versions and GMTLS.
+    static final ProtocolVersion[] PROTOCOLS_TO_13_AND_GMTLS = new ProtocolVersion[] {
+            TLS13, TLS12, TLS11, TLS10, SSL30, GMTLS
+    };
+
     // No protocol version specified.
     static final ProtocolVersion[] PROTOCOLS_OF_NONE = new ProtocolVersion[] {
             NONE

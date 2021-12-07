@@ -58,6 +58,7 @@ final class SM2ClientKeyExchange {
      */
     private static final
             class SM2ClientKeyExchangeMessage extends HandshakeMessage {
+        private static final byte CURVE_NAMED_CURVE = (byte)0x03;
         private final byte[] encodedPoint;
 
         SM2ClientKeyExchangeMessage(HandshakeContext handshakeContext,
@@ -88,9 +89,12 @@ final class SM2ClientKeyExchange {
         SM2ClientKeyExchangeMessage(HandshakeContext handshakeContext,
                 ByteBuffer m) throws IOException {
             super(handshakeContext);
-            m.get();
-            m.get();
-            m.get();
+            // skip curve type
+            Record.getInt8(m);
+
+            // skip NamedGroup id
+            Record.getInt16(m);
+
             if (m.remaining() != 0) {       // explicit PublicValueEncoding
                 this.encodedPoint = Record.getBytes8(m);
             } else {
@@ -114,8 +118,8 @@ final class SM2ClientKeyExchange {
 
         @Override
         public void send(HandshakeOutStream hos) throws IOException {
-            hos.putInt8(3);
-            hos.putInt16(23);
+            hos.putInt8(CURVE_NAMED_CURVE);
+            hos.putInt16(NamedGroup.SM2P256V1.id);
             if (encodedPoint != null && encodedPoint.length != 0) {
                 hos.putBytes8(encodedPoint);
             }
