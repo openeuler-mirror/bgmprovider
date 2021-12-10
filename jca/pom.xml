@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.openeuler</groupId>
         <artifactId>gmssl</artifactId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </parent>
 
     <artifactId>jca</artifactId>
@@ -37,12 +37,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
-                <!-- 绑定source插件到Maven的生命周期,并在生命周期后执行绑定的source的goal -->
                 <executions>
                     <execution>
-                        <!-- 绑定source插件到Maven的生命周期 -->
                         <phase>verify</phase>
-                        <!--在生命周期后执行绑定的source插件的goals -->
                         <goals>
                             <goal>jar-no-fork</goal>
                         </goals>
