@@ -87,6 +87,9 @@ public class GMJSSEUtil extends JSSEUtil {
     // SSLHostConfig#isCertificateVerificationDepthConfigured method
     private static Method isCertificateVerificationDepthConfiguredMethod;
 
+    // SSLUtilBase#getCRLsMethod method
+    private static Method getCRLsMethod;
+
     // SSLHostConfig
     private final SSLHostConfig sslHostConfig;
 
@@ -104,6 +107,7 @@ public class GMJSSEUtil extends JSSEUtil {
         getStoreMethod = getStoreMethod();
         getRevocationEnabledMethod = getRevocationEnabledMethod();
         isCertificateVerificationDepthConfiguredMethod = isCertificateVerificationDepthConfiguredMethod();
+        getCRLsMethod = getCRLsMethod();
     }
 
     private static Method getStoreMethod() {
@@ -120,7 +124,7 @@ public class GMJSSEUtil extends JSSEUtil {
                 log.info("Call JSSEUtil getStore method success");
             } catch (NoSuchMethodException noSuchMethodException) {
                 log.error("JSSEUtil class does not define getStore method.");
-                throw new InternalError(e);
+                throw new InternalError(noSuchMethodException);
             }
         }
         method.setAccessible(true);
@@ -147,6 +151,23 @@ public class GMJSSEUtil extends JSSEUtil {
             log.warn("SSLHostConfig class does not define isCertificateVerificationDepthConfigured method.");
         }
         return method;
+    }
+
+    private static Method getCRLsMethod() {
+        Method getCRLsMethod;
+        try {
+            getCRLsMethod = SSLUtilBase.class.getDeclaredMethod("getCRLs", String.class);
+        } catch (NoSuchMethodException e) {
+            log.warn("SSLUtilBase class does not define getCRLs method");
+            try {
+                getCRLsMethod = JSSEUtil.class.getDeclaredMethod("getCRLs", String.class);
+            } catch (NoSuchMethodException noSuchMethodException) {
+                log.error("JSSEUtil class does not define getCRLs method");
+                throw new InternalError(noSuchMethodException);
+            }
+        }
+        getCRLsMethod.setAccessible(true);
+        return getCRLsMethod;
     }
 
     public GMJSSEUtil(SSLHostConfigCertificate certificate) {
@@ -696,7 +717,7 @@ public class GMJSSEUtil extends JSSEUtil {
         PKIXBuilderParameters xparams =
                 new PKIXBuilderParameters(trustStore, new X509CertSelector());
         if (crlf != null && crlf.length() > 0) {
-            Collection<? extends CRL> crls = getCRLs(crlf);
+            Collection<? extends CRL> crls = getCertCRLs(crlf);
             CertStoreParameters csp = new CollectionCertStoreParameters(crls);
             CertStore store = CertStore.getInstance("Collection", csp);
             xparams.addCertStore(store);
@@ -706,6 +727,12 @@ public class GMJSSEUtil extends JSSEUtil {
         }
         xparams.setMaxPathLength(sslHostConfig.getCertificateVerificationDepth());
         return xparams;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Collection<? extends CRL> getCertCRLs(String crlf)
+            throws InvocationTargetException, IllegalAccessException {
+        return (Collection<? extends CRL>) getCRLsMethod.invoke(this, crlf);
     }
 
     private KeyStore loadTrustStore() throws IOException {
