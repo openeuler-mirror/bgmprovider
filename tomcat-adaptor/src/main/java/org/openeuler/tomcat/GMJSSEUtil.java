@@ -70,6 +70,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class GMJSSEUtil extends JSSEUtil {
     private static final Log log = LogFactory.getLog(GMJSSEUtil.class);
@@ -182,8 +183,8 @@ public class GMJSSEUtil extends JSSEUtil {
      * @param keyAlias certificateKeyAlias
      */
     private KeyManager[] getGMKeyManagers(String keyAlias) throws Exception {
-        String[] keyAliases = keyAlias.split(",");
-
+        String[] keyAliases = Arrays.stream(keyAlias.split(","))
+                .map(s->s.trim()).toArray(String[]::new);;
         // Load keystore
         KeyStore ks;
         if (usePEMFile()) {
@@ -536,7 +537,8 @@ public class GMJSSEUtil extends JSSEUtil {
         String[] certificateKeyFiles;
 
         if (!isEmpty(certificate.getCertificateKeyFile())) {
-            certificateKeyFiles = certificate.getCertificateKeyFile().split(",");
+            certificateKeyFiles = Arrays.stream(certificate.getCertificateKeyFile()
+                    .split(",")).map(s->s.trim()).toArray(String[]::new);
         } else {
             // If certificateKeyFile is empty , use certificateFile as certificateKeyFile.
             certificateKeyFiles = getCertificateFiles();
@@ -587,7 +589,7 @@ public class GMJSSEUtil extends JSSEUtil {
         if (isEmpty && checkEmpty) {
             throw new IllegalArgumentException("The " + attrKey + " cannot be null.");
         }
-        return isEmpty ? new String[0] : attrValue.split(",");
+        return isEmpty ? new String[0] : Arrays.stream(attrValue.split(",")).map(s->s.trim()).toArray(String[]::new);
     }
 
     private String[] getAttrValues(String attrKey, String attrValue, int count) {
