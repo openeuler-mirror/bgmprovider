@@ -130,4 +130,45 @@ public class KeyStoreFileTest extends TomcatBaseTest {
             log.warn("Tomcat" + TestUtils.getTomcatVersion() + "version does not support TLSv1.3");
         }
     }
+
+    @Test
+    public void testCertAttributesWithExtraSpaces() throws Throwable {
+        System.setProperty("javax.net.debug", "all");
+        Cert[] certs = new Cert[]{Cert.KEYSTORE_WITH_EXTRA_SPACES};
+        TestParameters serverParameters = new TestParameters.Builder()
+                .protocols(new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"})
+                .ciphers(new String[]{"TLS_AES_128_GCM_SHA256",
+                        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", "ECC_SM4_CBC_SM3"})
+                .certs(certs)
+                .builder();
+
+        // GMTLS
+        TestParameters clientParameters = new TestParameters.Builder()
+                .protocols(new String[]{"GMTLS"})
+                .expectedCipher("ECC_SM4_CBC_SM3")
+                .builder();
+        testConnect(serverParameters, clientParameters);
+
+        // TLSv1.2
+        TestParameters.Builder builder = new TestParameters.Builder()
+                .protocols(new String[]{"TLSv1.2"})
+                .expectedCipher("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
+        if (TestUtils.getTomcatVersion().equals(TomcatVersion.V9_0_0_M3)) {
+            builder.ciphers(new String[]{"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+                    "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"});
+        }
+        clientParameters = builder.builder();
+        testConnect(serverParameters, clientParameters);
+
+        // TLSv1.3
+        if (TestUtils.isSupportTLS13()) {
+            clientParameters = new TestParameters.Builder()
+                    .protocols(new String[]{"TLSv1.3"})
+                    .expectedCipher("TLS_AES_128_GCM_SHA256")
+                    .builder();
+            testConnect(serverParameters, clientParameters);
+        } else {
+            log.warn("Tomcat" + TestUtils.getTomcatVersion() + "version does not support TLSv1.3");
+        }
+    }
 }

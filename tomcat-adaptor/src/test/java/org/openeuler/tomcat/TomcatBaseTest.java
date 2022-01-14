@@ -248,7 +248,9 @@ public abstract class TomcatBaseTest {
             out = new ByteChunk();
             connection = connectUrl(url, out, READ_TIMEOUT, clientParameters);
             Assert.assertTrue(out.equals(MESSAGE));
-        } finally {
+        } catch (Exception e){
+            e.printStackTrace();
+        }finally {
             if (out != null) {
                 out.recycle();
             }

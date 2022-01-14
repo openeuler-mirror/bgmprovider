@@ -25,6 +25,8 @@
 package org.openeuler.tomcat;
 
 import org.apache.tomcat.util.net.SSLHostConfigCertificate.Type;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 public enum Cert {
     KEYSTORE_SM2(Type.EC, "server-sm2-sig,server-sm2-enc",
@@ -45,6 +47,12 @@ public enum Cert {
                     "keystore/server-sm2-sig.keystore", "keystore/server-sm2-enc.keystore", "keystore/server-rsa.keystore"
             }),
             "PKCS12"),
+    KEYSTORE_WITH_EXTRA_SPACES(Type.UNDEFINED, " server-sm2-sig , server-sm2-enc , server-rsa ",
+            "12345678",
+            Arrays.stream(TestUtils.getPaths(new String[]{
+                    "keystore/server-sm2-sig.keystore", "keystore/server-sm2-enc.keystore", "keystore/server-rsa.keystore"
+            }).split(",")).map(x->"  "+x+"  ").collect(Collectors.joining(",")),
+            " PKCS12 "),
 
     PEM_SM2(Type.UNDEFINED, "server-sm2-sig,server-sm2-enc",
             "12345678",
