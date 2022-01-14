@@ -83,6 +83,16 @@ public enum Cert {
                     "pem/server-sm2-sig-cert.pem", "pem/server-sm2-enc-cert.pem", "pem/server-rsa-cert.pem"
             }),
             null
+    ),
+    PEM_WITH_EXTRA_SPACES(Type.UNDEFINED, " server-sm2-sig , server-sm2-enc , server-rsa ",
+            "12345678",
+            Arrays.stream(TestUtils.getPaths(new String[]{
+                    "pem/server-sm2-sig-key.pem", "pem/server-sm2-enc-key.pem", "pem/server-rsa-key.pem"
+            }).split(",")).map(x->"  "+x+"  ").collect(Collectors.joining(",")),
+            Arrays.stream(TestUtils.getPaths(new String[]{
+                    "pem/server-sm2-sig-cert.pem", "pem/server-sm2-enc-cert.pem", "pem/server-rsa-cert.pem"
+            }).split(",")).map(x->"  "+x+"  ").collect(Collectors.joining(",")),
+            null
     );
 
     private final FileType fileType;

@@ -118,4 +118,37 @@ public class PemFileTest extends TomcatBaseTest {
             log.warn("Tomcat" + TestUtils.getTomcatVersion() + "version does not support TLSv1.3");
         }
     }
+
+    @Test
+    public void testPemAttributesWithExtraSpaces() throws Throwable {
+        System.setProperty("javax.net.debug", "all");
+        Cert[] certs = new Cert[]{Cert.PEM_WITH_EXTRA_SPACES};
+        TestParameters serverParameters = new TestParameters.Builder()
+                .protocols(new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"})
+                .ciphers(new String[]{"TLS_AES_128_GCM_SHA256",
+                        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", "ECC_SM4_CBC_SM3"})
+                .certs(certs)
+                .builder();
+        TestParameters clientParameters = new TestParameters.Builder()
+                .protocols(new String[]{"GMTLS"})
+                .expectedCipher("ECC_SM4_CBC_SM3")
+                .builder();
+        testConnect(serverParameters, clientParameters);
+
+        clientParameters = new TestParameters.Builder()
+                .protocols(new String[]{"TLSv1.2"})
+                .expectedCipher("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384")
+                .builder();
+        testConnect(serverParameters, clientParameters);
+
+        if (TestUtils.isSupportTLS13()) {
+            clientParameters = new TestParameters.Builder()
+                    .protocols(new String[]{"TLSv1.3"})
+                    .expectedCipher("TLS_AES_128_GCM_SHA256")
+                    .builder();
+            testConnect(serverParameters, clientParameters);
+        } else {
+            log.warn("Tomcat" + TestUtils.getTomcatVersion() + "version does not support TLSv1.3");
+        }
+    }
 }
