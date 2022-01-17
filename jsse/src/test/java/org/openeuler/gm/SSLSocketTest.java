@@ -178,4 +178,31 @@ public class SSLSocketTest extends SSLSocketTestBase {
                 "TLS", new String[]{"TLSv1.3"}, new String[]{"TLS_AES_128_GCM_SHA256"}, "PKIX");
     }
 
+    /**
+     * By default, the server does not enable TLSv1.2 protocol support for GM cipher suites.
+     * The server should skip the GM cipher suites when selecting the cipher suite.
+     * When testing, put the GM cipher suites in the front.
+     */
+    @Test
+    public void testTLS12SkipGMCipher() {
+        System.setProperty("javax.net.debug", "all");
+        // Test TLSv1.2 protocol support for GM cipher suites is not enabled.
+        test("TLS", new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"},
+                new String[]{"ECC_SM4_CBC_SM3", "TLS_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+                "TLS", new String[]{"TLSv1.2"},
+                new String[]{"ECC_SM4_CBC_SM3", "TLS_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+                "TLSv1.2", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
+
+        // Test TLSv1.2 protocol support for GM cipher suites is enabled.
+        try {
+            System.setProperty("bgmprovider.t12gmciphersuite", "true");
+            test("TLS", new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"},
+                    new String[]{"ECC_SM4_CBC_SM3", "TLS_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+                    "TLS", new String[]{"TLSv1.2"},
+                    new String[]{"ECC_SM4_CBC_SM3", "TLS_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},
+                    "TLSv1.2", "ECC_SM4_CBC_SM3");
+        } finally {
+            System.setProperty("bgmprovider.t12gmciphersuite", "false");
+        }
+    }
 }

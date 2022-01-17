@@ -411,6 +411,15 @@ final class ServerHello {
 
             List<CipherSuite> legacySuites = new LinkedList<>();
             for (CipherSuite cs : preferred) {
+                /*
+                 * If the TLSv1.2 protocol support for the GM cipher suites is not enabled,
+                 * skip the GM cipher suites.
+                 */
+                if ((!shc.t12WithGMCipherSuite) &&
+                        CipherSuite.getGMCipherSuites().contains(cs)) {
+                    continue;
+                }
+
                 if (!HandshakeContext.isNegotiable(
                         proposed, shc.negotiatedProtocol, cs)) {
                     continue;
