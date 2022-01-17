@@ -53,6 +53,12 @@ public enum Cert {
                     "keystore/server-sm2-sig.keystore", "keystore/server-sm2-enc.keystore", "keystore/server-rsa.keystore"
             }).split(",")).map(x->"  "+x+"  ").collect(Collectors.joining(",")),
             " PKCS12 "),
+    KEYSTORE_SM2_UPPERCASE_KEY_ALIAS(Type.EC, "SERVER-SM2-SIG,server-SM2-ENC",
+            "12345678",
+            TestUtils.getPaths(new String[]{
+                    "keystore/server-sm2-sig.keystore", "keystore/server-sm2-enc.keystore"
+            }),
+            "PKCS12"),
 
     PEM_SM2(Type.UNDEFINED, "server-sm2-sig,server-sm2-enc",
             "12345678",

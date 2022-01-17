@@ -48,7 +48,6 @@ public class KeyStoreFileTest extends TomcatBaseTest {
 
     @Test
     public void testSM2AndEC() throws Throwable {
-        System.setProperty("javax.net.debug", "all");
         Cert[] certs = new Cert[]{Cert.KEYSTORE_SM2_EC};
         TestParameters serverParameters = new TestParameters.Builder()
                 .protocols(new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"})
@@ -92,7 +91,6 @@ public class KeyStoreFileTest extends TomcatBaseTest {
 
     @Test
     public void testSM2AndRSA() throws Throwable {
-        System.setProperty("javax.net.debug", "all");
         Cert[] certs = new Cert[]{Cert.KEYSTORE_SM2_RSA};
         TestParameters serverParameters = new TestParameters.Builder()
                 .protocols(new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"})
@@ -133,7 +131,6 @@ public class KeyStoreFileTest extends TomcatBaseTest {
 
     @Test
     public void testCertAttributesWithExtraSpaces() throws Throwable {
-        System.setProperty("javax.net.debug", "all");
         Cert[] certs = new Cert[]{Cert.KEYSTORE_WITH_EXTRA_SPACES};
         TestParameters serverParameters = new TestParameters.Builder()
                 .protocols(new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"})
@@ -170,5 +167,20 @@ public class KeyStoreFileTest extends TomcatBaseTest {
         } else {
             log.warn("Tomcat" + TestUtils.getTomcatVersion() + "version does not support TLSv1.3");
         }
+    }
+
+    @Test
+    public void testSM2Uppercase() throws Throwable {
+        Cert[] certs = new Cert[]{Cert.KEYSTORE_SM2_UPPERCASE_KEY_ALIAS};
+        TestParameters serverParameters = new TestParameters.Builder()
+                .protocols(new String[]{"GMTLS"})
+                .ciphers(new String[]{"ECC_SM4_CBC_SM3"})
+                .certs(certs)
+                .builder();
+        TestParameters clientParameters = new TestParameters.Builder()
+                .protocols(new String[]{"GMTLS"})
+                .expectedCipher("ECC_SM4_CBC_SM3")
+                .builder();
+        testConnect(serverParameters, clientParameters);
     }
 }

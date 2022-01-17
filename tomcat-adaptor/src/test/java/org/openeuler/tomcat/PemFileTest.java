@@ -87,7 +87,6 @@ public class PemFileTest extends TomcatBaseTest {
 
     @Test
     public void testSM2AndRSA() throws Throwable {
-        System.setProperty("javax.net.debug", "all");
         Cert[] certs = new Cert[]{Cert.PEM_SM2_RSA};
         TestParameters serverParameters = new TestParameters.Builder()
                 .protocols(new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"})
@@ -121,7 +120,6 @@ public class PemFileTest extends TomcatBaseTest {
 
     @Test
     public void testPemAttributesWithExtraSpaces() throws Throwable {
-        System.setProperty("javax.net.debug", "all");
         Cert[] certs = new Cert[]{Cert.PEM_WITH_EXTRA_SPACES};
         TestParameters serverParameters = new TestParameters.Builder()
                 .protocols(new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"})
