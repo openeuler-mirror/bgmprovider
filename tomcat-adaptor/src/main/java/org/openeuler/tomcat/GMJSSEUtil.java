@@ -65,12 +65,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
+import java.util.TreeMap;
 
 public class GMJSSEUtil extends JSSEUtil {
     private static final Log log = LogFactory.getLog(GMJSSEUtil.class);
@@ -335,39 +334,19 @@ public class GMJSSEUtil extends JSSEUtil {
         char[] destKeyPassword = keyPasswords[0] != null ? keyPasswords[0].toCharArray()
                 : storePasswords[0].toCharArray();
 
+        // Create key alias map, the key is alias and value is index of alias in the keyAliases.
+        Map<String, Integer> keyAliasMap = createKeyAliasMap(keyAliases);
+
         // Load the key and import the key to the destination store.
-        Set<String> keyAliasSet = new HashSet<>(Arrays.asList(keyAliases));
         for (int i = 0; i < keyStoreCount; i++) {
             // Load source keystore.
             KeyStore srcKeyStore = getStore(storeTypes[i], storeProviders[i],
                     storeFiles[i], storePasswords[i]);
 
             // Import the key to the destination store.
-            Map<String, char[]> srcKeyPasswordMap = createSrcKeyPasswordMap(keyAliases,
-                    keyPasswords, storePasswords[i]);
-            importKeyStore(keyAliasSet, srcKeyStore, srcKeyPasswordMap, destKeyStore, destKeyPassword);
+            importKeyStore(srcKeyStore, storePasswords[i], keyAliasMap, keyPasswords, destKeyStore, destKeyPassword);
         }
         return destKeyStore;
-    }
-
-    /**
-     * Create source keyPassword map.
-     * If keyPassword was set, use the keyPassword.
-     * Otherwise, use the the storePassword as the keyPassword.
-     */
-    private Map<String, char[]> createSrcKeyPasswordMap(String[] keyAliases, String[] keyPasswords,
-                                                        String storePassword) {
-        Map<String, char[]> keyPasswordMap = new HashMap<>();
-        for (int i = 0; i < keyAliases.length; i++) {
-            char[] keyPassChars;
-            if (keyPasswords[i] != null) {
-                keyPassChars = keyPasswords[i].toCharArray();
-            } else {
-                keyPassChars = storePassword.toCharArray();
-            }
-            keyPasswordMap.put(keyAliases[i], keyPassChars);
-        }
-        return keyPasswordMap;
     }
 
     /**
@@ -392,24 +371,47 @@ public class GMJSSEUtil extends JSSEUtil {
     }
 
     /**
+     * Create key alias map , the key is alias and value is index of alias in the keyAliases.
+     * @param keyAliases Array of key aliases
+     * @return Key alias map
+     */
+    private static Map<String, Integer> createKeyAliasMap(String[] keyAliases) {
+        Map<String, Integer> keyAliasMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        for (int i = 0; i < keyAliases.length; i++) {
+            keyAliasMap.put(keyAliases[i], i);
+        }
+        return keyAliasMap;
+    }
+
+    /**
      * Import the key of the specified entry in the source store to the destination store
      *
-     * @param keyAliasSet       The alias of the store entry that needs to be loaded
-     * @param srcStore          The source store
-     * @param srcKeyPasswordMap The source store password
-     * @param destStore         The dest store
-     * @param destKeyPassword   The dest store password
+     * @param srcStore         The source store
+     * @param srcStorePassword The source store password
+     * @param keyAliasMap      The configured key aliases map
+     * @param keyPasswords     The source store
+     * @param destStore        The dest store key password
+     * @param destKeyPassword  The dest store key password
      */
-    private static void importKeyStore(Set<String> keyAliasSet,
-                                       KeyStore srcStore, Map<String, char[]> srcKeyPasswordMap,
-                                       KeyStore destStore, char[] destKeyPassword) throws IOException {
+    private static void importKeyStore(KeyStore srcStore, String srcStorePassword, Map<String, Integer> keyAliasMap,
+                                       String[] keyPasswords, KeyStore destStore, char[] destKeyPassword)
+            throws IOException {
         try {
             for (Enumeration<String> e = srcStore.aliases(); e.hasMoreElements(); ) {
                 String alias = e.nextElement();
 
-                // Skip alias that are not key or not the key of the specified alias.
-                if (!srcStore.isKeyEntry(alias) || !keyAliasSet.contains(alias)) {
-                    log.info(String.format("Skip entry : %s.", alias));
+                // Get the index of alias in keyAliases.
+                Integer index = keyAliasMap.get(alias);
+                if (index == null) {
+                    log.info(String.format("Skip key entry %s, it is not in %s.",
+                            alias, keyAliasMap));
+                    continue;
+                }
+
+                // Check if the entry identified by the given alias is a key-related entry.
+                if (!srcStore.isKeyEntry(alias)) {
+                    log.info(String.format("Skip key entry %s, it is not a key entry.",
+                            alias));
                     continue;
                 }
 
@@ -419,7 +421,9 @@ public class GMJSSEUtil extends JSSEUtil {
                         (certs[0] instanceof X509Certificate)) {
                     boolean hasException = false;
                     Key key = null;
-                    char[] keyPassword = srcKeyPasswordMap.get(alias);
+                    // If keypass is not configured, use storepass as keypass.
+                    char[] keyPassword = keyPasswords[index] != null ?
+                            keyPasswords[index].toCharArray() : srcStorePassword.toCharArray();
                     try {
                         key = srcStore.getKey(alias, keyPassword);
                     } catch (NoSuchAlgorithmException | UnrecoverableKeyException exception) {
