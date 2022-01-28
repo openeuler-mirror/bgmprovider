@@ -32,6 +32,7 @@ import java.security.cert.*;
 import java.util.*;
 import javax.net.ssl.*;
 
+import org.openeuler.gm.GMTlsUtil;
 import org.openeuler.gm.KeyStoreManager;
 import sun.security.action.GetPropertyAction;
 import org.openeuler.sun.security.provider.certpath.AlgorithmChecker;
@@ -1231,12 +1232,11 @@ final class AbstractTrustManagerWrapper extends X509ExtendedTrustManager
                                     identityAlg, checkClientTrusted);
             }
 
-            boolean t12WithGMCipherSuite =
-                    ((SSLSocketImpl)sslSocket).conContext.handshakeContext.t12WithGMCipherSuite;
+            boolean isGmCert = GMTlsUtil.isGMCert(chain[0]);
             // try the best to check the algorithm constraints
             AlgorithmConstraints constraints;
             if (ProtocolVersion.useTLS12PlusSpec(session.getProtocol()) &&
-                    !t12WithGMCipherSuite) {
+                    !isGmCert) {
                 if (session instanceof ExtendedSSLSession) {
                     ExtendedSSLSession extSession =
                                     (ExtendedSSLSession)session;
@@ -1274,12 +1274,11 @@ final class AbstractTrustManagerWrapper extends X509ExtendedTrustManager
                                     identityAlg, checkClientTrusted);
             }
 
-            boolean t12WithGMCipherSuite =
-                    ((SSLEngineImpl)engine).conContext.handshakeContext.t12WithGMCipherSuite;
+            boolean isGmCert = GMTlsUtil.isGMCert(chain[0]);
             // try the best to check the algorithm constraints
             AlgorithmConstraints constraints;
             if (ProtocolVersion.useTLS12PlusSpec(session.getProtocol()) &&
-                    !t12WithGMCipherSuite) {
+                    !isGmCert) {
                 if (session instanceof ExtendedSSLSession) {
                     ExtendedSSLSession extSession =
                                     (ExtendedSSLSession)session;

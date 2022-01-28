@@ -30,6 +30,8 @@ import java.security.*;
 import java.security.cert.*;
 import java.util.*;
 import javax.net.ssl.*;
+
+import org.openeuler.gm.GMTlsUtil;
 import sun.security.util.AnchorCertificates;
 import org.openeuler.sun.security.util.HostnameChecker;
 import org.openeuler.sun.security.validator.*;
@@ -200,12 +202,11 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
 
             // create the algorithm constraints
             boolean isExtSession = (session instanceof ExtendedSSLSession);
-            boolean t12WithGMCipherSuite =
-                    ((SSLSocketImpl)sslSocket).conContext.handshakeContext.t12WithGMCipherSuite;
+            boolean isGmCert = GMTlsUtil.isGMCert(chain[0]);
             AlgorithmConstraints constraints;
             if (isExtSession &&
                     ProtocolVersion.useTLS12PlusSpec(session.getProtocol()) &&
-                        !t12WithGMCipherSuite) {
+                        !isGmCert) {
                 ExtendedSSLSession extSession = (ExtendedSSLSession)session;
                 String[] localSupportedSignAlgs =
                         extSession.getLocalSupportedSignatureAlgorithms();
@@ -258,12 +259,11 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
 
             // create the algorithm constraints
             boolean isExtSession = (session instanceof ExtendedSSLSession);
-            boolean t12WithGMCipherSuite =
-                    ((SSLEngineImpl)engine).conContext.handshakeContext.t12WithGMCipherSuite;
+            boolean isGmCert = GMTlsUtil.isGMCert(chain[0]);
             AlgorithmConstraints constraints;
             if (isExtSession &&
                     ProtocolVersion.useTLS12PlusSpec(session.getProtocol()) &&
-                    !t12WithGMCipherSuite) {
+                    !isGmCert) {
                 ExtendedSSLSession extSession = (ExtendedSSLSession)session;
                 String[] localSupportedSignAlgs =
                         extSession.getLocalSupportedSignatureAlgorithms();
