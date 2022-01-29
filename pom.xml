@@ -7,7 +7,7 @@
     <groupId>org.openeuler</groupId>
     <artifactId>gmssl</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <modules>
         <module>jca</module>
         <module>jsse</module>
@@ -112,20 +112,23 @@
                             <id>attach-sources</id>
                             <phase>package</phase>
                             <goals>
-                                <!-- 源码单独作为一个jar包 -->
+                                <!-- packaging source code of the project in jar file -->
                                 <!--                                <goal>jar</goal>-->
-                                <!--                                源码打进jar包中 类似执行mvn source:jar -->
-                                <!--                聚合项目打包所有子模块的源代码，请在root项目中执行mvn source:aggregate-->
+                                <!--                                package source code in jar e.g. mvn source:jar -->
+                                <!--                                to package all the source codes of the modules in the-->
+                                <!--                                the aggregated project,please execute the following command-->
+                                <!--                                in the root directory of the project-->
+                                <!--                                mvn source:aggregate-->
                                 <goal>aggregate</goal>
                             </goals>
                         </execution>
                     </executions>
                 </plugin>
-                <!--                version批量更改插件-->
-                <!--                以下maven命令都在项目根目录下执行-->
-                <!--                1)更改version: mvn versions:set -DnewVersion=XXX-->
-                <!--                2)回退version: mvn versions:revert-->
-                <!--                3)确认version: mvn versions:commit-->
+                <!--                version modification plugins-->
+                <!--                the following maven commands should be executed in the root directory of the project-->
+                <!--                1)set version: mvn versions:set -DnewVersion=XXX-->
+                <!--                2)revert version: mvn versions:revert-->
+                <!--                3)commit version: mvn versions:commit-->
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>versions-maven-plugin</artifactId>
