@@ -268,6 +268,12 @@ public class GMTlsUtil {
         }
     }
 
+    // Determine whether it is a gm certificate
+    public static boolean isGMCert(X509Certificate certificate) {
+        return certificate.getSigAlgName().equalsIgnoreCase("SM3withSM2") ||
+                certificate.getSigAlgName().equals("1.2.156.10197.1.501");
+    }
+
     // Determine whether it is a signed certificate
     public static boolean isSignCert(X509Certificate certificate) {
         if (isCA(certificate)) {
