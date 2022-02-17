@@ -178,30 +178,15 @@ final class SM2ServerKeyExchange {
             ClientHandshakeContext chc =
                     (ClientHandshakeContext)handshakeContext;
 
-            byte curveType = (byte)Record.getInt8(m);
-            if (curveType != CURVE_NAMED_CURVE) {
-                // Unlikely as only the named curves should be negotiated.
-                throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
-                    "Unsupported ECCurveType: " + curveType);
-            }
-
+            /*
+             * According to GB/T 38636-2020, ECParameter does not need to be checked when using SM2 algorithm.
+             * The curveType and namedGroup do not need to be checked.
+             */
+            // curveType
+            Record.getInt8(m);
+            // namedGroup
             int namedGroupId = Record.getInt16(m);
-            this.namedGroup = NamedGroup.valueOf(namedGroupId);
-            if (namedGroup != NamedGroup.SM2P256V1) {
-                throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
-                        "Unknown named group ID: " + namedGroupId);
-            }
-
-            if (!SupportedGroups.isSupported(namedGroup)) {
-                throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
-                    "Unsupported named group: " + namedGroup);
-            }
-
-            if (namedGroup.oid == null) {
-                throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
-                    "Unknown named EC curve: " + namedGroup);
-            }
-
+            this.namedGroup = NamedGroup.SM2P256V1;
             publicPoint = Record.getBytes8(m);
             if (publicPoint.length == 0) {
                 throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
@@ -267,7 +252,7 @@ final class SM2ServerKeyExchange {
                 updateSignature(signer,
                         chc.clientHelloRandom.randomBytes,
                         chc.serverHelloRandom.randomBytes,
-                        namedGroup.id, publicPoint);
+                        namedGroupId, publicPoint);
 
                 if (!signer.verify(paramsSignature)) {
                     throw chc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
