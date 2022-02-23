@@ -39,7 +39,6 @@ import javax.net.ssl.SNIHostName;
 
 import org.openeuler.sun.security.ssl.Krb5Helper;
 import sun.security.util.DerValue;
-import sun.security.util.RegisteredDomain;
 import sun.security.x509.X500Name;
 
 import sun.net.util.IPAddressUtil;

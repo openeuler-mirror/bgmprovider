@@ -29,10 +29,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.security.Key;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import javax.security.auth.Subject;
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -51,6 +48,8 @@ import org.ietf.jgss.MessageProp;
 import org.ietf.jgss.Oid;
 import sun.security.jgss.krb5.Krb5Util;
 import sun.security.krb5.Credentials;
+import sun.security.krb5.internal.HostAddresses;
+import sun.security.krb5.internal.KerberosTime;
 import sun.security.krb5.internal.ccache.CredentialsCache;
 
 import com.sun.security.jgss.ExtendedGSSContext;
@@ -680,7 +679,20 @@ public class Context {
                 if (cc == null) {
                     cc = CredentialsCache.create(cred.getClient(), file);
                 }
-                cc.update(cred.toCCacheCreds());
+                sun.security.krb5.internal.ccache.Credentials cacheCreds = new sun.security.krb5.internal.ccache.Credentials(
+                        cred.getClient(), cred.getServer(),
+                        cred.getSessionKey(),
+                        date2kt(cred.getAuthTime()),
+                        date2kt(cred.getStartTime()),
+                        date2kt(cred.getEndTime()),
+                        date2kt(cred.getRenewTill()),
+                        false,
+                        cred.getTicketFlags(),
+                        new HostAddresses(cred.getClientAddresses()),
+                        cred.getAuthzData(),
+                        cred.getTicket(),
+                        null);
+                cc.update(cacheCreds);
             }
             if (cc != null) {
                 cc.save();
@@ -703,5 +715,9 @@ public class Context {
             if (t != null || !s.x.isEstablished()) t = s.take(t);
             if (c.x.isEstablished() && s.x.isEstablished()) break;
         }
+    }
+
+    private KerberosTime date2kt(Date d) {
+        return d == null ? null : new KerberosTime(d);
     }
 }

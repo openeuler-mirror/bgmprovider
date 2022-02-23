@@ -31,11 +31,12 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.*;
 import java.util.*;
 import javax.crypto.*;
+
+import sun.security.action.GetPropertyAction;
 import sun.security.jca.ProviderList;
 import sun.security.jca.Providers;
 import static org.openeuler.sun.security.ssl.SunJSSE.cryptoProvider;
 import sun.security.util.ECUtil;
-import static sun.security.util.SecurityConstants.PROVIDER_VER;
 
 /**
  * This class contains a few static methods for interaction with the JCA/JCE
@@ -46,7 +47,7 @@ import static sun.security.util.SecurityConstants.PROVIDER_VER;
 final class JsseJce {
     static final boolean ALLOW_ECC =
             Utilities.getBooleanProperty("com.sun.net.ssl.enableECC", true);
-
+    private static final Double PROVIDER_VER = Double.parseDouble(GetPropertyAction.privilegedGetProperty("java.specification.version", "1.8"));
     private static final ProviderList fipsProviderList;
 
     // Flag indicating whether Kerberos crypto is available.

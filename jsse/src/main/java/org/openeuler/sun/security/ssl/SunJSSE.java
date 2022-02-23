@@ -26,7 +26,7 @@
 
 package org.openeuler.sun.security.ssl;
 
-import static sun.security.util.SecurityConstants.PROVIDER_VER;
+import sun.security.action.GetPropertyAction;
 
 import java.security.*;
 
@@ -60,6 +60,7 @@ import java.security.*;
 public abstract class SunJSSE extends java.security.Provider {
 
     private static final long serialVersionUID = 3231825739635378733L;
+    private static final Double PROVIDER_VER = Double.parseDouble(GetPropertyAction.privilegedGetProperty("java.specification.version", "1.8"));
 
     private static String info = "Sun JSSE provider" +
         "(PKCS12, SunX509/PKIX key/trust factories, " +
