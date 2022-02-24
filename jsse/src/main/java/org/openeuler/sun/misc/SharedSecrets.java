@@ -24,6 +24,7 @@
 
 package org.openeuler.sun.misc;
 
+import org.openeuler.CompatibleOracleJdkHandler;
 import org.openeuler.gm.GMTlsUtil;
 
 import java.lang.reflect.InvocationTargetException;
@@ -82,8 +83,12 @@ public class SharedSecrets {
                 javaNetAccessClass = Class.forName("sun.misc.JavaNetAccess");
                 getJavaNetAccessMethod = sharedSecretsClass.getDeclaredMethod("getJavaNetAccess");
             } else if (javaVersion == VERSION_11) {
-                sharedSecretsClass = Class.forName("jdk.internal.misc.SharedSecrets");
-                javaNetAccessClass = Class.forName("jdk.internal.misc.JavaNetInetAddressAccess");
+                String pkg = "jdk.internal.misc";
+                if (CompatibleOracleJdkHandler.isOracleJdk()) {
+                    pkg = "jdk.internal.access";
+                }
+                sharedSecretsClass = Class.forName(pkg + ".SharedSecrets");
+                javaNetAccessClass = Class.forName(pkg + ".JavaNetInetAddressAccess");
                 getJavaNetAccessMethod = sharedSecretsClass.getDeclaredMethod("getJavaNetInetAddressAccess");
             } else {
                 throw new IllegalArgumentException("Unsupported jdk " + javaVersion);
