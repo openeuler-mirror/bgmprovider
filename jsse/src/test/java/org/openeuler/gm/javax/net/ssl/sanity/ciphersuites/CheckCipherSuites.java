@@ -223,6 +223,9 @@ class CheckCipherSuites {
     }
 
     public static void main(String[] args) throws Exception {
+        if (args[0].equals("limited")) {
+            Security.setProperty("crypto.policy", "limited");
+        }
         Security.insertProviderAt(new BGMJCEProvider(), 1);
         Security.insertProviderAt(new BGMJSSEProvider(), 2);
         long start = System.currentTimeMillis();
@@ -237,7 +240,6 @@ class CheckCipherSuites {
             ENABLED = ENABLED_DEFAULT;
             SUPPORTED = SUPPORTED_DEFAULT;
         } else if (args[0].equals("limited")) {
-            Security.setProperty("crypto.policy", "limited");
             ENABLED = ENABLED_LIMITED;
             SUPPORTED = SUPPORTED_LIMITED;
         } else {

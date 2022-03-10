@@ -34,6 +34,7 @@ public class BGMJSSEProvider extends Provider {
         super("BGMJSSEProvider", 1.8d, "BGMJSSEProvider");
 
         putEntries(this);
+        CompatibleOracleJdkHandler.skipJarVerify(this);
     }
 
     private static Properties getProp() {

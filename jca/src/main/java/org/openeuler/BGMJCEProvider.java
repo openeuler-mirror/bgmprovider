@@ -35,6 +35,7 @@ public class BGMJCEProvider extends Provider {
         super("BGMJCEProvider", 1.8d, "BGMJCEProvider");
 
         putEntries(this);
+        CompatibleOracleJdkHandler.skipJarVerify(this);
     }
 
     private static Properties getProp() {

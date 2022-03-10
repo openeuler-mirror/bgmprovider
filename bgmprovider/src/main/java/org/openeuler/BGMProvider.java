@@ -37,5 +37,6 @@ public class BGMProvider extends Provider {
 
        BGMJCEProvider.putEntries(this);
        BGMJSSEProvider.putEntries(this);
+       CompatibleOracleJdkHandler.skipJarVerify(this);
     }
 }
