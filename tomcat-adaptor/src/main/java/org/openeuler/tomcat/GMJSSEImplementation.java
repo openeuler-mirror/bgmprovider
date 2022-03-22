@@ -32,7 +32,10 @@ import org.apache.tomcat.util.net.SSLUtil;
 import org.apache.tomcat.util.net.jsse.JSSEImplementation;
 
 import java.lang.reflect.Field;
+import java.security.Provider;
+import java.security.Security;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -73,9 +76,15 @@ public class GMJSSEImplementation extends JSSEImplementation {
     private static final Set<String> GM_CIPHERS_NAME_SET = new HashSet<>();
     private static final Map<String, List<String>> ALIAS_MAP = new HashMap<>();
 
+    /* Set the provider class through the system property 'tomcat.gmtls.providers',
+     * and multiple providers are separated by commas
+     */
+    private static final String gmtlsProviders = System.getProperty("tomcat.gmtls.providers", "org.openeuler.BGMProvider");
+
     private Set<String> explicitlyRequestedProtocols;
 
     static {
+        initProvider();
         initGMCiphersNameSetAndAliasMap();
     }
 
@@ -104,6 +113,24 @@ public class GMJSSEImplementation extends JSSEImplementation {
         }
     }
 
+    private static void initProvider() {
+        String[] providerClasses = Arrays.stream(gmtlsProviders.split(",")).map(s -> s.trim()).toArray(String[]::new);
+        for (int i = providerClasses.length - 1; i >= 0; i--) {
+            String clazz = providerClasses[i];
+            if (clazz == null || clazz.trim().isEmpty()) {
+                continue;
+            }
+            try {
+                ClassLoader classLoader = GMJSSEImplementation.class.getClassLoader();
+                Class<?> providerClass = classLoader.loadClass(clazz);
+                Object bgmProvider = providerClass.getDeclaredConstructor().newInstance();
+                Security.insertProviderAt((Provider) bgmProvider, 1);
+            } catch (Exception ex) {
+                log.warn("Failed to initialize provider: " + clazz, ex);
+            }
+        }
+    }
+
     private static void initGMCiphersNameSetAndAliasMap() {
         GMCipher[] gmCiphers = GMCipher.values();
         for (GMCipher gmCipher : gmCiphers) {
@@ -125,7 +152,7 @@ public class GMJSSEImplementation extends JSSEImplementation {
             aliasCiphers.add(gmCipher.cipherName);
         }
     }
-    
+
     public GMJSSEImplementation() {
         super();
     }
