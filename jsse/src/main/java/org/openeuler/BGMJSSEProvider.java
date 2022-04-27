@@ -72,6 +72,9 @@ public class BGMJSSEProvider extends Provider {
         if (!"false".equalsIgnoreCase(props.getProperty("jsse.certificateFactory"))) {
             putCertificateFactory(map);
         }
+        if (!"false".equalsIgnoreCase(props.getProperty("jsse.keystore"))) {
+            putKeyStore(map);
+        }
     }
 
     private static void putKeyManagerFactory(Map<Object, Object> map) {
@@ -118,6 +121,10 @@ public class BGMJSSEProvider extends Provider {
     private static void putCertificateFactory(Map<Object, Object> map) {
         map.put("CertificateFactory.X.509", "org.bouncycastle.jcajce.provider.asymmetric.x509.CertificateFactory");
         map.put("Alg.Alias.CertificateFactory.X509", "X.509");
+    }
+
+    private static void putKeyStore(Map<Object, Object> map) {
+        map.put("KeyStore.PKCS12", "org.openeuler.sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12");
     }
 
 }

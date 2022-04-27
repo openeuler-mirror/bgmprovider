@@ -24,12 +24,45 @@
 
 package org.openeuler;
 
+import sun.security.util.ObjectIdentifier;
+import sun.security.x509.AlgorithmId;
+
 import java.io.*;
+import java.lang.reflect.Field;
 import java.security.Provider;
+import java.security.SecureRandom;
 import java.util.Map;
 import java.util.Properties;
 
 public class BGMJCEProvider extends Provider {
+    private static final String OID_PKCS5_GM_PBES2 = "1.2.156.10197.6.1.4.1.5.2";
+
+    static {
+        initNameTable();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void initNameTable() {
+        try {
+            Field nameTableFiled = AlgorithmId.class.getDeclaredField("nameTable");
+            nameTableFiled.setAccessible(true);
+            Object object = nameTableFiled.get(null);
+            if (!(object instanceof Map)) {
+                return;
+            }
+            Map<ObjectIdentifier,String> nameTable = (Map<ObjectIdentifier,String>) object;
+            nameTable.put(new ObjectIdentifier("1.2.156.10197.1.401"), "SM3");
+        } catch (NoSuchFieldException | IllegalAccessException | IOException e) {
+            // skip
+        }
+    }
+
+    private static class SecureRandomHolder {
+        static final SecureRandom RANDOM = new SecureRandom();
+    }
+
+    public static SecureRandom getRandom() { return SecureRandomHolder.RANDOM; }
+
 
     public BGMJCEProvider() {
         super("BGMJCEProvider", 1.8d, "BGMJCEProvider");
@@ -79,6 +112,9 @@ public class BGMJCEProvider extends Provider {
         if (!"false".equalsIgnoreCase(props.getProperty("jce.algorithmParameters"))) {
             putAlgorithmParameters(map);
         }
+        if (!"false".equalsIgnoreCase(props.getProperty("jce.pbes2"))) {
+            putPBES2Algorithm(map);
+        }
     }
 
     private static void putSM4(Map<Object, Object> map) {
@@ -90,6 +126,8 @@ public class BGMJCEProvider extends Provider {
 
     private static void putSM3(Map<Object, Object> map) {
         map.put("MessageDigest.SM3", "org.bouncycastle.jcajce.provider.digest.SM3$Digest");
+        map.put("Alg.Alias.MessageDigest.OID.1.2.156.10197.1.401", "SM3");
+        map.put("Alg.Alias.MessageDigest.1.2.156.10197.1.401", "SM3");
     }
 
     private static void putHmacSM3(Map<Object, Object> map) {
@@ -121,5 +159,40 @@ public class BGMJCEProvider extends Provider {
         map.put("AlgorithmParameters.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.AlgorithmParametersSpi");
         map.put("Alg.Alias.AlgorithmParameters.1.2.840.10045.2.1", "EC");
         map.put("Alg.Alias.AlgorithmParameters.OID.1.2.840.10045.2.1", "EC");
+    }
+
+    private static void putPBES2Algorithm(Map<Object, Object> map) {
+        // AlgorithmParameters
+        map.put("AlgorithmParameters.GMPBES2",
+                "org.openeuler.com.sun.crypto.provider.PBES2Parameters$General");
+        map.put("Alg.Alias.AlgorithmParameters.OID" + OID_PKCS5_GM_PBES2,
+                "GMPBES2");
+        map.put("Alg.Alias.AlgorithmParameters." + OID_PKCS5_GM_PBES2,
+                "GMPBES2");
+        map.put("AlgorithmParameters.PBEWithHmacSM3AndSM4_128/ECB/PKCS5Padding",
+                "org.openeuler.com.sun.crypto.provider.PBES2Parameters$HmacSM3AndSM4_128_ECB_PKCS5Padding");
+        map.put("AlgorithmParameters.PBEWithHmacSM3AndSM4_128/CBC/PKCS5Padding",
+                "org.openeuler.com.sun.crypto.provider.PBES2Parameters$HmacSM3AndSM4_128_CBC_PKCS5Padding");
+        map.put("Alg.Alias.AlgorithmParameters.PBEWithHmacSM3AndSM4_CBC", "PBEWithHmacSM3AndSM4_128/CBC/PKCS5Padding");
+
+        // Cipher
+        map.put("Cipher.PBEWithHmacSM3AndSM4_128/ECB/PKCS5Padding",
+                "org.openeuler.com.sun.crypto.provider.PBES2Core$HmacSM3AndSM4_128_ECB_PKCS5Padding");
+        map.put("Cipher.PBEWithHmacSM3AndSM4_128/CBC/PKCS5Padding",
+                "org.openeuler.com.sun.crypto.provider.PBES2Core$HmacSM3AndSM4_128_CBC_PKCS5Padding");
+        map.put("Alg.Alias.Cipher.PBEWithHmacSM3AndSM4_CBC", "PBEWithHmacSM3AndSM4_128/CBC/PKCS5Padding");
+
+        // SecretKeyFactory
+        map.put("SecretKeyFactory.PBKDF2WithHmacSM3",
+                "org.openeuler.com.sun.crypto.provider.PBKDF2Core$HmacSM3");
+        map.put("SecretKeyFactory.PBEWithHmacSM3AndSM4_128/ECB/PKCS5Padding",
+                "org.openeuler.com.sun.crypto.provider.PBEKeyFactory$PBEWithHmacSM3AndSM4_128_ECB_PKCS5Padding");
+        map.put("SecretKeyFactory.PBEWithHmacSM3AndSM4_128/CBC/PKCS5Padding",
+                "org.openeuler.com.sun.crypto.provider.PBEKeyFactory$PBEWithHmacSM3AndSM4_128_CBC_PKCS5Padding");
+        map.put("Alg.Alias.SecretKeyFactory.PBEWithHmacSM3AndSM4_CBC", "PBEWithHmacSM3AndSM4_128/CBC/PKCS5Padding");
+
+        // Mac
+        map.put("Mac.HmacPBESM3",
+                "org.openeuler.com.sun.crypto.provider.HmacPKCS12PBECore$HmacPKCS12PBESM3");
     }
 }
