@@ -39,6 +39,7 @@ import java.util.concurrent.Future;
 import static org.openeuler.gm.TestUtils.getPath;
 
 public class SSLSocketTestBase extends BaseTest {
+    private static final int TIMEOUT = 5000;
     static {
         init();
     }
@@ -434,6 +435,16 @@ public class SSLSocketTestBase extends BaseTest {
     static abstract class HandleThread implements Runnable {
         private ReqParameters reqParameters;
 
+        private Throwable throwable;
+
+        public void setThrowable(Throwable throwable) {
+            this.throwable = throwable;
+        }
+
+        public Throwable getThrowable() {
+            return throwable;
+        }
+
         // ready
         private volatile boolean ready = false;
 
@@ -507,8 +518,9 @@ public class SSLSocketTestBase extends BaseTest {
                 KeyStoreParameters trustStoreParameters = new KeyStoreParameters(SERVER_TS_PARAM,
                         reqParameters.getTmfAlgorithm());
                 sslContext = createSSLContext(reqParameters.getServerProvider(), contextProtocol, keyStoreParameters, trustStoreParameters, new SecureRandom());
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 setReady(true);
+                setThrowable(e);
                 throw new RuntimeException("createSSLContext failed", e);
             }
 
@@ -539,9 +551,9 @@ public class SSLSocketTestBase extends BaseTest {
                 } else {
                     handleMessage(dataOutputStream, dataInputStream);
                 }
-            } catch (IOException e) {
+            } catch (Throwable e) {
                 setReady(true);
-                System.err.println("handleServer : " + e.getMessage());
+                setThrowable(e);
                 throw new RuntimeException(e);
             } finally {
                 if (serverSocket != null) {
@@ -663,9 +675,10 @@ public class SSLSocketTestBase extends BaseTest {
                         resumpotionContext = sslContext;
                     }
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                setThrowable(e);
                 System.err.println(e.getMessage());
-                return;
+                throw new RuntimeException(e);
             }
 
             SocketFactory socketFactory = sslContext.getSocketFactory();
@@ -678,6 +691,7 @@ public class SSLSocketTestBase extends BaseTest {
                 if (enableProtocols != null && enableProtocols.length != 0) {
                     sslSocket.setEnabledProtocols(enableProtocols);
                 }
+                sslSocket.setSoTimeout(TIMEOUT);
 
                 DataOutputStream dataOutputStream = new DataOutputStream(sslSocket.getOutputStream());
                 DataInputStream dataInputStream = new DataInputStream(sslSocket.getInputStream());
@@ -695,8 +709,8 @@ public class SSLSocketTestBase extends BaseTest {
                 if (reqParameters.getExpectedCiphersuite() != null) {
                     Assert.assertEquals(reqParameters.getExpectedCiphersuite(), sslSocket.getSession().getCipherSuite());
                 }
-            } catch (IOException e) {
-                System.err.println("handleClient : " + e.getMessage());
+            } catch (Throwable e) {
+                setThrowable(e);
                 throw new RuntimeException(e);
             } finally {
                 if (sslSocket != null) {
@@ -713,13 +727,15 @@ public class SSLSocketTestBase extends BaseTest {
 
     private void test(ReqParameters serverParams, ReqParameters clientParams) {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
+        ServerThread serverThread = null;
+        ClientThread clientThread = null;
         try {
-            ServerThread serverThread = new ServerThread(serverParams);
+            serverThread = new ServerThread(serverParams);
             Future<?> serverFuture = executorService.submit(serverThread);
             while (!serverThread.isReady()) {
                 Thread.sleep(10L);
             }
-            ClientThread clientThread = new ClientThread(clientParams);
+            clientThread = new ClientThread(clientParams);
             Future<?> clientFuture = executorService.submit(clientThread);
             clientFuture.get();
             if (Status.SESSION_RESUMPTION_START.equals(clientParams.getStatus())) {
@@ -737,10 +753,31 @@ public class SSLSocketTestBase extends BaseTest {
                 resumptionClientFuture.get();
             }
             serverFuture.get();
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            Throwable throwable = getThrowable(serverThread);
+            if (throwable != null) {
+                throw new RuntimeException(throwable);
+            }
+            throwable = getThrowable(clientThread);
+            if (throwable != null) {
+                throw new RuntimeException(throwable);
+            }
             throw new RuntimeException(e);
         } finally {
             executorService.shutdown();
+        }
+    }
+
+    private Throwable getThrowable(HandleThread handleThread) {
+        if (handleThread == null) {
+            return null;
+        }
+        Throwable throwable = handleThread.getThrowable();
+        if (throwable instanceof ExceptionInInitializerError) {
+            ExceptionInInitializerError error = (ExceptionInInitializerError) throwable;
+            return error.getException();
+        } else {
+            return throwable;
         }
     }
 
