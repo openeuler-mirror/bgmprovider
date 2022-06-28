@@ -36,8 +36,8 @@ import org.junit.Test;
 public class CheckDefaultCipherSuitesTest {
 
     @Test
-    public void testLimitedCheckCipherSuites() throws Exception {
+    public void testCheckDefaultCipherSuites() throws Exception {
         System.setProperty("jdk.tls.client.protocols", "GMTLS, TLSv1.3,TLSv1.2,TLSv1.1,TLSv1,SSLv3");
-        CheckCipherSuites.main(new String[]{"limited"});
+        CheckCipherSuites.main(new String[]{"default"});
     }
 }

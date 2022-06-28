@@ -38,9 +38,9 @@ public class SSLSocketDifferentProviderTest extends SSLSocketTestBase {
     public void testDifferentProvider() {
         test(Security.getProvider("SunJSSE"), null, "TLS", null, null,
                 "TLS", null, null,
-                "TLSv1.3", "TLS_AES_128_GCM_SHA256");
+                "TLSv1.3", "TLS_AES_256_GCM_SHA384");
         test(Security.getProvider("SunJSSE"), null, "TLS", null, null,
                 "GMTLS", null, null,
-                "TLSv1.3", "TLS_AES_128_GCM_SHA256");
+                "TLSv1.3", "TLS_AES_256_GCM_SHA384");
     }
 }
