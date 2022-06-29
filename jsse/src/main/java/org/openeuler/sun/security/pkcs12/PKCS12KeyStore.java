@@ -63,7 +63,6 @@ import javax.crypto.Mac;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.x500.X500Principal;
 
-import org.openeuler.sun.security.util.KeyStoreDelegator;
 import sun.security.action.GetPropertyAction;
 import sun.security.util.Debug;
 import sun.security.util.DerInputStream;
@@ -118,22 +117,6 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
     // Note: This is only a system property, there's no same-name
     // security property defined.
     private static final String USE_LEGACY_PROP = "keystore.pkcs12.legacy";
-
-    private static final Class<? extends KeyStoreSpi> JKS_CLASS;
-    static {
-        try {
-            JKS_CLASS = (Class<? extends KeyStoreSpi>) Class.forName("sun.security.provider.JavaKeyStore$JKS");
-        } catch (ClassNotFoundException e) {
-            throw new InternalError(e);
-        }
-    }
-
-    // special PKCS12 keystore that supports PKCS12 and JKS file formats
-    public static final class DualFormatPKCS12 extends KeyStoreDelegator {
-        public DualFormatPKCS12() {
-            super("PKCS12", PKCS12KeyStore.class, "JKS", JKS_CLASS);
-        }
-    }
 
     public static final int VERSION_3 = 3;
 
