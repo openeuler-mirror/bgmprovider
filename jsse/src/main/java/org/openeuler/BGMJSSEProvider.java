@@ -124,7 +124,8 @@ public class BGMJSSEProvider extends Provider {
     }
 
     private static void putKeyStore(Map<Object, Object> map) {
-        map.put("KeyStore.PKCS12", "org.openeuler.sun.security.pkcs12.PKCS12KeyStore$DualFormatPKCS12");
+        map.put("KeyStore.PKCS12", "org.openeuler.gm.KeyStoreResolver$DualFormatPKCS12");
+        map.put("KeyStore.JKS", "org.openeuler.gm.KeyStoreResolver$DualFormatJKS");
     }
 
 }
