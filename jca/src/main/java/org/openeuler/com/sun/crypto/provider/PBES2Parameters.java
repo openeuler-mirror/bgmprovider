@@ -241,7 +241,7 @@ abstract class PBES2Parameters extends AlgorithmParametersSpi {
 
     @SuppressWarnings("deprecation")
     private String parseKDF(DerValue keyDerivationFunc) throws IOException {
-        if (!GMT_0091_2020_PBKDF2_OID.equals(keyDerivationFunc.data.getOID())) {
+        if (!GMT_0091_2020_PBKDF2_OID.equals((Object)keyDerivationFunc.data.getOID())) {
             throw new IOException("PBE parameter parsing error: "
                 + "expecting the object identifier for PBKDF2");
         }
@@ -311,7 +311,7 @@ abstract class PBES2Parameters extends AlgorithmParametersSpi {
         String cipherAlgo = null;
 
         cipherAlgo_OID = encryptionScheme.data.getOID();
-        if (SM4_128_ECB_OID.equals(cipherAlgo_OID)) {
+        if (SM4_128_ECB_OID.equals((Object)cipherAlgo_OID)) {
             cipherAlgo = "SM4_128";
             keysize = 128;
             mode = "ECB";
@@ -384,7 +384,7 @@ abstract class PBES2Parameters extends AlgorithmParametersSpi {
         if (cipherParam != null && cipherParam instanceof IvParameterSpec) {
             encryptionScheme.putOctetString(
                 ((IvParameterSpec) cipherParam).getIV());
-        } else if (SM4_128_ECB_OID.equals(cipherAlgo_OID)) {
+        } else if (SM4_128_ECB_OID.equals((Object)cipherAlgo_OID)) {
             // optional
             encryptionScheme.putOctetString(new byte[0]);
         } else {
