@@ -1990,7 +1990,7 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
         ContentInfo authSafe = new ContentInfo(s);
         ObjectIdentifier contentType = authSafe.getContentType();
 
-        if (contentType.equals(ContentInfo.DATA_OID)) {
+        if (contentType.equals((Object)ContentInfo.DATA_OID)) {
            authSafeData = authSafe.getData();
         } else /* signed data */ {
            throw new IOException("public key protected PKCS12 not supported");
@@ -2018,14 +2018,14 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
             sci = new DerInputStream(safeContentsArray[i].toByteArray());
             safeContents = new ContentInfo(sci);
             contentType = safeContents.getContentType();
-            if (contentType.equals(ContentInfo.DATA_OID)) {
+            if (contentType.equals((Object)ContentInfo.DATA_OID)) {
 
                 if (debug != null) {
                     debug.println("Loading PKCS#7 data");
                 }
 
                 loadSafeContents(new DerInputStream(safeContents.getData()));
-            } else if (contentType.equals(ContentInfo.ENCRYPTED_DATA_OID)) {
+            } else if (contentType.equals((Object)ContentInfo.ENCRYPTED_DATA_OID)) {
                 if (password == null) {
 
                     if (debug != null) {
@@ -2269,7 +2269,7 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                 DerInputStream sci = new DerInputStream(seq.toByteArray());
                 ContentInfo safeContents = new ContentInfo(sci);
                 if (safeContents.getContentType()
-                        .equals(ContentInfo.ENCRYPTED_DATA_OID)) {
+                        .equals((Object)ContentInfo.ENCRYPTED_DATA_OID)) {
                     // Certificate encrypted
                     return false;
                 }
@@ -2331,12 +2331,12 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                                         + bagValue.tag);
             }
             bagValue = bagValue.data.getDerValue();
-            if (bagId.equals(PKCS8ShroudedKeyBag_OID)) {
+            if (bagId.equals((Object)PKCS8ShroudedKeyBag_OID)) {
                 PrivateKeyEntry kEntry = new PrivateKeyEntry();
                 kEntry.protectedPrivKey = bagValue.toByteArray();
                 bagItem = kEntry;
                 privateKeyCount++;
-            } else if (bagId.equals(CertBag_OID)) {
+            } else if (bagId.equals((Object)CertBag_OID)) {
                 DerInputStream cs = new DerInputStream(bagValue.toByteArray());
                 DerValue[] certValues = cs.getSequence(2);
                 if (certValues.length != 2) {
@@ -2354,7 +2354,7 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                         (new ByteArrayInputStream(certValue.getOctetString()));
                 bagItem = cert;
                 certificateCount++;
-            } else if (bagId.equals(SecretBag_OID)) {
+            } else if (bagId.equals((Object)SecretBag_OID)) {
                 DerInputStream ss = new DerInputStream(bagValue.toByteArray());
                 DerValue[] secretValues = ss.getSequence(2);
                 if (secretValues.length != 2) {
@@ -2411,12 +2411,11 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                         throw new IOException("Attribute " + attrId +
                                 " should have a value " + e.getMessage());
                     }
-                    if (attrId.equals(PKCS9FriendlyName_OID)) {
+                    if (attrId.equals((Object)PKCS9FriendlyName_OID)) {
                         alias = valSet[0].getBMPString();
-                    } else if (attrId.equals(PKCS9LocalKeyId_OID)) {
+                    } else if (attrId.equals((Object)PKCS9LocalKeyId_OID)) {
                         keyId = valSet[0].getOctetString();
-                    } else if
-                        (attrId.equals(TrustedKeyUsage_OID)) {
+                    } else if (attrId.equals((Object)TrustedKeyUsage_OID)) {
                         trustedKeyUsage = new ObjectIdentifier[valSet.length];
                         for (int k = 0; k < valSet.length; k++) {
                             trustedKeyUsage[k] = valSet[k].getOID();
