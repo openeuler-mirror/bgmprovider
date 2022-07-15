@@ -7,7 +7,7 @@
     <groupId>org.openeuler</groupId>
     <artifactId>gmssl</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.4</version>
+    <version>1.0.4.1</version>
     <modules>
         <module>jca</module>
         <module>jsse</module>
