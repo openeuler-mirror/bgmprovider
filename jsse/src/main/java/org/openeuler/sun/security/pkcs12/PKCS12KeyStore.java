@@ -63,6 +63,8 @@ import javax.crypto.Mac;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.x500.X500Principal;
 
+import org.openeuler.CompatibleOracleJdkHandler;
+import org.openeuler.gm.GMTlsUtil;
 import sun.security.action.GetPropertyAction;
 import sun.security.util.Debug;
 import sun.security.util.DerInputStream;
@@ -94,14 +96,14 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
 
     // Hardcoded defaults. They should be the same with commented out
     // lines inside the java.security file.
-    private static final String DEFAULT_CERT_PBE_ALGORITHM
-            = "PBEWithSHA1AndRC2_40";
-    private static final String DEFAULT_KEY_PBE_ALGORITHM
-            = "PBEWithSHA1AndDESede";
-    private static final String DEFAULT_MAC_ALGORITHM = "HmacPBESHA1";
-    private static final int DEFAULT_CERT_PBE_ITERATION_COUNT = 10000;
-    private static final int DEFAULT_KEY_PBE_ITERATION_COUNT = 10000;
-    private static final int DEFAULT_MAC_ITERATION_COUNT = 100000;
+    private static String DEFAULT_CERT_PBE_ALGORITHM
+            = "PBEWithHmacSHA256AndAES_256";
+    private static String DEFAULT_KEY_PBE_ALGORITHM
+            = "PBEWithHmacSHA256AndAES_256";
+    private static String DEFAULT_MAC_ALGORITHM = "HmacPBESHA1";
+    private static int DEFAULT_CERT_PBE_ITERATION_COUNT = 10000;
+    private static int DEFAULT_KEY_PBE_ITERATION_COUNT = 10000;
+    private static int DEFAULT_MAC_ITERATION_COUNT = 100000;
 
     // Legacy settings. Used when "keystore.pkcs12.legacy" is set.
     private static final String LEGACY_CERT_PBE_ALGORITHM
@@ -165,6 +167,11 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
     private static final ObjectIdentifier gmpbes2_OID;
     private static final Set<ObjectIdentifier> PBES2_OID_LIST;
 
+    // JDK 8 version.
+    private static final int JAVAVERSION_8 = 8;
+    // JDK 11 version.
+    private static final int JAVAVERSION_11 = 11;
+
     private int counter = 0;
 
     // private key count
@@ -207,6 +214,13 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
             TrustedKeyUsage_OID = new ObjectIdentifier(TrustedKeyUsage);
             AnyUsage = new ObjectIdentifier[]{
                 new ObjectIdentifier(AnyExtendedKeyUsage)};
+
+            if (!CompatibleOracleJdkHandler.isOracleJdk() && GMTlsUtil.javaVersion() == JAVAVERSION_8){
+                DEFAULT_CERT_PBE_ALGORITHM = "PBEWithSHA1AndRC2_40";
+                DEFAULT_CERT_PBE_ITERATION_COUNT = 50000;
+                DEFAULT_KEY_PBE_ALGORITHM = "PBEWithSHA1AndDESede";
+                DEFAULT_KEY_PBE_ITERATION_COUNT = 50000;
+            }
         } catch (IOException ioe) {
             throw new AssertionError("OID not initialized", ioe);
         }
