@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2022, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -125,14 +125,14 @@ public class BGMJCEProvider extends Provider {
     }
 
     private static void putSM3(Map<Object, Object> map) {
-        map.put("MessageDigest.SM3", "org.bouncycastle.jcajce.provider.digest.SM3$Digest");
+        map.put("MessageDigest.SM3", "org.openeuler.SM3");
         map.put("Alg.Alias.MessageDigest.OID.1.2.156.10197.1.401", "SM3");
         map.put("Alg.Alias.MessageDigest.1.2.156.10197.1.401", "SM3");
     }
 
     private static void putHmacSM3(Map<Object, Object> map) {
-        map.put("Mac.HmacSM3", "org.bouncycastle.jcajce.provider.digest.SM3$HashMac");
-        map.put("KeyGenerator.HmacSM3", "org.bouncycastle.jcajce.provider.digest.SM3$KeyGenerator");
+        map.put("Mac.HmacSM3", "org.openeuler.com.sun.crypto.provider.HmacCore$HmacSM3");
+        map.put("KeyGenerator.HmacSM3", "org.openeuler.HmacSM3KeyGenerator");
     }
 
     private static void putSignatureSM3withSM2(Map<Object, Object> map) {
