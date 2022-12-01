@@ -32,9 +32,9 @@ import java.security.interfaces.DSAPublicKey;
 import java.util.*;
 import javax.security.auth.x500.X500Principal;
 
-import org.openeuler.sun.security.util.Debug;
 import org.openeuler.sun.security.validator.Validator;
 import sun.security.provider.certpath.PKIXExtendedParameters;
+import sun.security.util.Debug;
 
 /**
  * Common utility methods and classes used by the PKIX CertPathValidator and
