@@ -24,8 +24,7 @@
 
 package org.openeuler.sun.misc;
 
-import org.openeuler.CompatibleOracleJdkHandler;
-import org.openeuler.gm.GMTlsUtil;
+import org.openeuler.JavaVersion;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -34,12 +33,6 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 public class SharedSecrets {
-    // JDK 8 version.
-    private static final int VERSION_8 = 8;
-
-    // JDK 11 version.
-    private static final int VERSION_11 = 11;
-
     // The getJavaNetAccess or getJavaNetInetAddressAccess method.
     private static Method getJavaNetAccessMethod;
 
@@ -61,37 +54,39 @@ public class SharedSecrets {
 
     /**
      * Different versions of jdk's SharedSecrets class are in different packages.
-     * jdk8 package name - sun.misc.SharedSecrets
-     * jdk11 package name - jdk.internal.misc.SharedSecrets
+     * jdk8 package name - sun.misc
+     * jdk11 package name - jdk.internal.misc
+     * jdk17 package name - jdk.internal.access
      * <p>
      * The JavaNetAccess class in jdk8 does not exist in jdk11, but JavaNetInetAddressAccess is used instead.
      * The package name of the class is also different, and the method of obtaining the instance of the class
      * is also different.
-     * jdk8 package name - jdk.internal.misc.SharedSecrets
-     * jdk11 package name - jdk.internal.misc.JavaNetInetAddressAccess
+     * jdk8 package name - sun.misc
+     * jdk11 package name - jdk.internal.misc
+     * jdk17 package name - jdk.internal.access
      */
     private static void init() {
-        int javaVersion = GMTlsUtil.javaVersion();
         // The SharedSecrets class.
         Class<?> sharedSecretsClass;
 
         // The JavaNetAccess or JavaNetInetAddressAccess class.
         Class<?> javaNetAccessClass;
         try {
-            if (javaVersion == VERSION_8) {
+            if (JavaVersion.isJava8()) {
                 sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
                 javaNetAccessClass = Class.forName("sun.misc.JavaNetAccess");
                 getJavaNetAccessMethod = sharedSecretsClass.getDeclaredMethod("getJavaNetAccess");
-            } else if (javaVersion == VERSION_11) {
+            } else if (JavaVersion.isJava11PlusSpec()) {
                 String pkg = "jdk.internal.misc";
-                if (CompatibleOracleJdkHandler.isOracleJdk()) {
+                // oracle jdk or version >= 12.0.19
+                if (JavaVersion.isOracleJdk() || JavaVersion.higherThanOrEquals(JavaVersion.V_12_0_19)) {
                     pkg = "jdk.internal.access";
                 }
                 sharedSecretsClass = Class.forName(pkg + ".SharedSecrets");
                 javaNetAccessClass = Class.forName(pkg + ".JavaNetInetAddressAccess");
                 getJavaNetAccessMethod = sharedSecretsClass.getDeclaredMethod("getJavaNetInetAddressAccess");
             } else {
-                throw new IllegalArgumentException("Unsupported jdk " + javaVersion);
+                throw new IllegalArgumentException("Unsupported jdk " + JavaVersion.current());
             }
             getOriginalHostNameMethod = javaNetAccessClass.getDeclaredMethod(
                     "getOriginalHostName", InetAddress.class);

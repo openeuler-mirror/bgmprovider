@@ -27,8 +27,37 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>jdk17</id>
+            <activation>
+                <jdk>17</jdk>
+            </activation>
+            <properties>
+                <argLine>
+                    --add-exports=java.base/sun.security.x509=ALL-UNNAMED
+                    --add-opens=java.base/sun.security.util=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.pkcs=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.action=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.provider.certpath=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.internal.spec=ALL-UNNAMED
+                    --add-opens=java.base/javax.crypto=ALL-UNNAMED
+                </argLine>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>
+                        ${argLine}
+                    </argLine>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>

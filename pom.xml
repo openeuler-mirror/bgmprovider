@@ -70,10 +70,6 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.22.1</version>
                     <configuration>
-                        <excludes>
-                            <exclude>**/CustomizedDefaultProtocolsTest.java</exclude>
-                            <exclude>**/B8025710Test.java</exclude>
-                        </excludes>
                         <forkMode>pertest</forkMode>
                     </configuration>
                 </plugin>

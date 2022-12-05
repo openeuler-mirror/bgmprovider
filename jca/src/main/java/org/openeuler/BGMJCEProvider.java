@@ -34,6 +34,8 @@ import java.security.SecureRandom;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.openeuler.ObjectIdentifierHandler.newObjectIdentifier;
+
 public class BGMJCEProvider extends Provider {
     private static final String OID_PKCS5_GM_PBES2 = "1.2.156.10197.6.1.4.1.5.2";
 
@@ -51,7 +53,7 @@ public class BGMJCEProvider extends Provider {
                 return;
             }
             Map<ObjectIdentifier,String> nameTable = (Map<ObjectIdentifier,String>) object;
-            nameTable.put(new ObjectIdentifier("1.2.156.10197.1.401"), "SM3");
+            nameTable.put(newObjectIdentifier("1.2.156.10197.1.401"), "SM3");
         } catch (NoSuchFieldException | IllegalAccessException | IOException e) {
             // skip
         }

@@ -38,6 +38,8 @@ public class JavaVersion {
     public static JavaVersion V_13_0_23 = new JavaVersion(13, 23);
     // 17.0.2
     public static JavaVersion V_17_0_2 = new JavaVersion(17, 2);
+    // 17.0.5
+    public static JavaVersion V_17_0_5 = new JavaVersion(17, 5);
 
     private static class JavaVersionHolder {
         private static final JavaVersion CURRENT_VERSION = getCurrentJavaVersion();
@@ -145,6 +147,10 @@ public class JavaVersion {
 
     public static boolean isJava11() {
         return current().majorVersion == 11;
+    }
+
+    public static boolean isJava17() {
+        return current().majorVersion == 17;
     }
 
     public static boolean isJava12PlusSpec() {

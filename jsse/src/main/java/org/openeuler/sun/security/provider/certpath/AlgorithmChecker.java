@@ -459,7 +459,7 @@ public final class AlgorithmChecker extends PKIXCertPathChecker {
         if(JavaVersion.isJava11() && JavaVersion.higherThanOrEquals(JavaVersion.V_11_0_17)){
             return true;
         }
-        return false;
+        return JavaVersion.isJava17() && JavaVersion.higherThanOrEquals(JavaVersion.V_17_0_5);
     }
 
 }
