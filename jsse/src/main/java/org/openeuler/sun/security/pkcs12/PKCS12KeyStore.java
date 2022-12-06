@@ -75,6 +75,9 @@ import sun.security.util.SecurityProperties;
 import sun.security.x509.AlgorithmId;
 import sun.security.pkcs.EncryptedPrivateKeyInfo;
 
+import static org.openeuler.ObjectIdentifierHandler.newObjectIdentifier;
+
+
 /**
  * This class provides the keystore implementation referred to as "PKCS12".
  * Implements the PKCS#12 PFX protected using the Password privacy mode.
@@ -195,19 +198,19 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
 
     static {
         try {
-            PKCS8ShroudedKeyBag_OID = new ObjectIdentifier(keyBag);
-            CertBag_OID = new ObjectIdentifier(certBag);
-            SecretBag_OID = new ObjectIdentifier(secretBag);
-            PKCS9FriendlyName_OID = new ObjectIdentifier(pkcs9Name);
-            PKCS9LocalKeyId_OID = new ObjectIdentifier(pkcs9KeyId);
-            PKCS9CertType_OID = new ObjectIdentifier(pkcs9certType);
-            pbes2_OID = new ObjectIdentifier(pbes2);
-            gmpbes2_OID = new ObjectIdentifier(gmpbes2);
+            PKCS8ShroudedKeyBag_OID = newObjectIdentifier(keyBag);
+            CertBag_OID = newObjectIdentifier(certBag);
+            SecretBag_OID = newObjectIdentifier(secretBag);
+            PKCS9FriendlyName_OID = newObjectIdentifier(pkcs9Name);
+            PKCS9LocalKeyId_OID = newObjectIdentifier(pkcs9KeyId);
+            PKCS9CertType_OID = newObjectIdentifier(pkcs9certType);
+            pbes2_OID = newObjectIdentifier(pbes2);
+            gmpbes2_OID = newObjectIdentifier(gmpbes2);
             PBES2_OID_LIST = new HashSet<>(
                     Arrays.asList(pbes2_OID, gmpbes2_OID));
-            TrustedKeyUsage_OID = new ObjectIdentifier(TrustedKeyUsage);
+            TrustedKeyUsage_OID = newObjectIdentifier(TrustedKeyUsage);
             AnyUsage = new ObjectIdentifier[]{
-                new ObjectIdentifier(AnyExtendedKeyUsage)};
+                newObjectIdentifier(AnyExtendedKeyUsage)};
 
             if(!JavaVersion.isOracleJdk() && JavaVersion.isJava8()){
                 DEFAULT_CERT_PBE_ALGORITHM = "PBEWithSHA1AndRC2_40";

@@ -38,6 +38,8 @@ import javax.crypto.spec.PBEParameterSpec;
 
 import sun.security.util.*;
 
+import static org.openeuler.ObjectIdentifierHandler.newObjectIdentifier;
+
 /**
  * This class implements the parameter set used with GM password-based
  * encryption scheme 2 (PBES2), which is defined in
@@ -63,13 +65,13 @@ abstract class PBES2Parameters extends AlgorithmParametersSpi {
 
     static {
         try {
-            HMAC_WITH_SM3_OID = new ObjectIdentifier(HMAC_WITH_SM3);
-            SM4_128_ECB_OID = new ObjectIdentifier(SM4_128_ECB);
-            SM4_128_CBC_OID = new ObjectIdentifier(SM4_128_CBC);
+            HMAC_WITH_SM3_OID = newObjectIdentifier(HMAC_WITH_SM3);
+            SM4_128_ECB_OID = newObjectIdentifier(SM4_128_ECB);
+            SM4_128_CBC_OID = newObjectIdentifier(SM4_128_CBC);
 
-            GMT_0091_2020_PBKDF2_OID = new ObjectIdentifier(GMT_0091_2020_PBKDF2);
-            GMT_0091_2020_HMAC_WITH_SM3_OID = new ObjectIdentifier(GMT_0091_2020_HMAC_WITH_SM3);
-            GMT_0091_2020_SM4_128_CBC_OID = new ObjectIdentifier(GMT_0091_2020_SM4_128_CBC);
+            GMT_0091_2020_PBKDF2_OID = newObjectIdentifier(GMT_0091_2020_PBKDF2);
+            GMT_0091_2020_HMAC_WITH_SM3_OID = newObjectIdentifier(GMT_0091_2020_HMAC_WITH_SM3);
+            GMT_0091_2020_SM4_128_CBC_OID = newObjectIdentifier(GMT_0091_2020_SM4_128_CBC);
         } catch (IOException ioe) {
             // should not happen
         }

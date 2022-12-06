@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.AccessController;
 import java.security.AlgorithmConstraints;
+import java.security.CryptoPrimitive;
 import java.security.GeneralSecurityException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
@@ -37,6 +38,7 @@ import java.security.PrivilegedExceptionAction;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -439,7 +441,7 @@ final class ServerHello {
                     continue;
                 }
                 if (!ServerHandshakeContext.legacyAlgorithmConstraints.permits(
-                        null, cs.name, null)) {
+                        EnumSet.of(CryptoPrimitive.KEY_AGREEMENT), cs.name, null)) {
                     legacySuites.add(cs);
                     continue;
                 }
@@ -718,7 +720,9 @@ final class ServerHello {
                 }
 
                 if ((legacySuite == null) &&
-                        !legacyConstraints.permits(null, cs.name, null)) {
+                        !legacyConstraints.permits(
+                                EnumSet.of(CryptoPrimitive.KEY_AGREEMENT),
+                                cs.name, null)) {
                     legacySuite = cs;
                     continue;
                 }
@@ -938,7 +942,7 @@ final class ServerHello {
                     continue;
                 }
                 if (!ServerHandshakeContext.legacyAlgorithmConstraints.permits(
-                        null, cs.name, null)) {
+                        EnumSet.of(CryptoPrimitive.KEY_AGREEMENT), cs.name, null)) {
                     legacySuites.add(cs);
                     continue;
                 }
