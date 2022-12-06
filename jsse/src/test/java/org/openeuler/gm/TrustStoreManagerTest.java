@@ -73,6 +73,8 @@ public class TrustStoreManagerTest extends BaseTest {
     private static final String BGM_DEFAULTMANAGERSHOLDER_CLASS_NAME = BGM_BASE_PACKAGE +
             ".SSLContextImpl$DefaultManagersHolder";
 
+    private static final int SERVER_PORT = 0;
+
     @BeforeClass
     public static void beforeClass() {
         if (debug) {
@@ -172,13 +174,13 @@ public class TrustStoreManagerTest extends BaseTest {
         testIllegalArgumentException("javax.net.ssl.trustStorePassword", "12345678,12345678");
     }
 
-    public TLSResult testTLS(int port, String[] storeFileNames, String provider) {
-        return testTLS(port, storeFileNames, provider, null, null);
+    public TLSResult testTLS(int serverPort, String[] storeFileNames, String provider) {
+        return testTLS(serverPort, storeFileNames, provider, null, null);
     }
 
-    public TLSResult testTLS(int port, String[] storeFileNames, String provider,
+    public TLSResult testTLS(int serverPort, String[] storeFileNames, String provider,
                              String[] clientEnabledProtocols, String[] enabledCipherSuites) {
-        Server server = new Server(port, provider);
+        Server server = new Server(serverPort, provider);
         new Thread(server::run).start();
         while (!server.isStarted) {
             try {
@@ -188,7 +190,7 @@ public class TrustStoreManagerTest extends BaseTest {
             }
         }
 
-        Client client = new Client(port, storeFileNames, provider);
+        Client client = new Client(server.serverPort, storeFileNames, provider);
         if (clientEnabledProtocols != null) {
             client.setEnabledProtocols(clientEnabledProtocols);
         }
@@ -208,7 +210,7 @@ public class TrustStoreManagerTest extends BaseTest {
                 "server-sm2-sig.truststore",
                 "server-sm2-enc.truststore"
         };
-        TLSResult tlsResult = testTLS(9999, storeFileNames, null);
+        TLSResult tlsResult = testTLS(SERVER_PORT, storeFileNames, null);
         tlsResult.assertSuccess();
     }
 
@@ -217,13 +219,13 @@ public class TrustStoreManagerTest extends BaseTest {
         String[] storeFileNames = new String[]{
                 "server-ec.truststore"
         };
-        TLSResult tlsResult = testTLS(9999, storeFileNames, null);
+        TLSResult tlsResult = testTLS(SERVER_PORT, storeFileNames, null);
         String actualMessage = "PKIX path building failed: " +
                 "sun.security.provider.certpath.SunCertPathBuilderException:" +
                 " unable to find valid certification path to requested target";
         tlsResult.assertClientException(actualMessage);
 
-        tlsResult = testTLS(9999, storeFileNames, null, new String[]{"TLSv1.2"}, null);
+        tlsResult = testTLS(SERVER_PORT, storeFileNames, null, new String[]{"TLSv1.2"}, null);
         tlsResult.assertSuccess();
     }
 
@@ -232,13 +234,13 @@ public class TrustStoreManagerTest extends BaseTest {
         String[] storeFileNames = new String[]{
                 "server-rsa.truststore"
         };
-        TLSResult tlsResult = testTLS(9999, storeFileNames, null);
+        TLSResult tlsResult = testTLS(SERVER_PORT, storeFileNames, null);
         String actualMessage = "PKIX path building failed: " +
                 "sun.security.provider.certpath.SunCertPathBuilderException:" +
                 " unable to find valid certification path to requested target";
         tlsResult.assertClientException(actualMessage);
 
-        tlsResult = testTLS(9999, storeFileNames, null, new String[]{"TLSv1.2"},
+        tlsResult = testTLS(SERVER_PORT, storeFileNames, null, new String[]{"TLSv1.2"},
                 new String[]{"TLS_RSA_WITH_AES_256_GCM_SHA384"});
         tlsResult.assertSuccess();
     }
@@ -270,16 +272,20 @@ public class TrustStoreManagerTest extends BaseTest {
         private volatile boolean isStarted;
         private volatile boolean isFinished;
         private volatile Exception exception;
-        private final int port;
+        private int serverPort;
         private final String provider;
 
-        public Server(int port, String provider) {
-            this.port = port;
+        public void setServerPort(int serverPort) {
+            this.serverPort = serverPort;
+        }
+
+        public Server(int serverPort, String provider) {
+            this.serverPort = serverPort;
             this.provider = provider;
         }
 
         public void run() {
-            startServer(this.port, this.provider);
+            startServer(this.serverPort, this.provider);
         }
 
         private void startServer(int port, String provider) {
@@ -299,6 +305,7 @@ public class TrustStoreManagerTest extends BaseTest {
                 sslContext.init(kmf.getKeyManagers(), null, null);
                 SSLServerSocketFactory ssf = sslContext.getServerSocketFactory();
                 serverSocket = ssf.createServerSocket(port);
+                setServerPort(serverSocket.getLocalPort());
                 this.isStarted = true;
                 Socket socket = serverSocket.accept();
                 DataInputStream inputStream = new DataInputStream(socket.getInputStream());
@@ -324,7 +331,7 @@ public class TrustStoreManagerTest extends BaseTest {
      * Client
      */
     private static class Client {
-        private final int port;
+        private final int serverPort;
         private final String[] storeFileNames;
         private final String provider;
         private volatile Exception exception;
@@ -340,14 +347,14 @@ public class TrustStoreManagerTest extends BaseTest {
         private String[] enabledProtocols;
         private String[] enabledCipherSuites;
 
-        private Client(int port, String[] storeFileNames, String provider) {
-            this.port = port;
+        private Client(int serverPort, String[] storeFileNames, String provider) {
+            this.serverPort = serverPort;
             this.storeFileNames = storeFileNames;
             this.provider = provider;
         }
 
         public void run() {
-            startClient(this.port, this.storeFileNames, this.provider);
+            startClient(this.serverPort, this.storeFileNames, this.provider);
         }
 
         private void startClient(int port, String[] storeFileNames, String provider) {

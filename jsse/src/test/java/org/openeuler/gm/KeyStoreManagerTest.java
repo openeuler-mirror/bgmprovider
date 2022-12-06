@@ -55,7 +55,6 @@ public class KeyStoreManagerTest extends BaseTest {
     private static final String BGM_BASE_PACKAGE = "org.openeuler.sun.security.ssl";
     private static final String BGM_DEFAULTMANAGERSHOLDER_CLASS_NAME = BGM_BASE_PACKAGE +
             ".SSLContextImpl$DefaultManagersHolder";
-    private static final int PORT = 9999;
 
     @BeforeClass
     public static void beforeClass() {
@@ -160,12 +159,7 @@ public class KeyStoreManagerTest extends BaseTest {
     @Test
     public void testTLS() {
         AtomicBoolean isServerStarted = new AtomicBoolean(false);
-        Thread serverThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                startServer(PORT, isServerStarted);
-            }
-        });
+        ServerThread serverThread = new ServerThread(isServerStarted);
         serverThread.start();
         while (!isServerStarted.get()) {
             try {
@@ -174,49 +168,74 @@ public class KeyStoreManagerTest extends BaseTest {
                 System.err.println(e.getMessage());
             }
         }
-        startClient(PORT);
+        startClient(serverThread.getServerPort());
     }
 
-    private void startServer(int port, AtomicBoolean isServerStarted) {
-        String[] expectedPaths = getPaths(new String[]{
-                "server-rsa.keystore",
-                "server-ec.keystore",
-                "server-sm2-sig.keystore",
-                "server-sm2-enc.keystore"
-        });
-        ServerSocket serverSocket = null;
-        try {
-            System.setProperty("javax.net.ssl.keyStore", arrayToString(expectedPaths));
-            System.setProperty("javax.net.ssl.keyStoreType", PKCS12);
-            System.setProperty("javax.net.ssl.keyStorePassword", PASSWD);
-            SSLContext sslContext = SSLContext.getInstance("TLS", BGMJSSEPROVIDER);
-            KeyManager[] keyManagers = getKeyManagers();
-            sslContext.init(keyManagers, null, null);
-            SSLServerSocketFactory ssf = sslContext.getServerSocketFactory();
-            serverSocket = ssf.createServerSocket(port);
-            isServerStarted.set(true);
-            Socket socket = serverSocket.accept();
-            DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-            String message = inputStream.readUTF();
-            System.out.println("server receive : " + message);
-        } catch (Exception e) {
-            isServerStarted.set(true);
-            throw new RuntimeException(e);
-        } finally {
-            System.getProperties().remove("javax.net.ssl.keyStore");
-            System.getProperties().remove("javax.net.ssl.keyStoreType");
-            System.getProperties().remove("javax.net.ssl.keyStorePassword");
-            if (serverSocket != null) {
-                try {
-                    serverSocket.close();
-                } catch (IOException e) {
-                    System.err.println(e.getMessage());
+    private class ServerThread extends Thread {
+        private int serverPort;
+
+        private AtomicBoolean isServerStarted;
+
+        ServerThread(AtomicBoolean isServerStarted) {
+            this.isServerStarted = isServerStarted;
+        }
+
+        public void setServerPort(int serverPort) {
+            this.serverPort = serverPort;
+        }
+
+        public int getServerPort() {
+            return serverPort;
+        }
+
+        @Override
+        public void run() {
+            startServer(0, isServerStarted);
+        }
+        private void startServer(int serverPort, AtomicBoolean isServerStarted) {
+            String[] expectedPaths = getPaths(new String[]{
+                    "server-rsa.keystore",
+                    "server-ec.keystore",
+                    "server-sm2-sig.keystore",
+                    "server-sm2-enc.keystore"
+            });
+            ServerSocket serverSocket = null;
+            try {
+                System.setProperty("javax.net.ssl.keyStore", arrayToString(expectedPaths));
+                System.setProperty("javax.net.ssl.keyStoreType", PKCS12);
+                System.setProperty("javax.net.ssl.keyStorePassword", PASSWD);
+                SSLContext sslContext = SSLContext.getInstance("TLS", BGMJSSEPROVIDER);
+                KeyManager[] keyManagers = getKeyManagers();
+                sslContext.init(keyManagers, null, null);
+                SSLServerSocketFactory ssf = sslContext.getServerSocketFactory();
+                serverSocket = ssf.createServerSocket(serverPort);
+                isServerStarted.set(true);
+                setServerPort(serverSocket.getLocalPort());
+                Socket socket = serverSocket.accept();
+                DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                String message = inputStream.readUTF();
+                System.out.println("server receive : " + message);
+            } catch (Exception e) {
+                isServerStarted.set(true);
+                throw new RuntimeException(e);
+            } finally {
+                System.getProperties().remove("javax.net.ssl.keyStore");
+                System.getProperties().remove("javax.net.ssl.keyStoreType");
+                System.getProperties().remove("javax.net.ssl.keyStorePassword");
+                if (serverSocket != null) {
+                    try {
+                        serverSocket.close();
+                    } catch (IOException e) {
+                        System.err.println(e.getMessage());
+                    }
                 }
             }
         }
     }
 
-    private void startClient(int port) {
+
+
+    private void startClient(int serverPort) {
         Socket socket = null;
         try {
             SSLContext sslContext = SSLContext.getInstance("GMTLS");
@@ -227,7 +246,7 @@ public class KeyStoreManagerTest extends BaseTest {
             tmf.init(ks);
             sslContext.init(null, tmf.getTrustManagers(), null);
             SSLSocketFactory sf = sslContext.getSocketFactory();
-            socket = sf.createSocket("localhost", port);
+            socket = sf.createSocket("localhost", serverPort);
             DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
             String message = "Hello Server";
             System.out.println("Client send : " + message);
