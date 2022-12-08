@@ -71,10 +71,10 @@
                     <version>2.22.1</version>
                     <configuration>
                         <forkCount>0.5C</forkCount>
-                        <parallel>classes</parallel>
-                        <threadCount>1</threadCount>
+                        <parallel>none</parallel>
                         <reuseForks>false</reuseForks>
-                        <forkedProcessExitTimeoutInSeconds>120</forkedProcessExitTimeoutInSeconds>
+                        <forkedProcessTimeoutInSeconds>90</forkedProcessTimeoutInSeconds>
+                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <goal>aggregate</goal>
                     </configuration>
                 </plugin>

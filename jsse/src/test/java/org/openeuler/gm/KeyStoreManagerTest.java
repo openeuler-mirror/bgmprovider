@@ -141,6 +141,7 @@ public class KeyStoreManagerTest extends BaseTest {
             String alias = e.nextElement();
             if (store.isKeyEntry(alias)) {
                 // test certificate chain
+                System.out.println("alias=" + alias);
                 Certificate[] expectedCerts = store.getCertificateChain(alias);
                 X509Certificate[] actualCerts = keyManager.getCertificateChain(alias);
                 Assert.assertArrayEquals(expectedCerts, actualCerts);

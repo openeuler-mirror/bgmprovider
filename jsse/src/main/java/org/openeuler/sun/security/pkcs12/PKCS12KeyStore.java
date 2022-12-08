@@ -64,6 +64,7 @@ import javax.security.auth.DestroyFailedException;
 import javax.security.auth.x500.X500Principal;
 
 import org.openeuler.JavaVersion;
+import org.openeuler.gm.PKCS12KeyStoreHandler;
 import sun.security.action.GetPropertyAction;
 import sun.security.util.Debug;
 import sun.security.util.DerInputStream;
@@ -98,14 +99,12 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
 
     // Hardcoded defaults. They should be the same with commented out
     // lines inside the java.security file.
-    private static String DEFAULT_CERT_PBE_ALGORITHM
-            = "PBEWithHmacSHA256AndAES_256";
-    private static String DEFAULT_KEY_PBE_ALGORITHM
-            = "PBEWithHmacSHA256AndAES_256";
-    private static String DEFAULT_MAC_ALGORITHM = "HmacPBESHA256";
-    private static int DEFAULT_CERT_PBE_ITERATION_COUNT = 10000;
-    private static int DEFAULT_KEY_PBE_ITERATION_COUNT = 10000;
-    private static int DEFAULT_MAC_ITERATION_COUNT = 10000;
+    private static String DEFAULT_CERT_PBE_ALGORITHM = PKCS12KeyStoreHandler.getDefaultCertPBEAlgorithm();
+    private static String DEFAULT_KEY_PBE_ALGORITHM = PKCS12KeyStoreHandler.getDefaultKeyPBEAlgorithm();
+    private static String DEFAULT_MAC_ALGORITHM = PKCS12KeyStoreHandler.getDefaultMacAlgorithm();
+    private static int DEFAULT_CERT_PBE_ITERATION_COUNT = PKCS12KeyStoreHandler.getDefaultCertPBEIterationCount();
+    private static int DEFAULT_KEY_PBE_ITERATION_COUNT = PKCS12KeyStoreHandler.getDefaultKeyPBEIterationCount();
+    private static int DEFAULT_MAC_ITERATION_COUNT = PKCS12KeyStoreHandler.getDefaultMacIterationCount();
 
     // Legacy settings. Used when "keystore.pkcs12.legacy" is set.
     private static final String LEGACY_CERT_PBE_ALGORITHM
@@ -211,18 +210,6 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
             TrustedKeyUsage_OID = newObjectIdentifier(TrustedKeyUsage);
             AnyUsage = new ObjectIdentifier[]{
                 newObjectIdentifier(AnyExtendedKeyUsage)};
-
-            if(!JavaVersion.isOracleJdk() && JavaVersion.isJava8()){
-                DEFAULT_CERT_PBE_ALGORITHM = "PBEWithSHA1AndRC2_40";
-                DEFAULT_CERT_PBE_ITERATION_COUNT = 50000;
-                DEFAULT_KEY_PBE_ALGORITHM = "PBEWithSHA1AndDESede";
-                DEFAULT_KEY_PBE_ITERATION_COUNT = 50000;
-            }
-
-            if(!upgradeDefaultMacAlgorithm()){
-                DEFAULT_MAC_ALGORITHM = "HmacPBESHA1";
-                DEFAULT_MAC_ITERATION_COUNT = 100000;
-            }
         } catch (IOException ioe) {
             throw new AssertionError("OID not initialized", ioe);
         }
@@ -2712,19 +2699,5 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                     + type + ": " + value);
         }
         return number;
-    }
-
-    /**
-     * https://bugs.openjdk.org/browse/JDK-8267880
-     * @return
-     */
-    private static boolean upgradeDefaultMacAlgorithm(){
-        if(JavaVersion.isOracleJdk() && JavaVersion.isJava8() && JavaVersion.higherThanOrEquals(JavaVersion.V_8_0_351)){
-            return true;
-        }
-        if(JavaVersion.isJava11() && JavaVersion.higherThanOrEquals(JavaVersion.V_11_0_17)){
-            return true;
-        }
-        return false;
     }
 }

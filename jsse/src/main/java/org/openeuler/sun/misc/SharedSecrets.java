@@ -24,23 +24,50 @@
 
 package org.openeuler.sun.misc;
 
-import org.openeuler.JavaVersion;
+import sun.security.util.Debug;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.Arrays;
 
+/**
+ * Different versions of jdk's SharedSecrets class are in different packages.
+ * jdk8 package name - sun.misc
+ * jdk11 package name - jdk.internal.misc
+ * jdk17 package name - jdk.internal.access
+ * <p>
+ * The JavaNetAccess class in jdk8 does not exist in jdk11, but JavaNetInetAddressAccess is used instead.
+ * The package name of the class is also different, and the method of obtaining the instance of the class
+ * is also different.
+ * jdk8 package name - sun.misc
+ * jdk11 package name - jdk.internal.misc
+ * jdk17 package name - jdk.internal.access
+ */
 public class SharedSecrets {
+    private static final Debug debug = Debug.getInstance("compatible");
+
+    // Candidate SharedSecrets class
+    private static final String[] candidateSharedSecretsClassNames = new String[]{
+            "sun.misc.SharedSecrets",
+            "jdk.internal.misc.SharedSecrets",
+            "jdk.internal.access.SharedSecrets"
+    };
+
+    // Candidate JavaNetAccess class
+    private static final String[] candidateJavaNetAccessClassNames = new String[]{
+            "sun.misc.JavaNetAccess",
+            "jdk.internal.misc.JavaNetInetAddressAccess",
+            "jdk.internal.access.JavaNetInetAddressAccess"
+    };
+
     // The getJavaNetAccess or getJavaNetInetAddressAccess method.
     private static Method getJavaNetAccessMethod;
 
     // The getOriginalHostName method.
     private static Method getOriginalHostNameMethod;
-
-    // Init method exception.
-    private static Exception exception;
 
     static {
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
@@ -52,63 +79,94 @@ public class SharedSecrets {
         });
     }
 
-    /**
-     * Different versions of jdk's SharedSecrets class are in different packages.
-     * jdk8 package name - sun.misc
-     * jdk11 package name - jdk.internal.misc
-     * jdk17 package name - jdk.internal.access
-     * <p>
-     * The JavaNetAccess class in jdk8 does not exist in jdk11, but JavaNetInetAddressAccess is used instead.
-     * The package name of the class is also different, and the method of obtaining the instance of the class
-     * is also different.
-     * jdk8 package name - sun.misc
-     * jdk11 package name - jdk.internal.misc
-     * jdk17 package name - jdk.internal.access
-     */
     private static void init() {
-        // The SharedSecrets class.
-        Class<?> sharedSecretsClass;
+        initGetJavaNetAccessMethod();
+        initGetOriginalHostNameMethod();
+    }
 
-        // The JavaNetAccess or JavaNetInetAddressAccess class.
-        Class<?> javaNetAccessClass;
+    private static void initGetJavaNetAccessMethod() {
+        Class<?> sharedSecretsClass = getSharedSecretsClass();
+        if (sharedSecretsClass == null) {
+            return;
+        }
+        String sharedSecretsClassName = sharedSecretsClass.getName().startsWith("sun.misc")
+                ? "getJavaNetAccess"
+                : "getJavaNetInetAddressAccess";
         try {
-            if (JavaVersion.isJava8()) {
-                sharedSecretsClass = Class.forName("sun.misc.SharedSecrets");
-                javaNetAccessClass = Class.forName("sun.misc.JavaNetAccess");
-                getJavaNetAccessMethod = sharedSecretsClass.getDeclaredMethod("getJavaNetAccess");
-            } else if (JavaVersion.isJava11PlusSpec()) {
-                String pkg = "jdk.internal.misc";
-                // oracle jdk or version >= 12.0.19
-                if (JavaVersion.isOracleJdk() || JavaVersion.higherThanOrEquals(JavaVersion.V_12_0_19)) {
-                    pkg = "jdk.internal.access";
-                }
-                sharedSecretsClass = Class.forName(pkg + ".SharedSecrets");
-                javaNetAccessClass = Class.forName(pkg + ".JavaNetInetAddressAccess");
-                getJavaNetAccessMethod = sharedSecretsClass.getDeclaredMethod("getJavaNetInetAddressAccess");
-            } else {
-                throw new IllegalArgumentException("Unsupported jdk " + JavaVersion.current());
+            getJavaNetAccessMethod = sharedSecretsClass.getDeclaredMethod(sharedSecretsClassName);
+            if (debug != null) {
+                debug.println("Found method " + getJavaNetAccessMethod.getName());
             }
-            getOriginalHostNameMethod = javaNetAccessClass.getDeclaredMethod(
-                    "getOriginalHostName", InetAddress.class);
-            getOriginalHostNameMethod.setAccessible(true);
-        } catch (ClassNotFoundException | NoSuchMethodException e) {
-            exception = e;
+        } catch (NoSuchMethodException e) {
+            if (debug != null) {
+                debug.println("NoSuchMethodException: " + e.getMessage());
+            }
         }
     }
 
-    private static Object getJavaNetAccess() throws InvocationTargetException, IllegalAccessException {
+    private static void initGetOriginalHostNameMethod() {
+        Class<?> javaNetAccessClass = getJavaNetAccessClass();
+        if (javaNetAccessClass == null) {
+            return;
+        }
+        try {
+            getOriginalHostNameMethod = javaNetAccessClass.getDeclaredMethod("getOriginalHostName",
+                    InetAddress.class);
+            getOriginalHostNameMethod.setAccessible(true);
+            if (debug != null) {
+                debug.println("Found method " + getOriginalHostNameMethod.getName());
+            }
+        } catch (NoSuchMethodException e) {
+            if (debug != null) {
+                debug.println("NoSuchMethodException: " + e.getMessage());
+            }
+        }
+    }
+
+    private static Class<?> getSharedSecretsClass() {
+        return getClass(candidateSharedSecretsClassNames);
+    }
+
+    private static Class<?> getJavaNetAccessClass() {
+        return getClass(candidateJavaNetAccessClassNames);
+    }
+
+    private static Class<?> getClass(String[] classNames) {
+        for (String className : classNames) {
+            try {
+                Class<?> clazz = Class.forName(className);
+                if (debug != null) {
+                    debug.println("Try load class " + className + " success");
+                }
+                return clazz;
+            } catch (ClassNotFoundException e) {
+                if (debug != null) {
+                    debug.println("Try load class " + className + " failed");
+                }
+            }
+        }
+        if (debug != null) {
+            debug.println("Can't find a suitable class from " + Arrays.toString(classNames));
+        }
+        return null;
+    }
+
+    private static Object getJavaNetAccess() throws NoSuchMethodException, InvocationTargetException,
+            IllegalAccessException {
+        if (getJavaNetAccessMethod == null) {
+            throw new IllegalAccessException("getJavaNetAccess or JavaNetInetAddressAccess method not found");
+        }
         return getJavaNetAccessMethod.invoke(null);
     }
 
     public static String getOriginalHostName(InetAddress ia) {
-        if (exception != null) {
-            throw new AssertionError(exception);
+        if (getOriginalHostNameMethod == null) {
+            throw new IllegalStateException("getOriginalHostName method not found");
         }
-
         try {
             Object javaNetAccess = getJavaNetAccess();
             return (String) getOriginalHostNameMethod.invoke(javaNetAccess, ia);
-        } catch (InvocationTargetException | IllegalAccessException e) {
+        } catch (InvocationTargetException | IllegalAccessException | NoSuchMethodException e) {
             throw new IllegalStateException(e);
         }
     }
