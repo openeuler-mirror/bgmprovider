@@ -28,19 +28,6 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 public class JavaVersion {
-    // 8.0.351
-    public static JavaVersion V_8_0_351 = new JavaVersion(8, 351);
-    // 11.0.17
-    public static JavaVersion V_11_0_17 = new JavaVersion(11, 17);
-    // 12.0.19
-    public static JavaVersion V_12_0_19 = new JavaVersion(12, 19);
-    // 13.0.23
-    public static JavaVersion V_13_0_23 = new JavaVersion(13, 23);
-    // 17.0.2
-    public static JavaVersion V_17_0_2 = new JavaVersion(17, 2);
-    // 17.0.5
-    public static JavaVersion V_17_0_5 = new JavaVersion(17, 5);
-
     private static class JavaVersionHolder {
         private static final JavaVersion CURRENT_VERSION = getCurrentJavaVersion();
         private static final String CURRENT_VENDOR = getCurrentJavaVendor();

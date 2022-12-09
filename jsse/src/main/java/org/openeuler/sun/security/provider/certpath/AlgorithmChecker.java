@@ -52,7 +52,7 @@ import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPublicKey;
 import java.security.spec.DSAPublicKeySpec;
 
-import org.openeuler.JavaVersion;
+import org.openeuler.gm.DisabledAlgorithmConstraintsHandler;
 import sun.security.util.ConstraintsParameters;
 import sun.security.util.Debug;
 import sun.security.util.DisabledAlgorithmConstraints;
@@ -95,23 +95,6 @@ public final class AlgorithmChecker extends PKIXCertPathChecker {
     private static final DisabledAlgorithmConstraints
         certPathDefaultConstraints =
             DisabledAlgorithmConstraints.certPathConstraints();
-
-    private static final boolean useHigherVersionPermitsMethod = useHigherVersionPermitsMethod();
-
-    private static Method permitsMethod;
-
-    static {
-        Class<DisabledAlgorithmConstraints> aClass = DisabledAlgorithmConstraints.class;
-        try {
-            if (useHigherVersionPermitsMethod){
-                permitsMethod = aClass.getMethod("permits", String.class, AlgorithmParameters.class, ConstraintsParameters.class, boolean.class);
-            }else {
-                permitsMethod = aClass.getMethod("permits", String.class, AlgorithmParameters.class, ConstraintsParameters.class);
-            }
-        }catch (Exception ignored){
-            // ignored
-        }
-    }
 
     /**
      * Create a new {@code AlgorithmChecker} with the given
@@ -301,14 +284,15 @@ public final class AlgorithmChecker extends PKIXCertPathChecker {
 
         // Check against local constraints if it is DisabledAlgorithmConstraints
         if (constraints instanceof DisabledAlgorithmConstraints) {
-            permits((DisabledAlgorithmConstraints)constraints, currSigAlg,
+            DisabledAlgorithmConstraintsHandler.permits((DisabledAlgorithmConstraints)constraints, currSigAlg,
                     currSigAlgParams, cp, true);
             // DisabledAlgorithmsConstraints does not check primitives, so key
             // additional key check.
 
         } else {
             // Perform the default constraints checking anyway.
-            permits(certPathDefaultConstraints, currSigAlg, currSigAlgParams, cp, true);
+            DisabledAlgorithmConstraintsHandler.permits(certPathDefaultConstraints, currSigAlg,
+                    currSigAlgParams, cp, true);
             // Call locally set constraints to check key with primitives.
             if (!constraints.permits(primitives, currPubKey)) {
                 throw new CertPathValidatorException(
@@ -429,38 +413,9 @@ public final class AlgorithmChecker extends PKIXCertPathChecker {
     static void check(PublicKey key, AlgorithmId algorithmId, String variant,
                       TrustAnchor anchor) throws CertPathValidatorException {
 
-        permits(certPathDefaultConstraints, algorithmId.getName(),
+        DisabledAlgorithmConstraintsHandler.permits(certPathDefaultConstraints, algorithmId.getName(),
                 algorithmId.getParameters(),
                 new CertPathConstraintsParameters(key, variant, anchor),true);
-
     }
-
-    static void permits(DisabledAlgorithmConstraints constraints, String algorithm, AlgorithmParameters ap,
-                                     ConstraintsParameters cp, boolean checkKey){
-        try {
-            if (useHigherVersionPermitsMethod){
-                permitsMethod.invoke(constraints, algorithm, ap, cp, checkKey);
-            }else {
-                permitsMethod.invoke(constraints, algorithm, ap, cp);
-            }
-        }catch (Exception ignored){
-            // ignored
-        }
-    }
-
-    /**
-     * https://bugs.openjdk.org/browse/JDK-8275887
-     * @return
-     */
-    static boolean useHigherVersionPermitsMethod(){
-        if(JavaVersion.isOracleJdk() && JavaVersion.isJava8() && JavaVersion.higherThanOrEquals(JavaVersion.V_8_0_351)){
-            return true;
-        }
-        if(JavaVersion.isJava11() && JavaVersion.higherThanOrEquals(JavaVersion.V_11_0_17)){
-            return true;
-        }
-        return JavaVersion.isJava17() && JavaVersion.higherThanOrEquals(JavaVersion.V_17_0_5);
-    }
-
 }
 
