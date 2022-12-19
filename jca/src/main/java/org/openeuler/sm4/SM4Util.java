@@ -93,10 +93,7 @@ public class SM4Util {
      */
     private byte[] reverse(int x32, int x33, int x34, int x35) {
         byte[] output = new byte[BLOCK_SIZE];
-        readInt(output, x35, 0);
-        readInt(output, x34, 4);
-        readInt(output, x33, 8);
-        readInt(output, x32, 12);
+        reverse(x32, x33, x34, x35, output, 0);
         return output;
     }
 
@@ -187,22 +184,9 @@ public class SM4Util {
      * @return
      */
     public byte[] encrypt(byte[] key, byte[] input) {
-        int[] rk = expandKey(key);
-        int x0 = readByte(input, 0);
-        int x1 = readByte(input, 4);
-        int x2 = readByte(input, 8);
-        int x3 = readByte(input, 12);
-
-        for (int i = 0; i < rk.length; i++) {
-            int res = f(x0, x1, x2, x3, rk[i]);
-            x0 = x1;
-            x1 = x2;
-            x2 = x3;
-            x3 = res;
-        }
-
-        return reverse(x0, x1, x2, x3);
-
+        byte[] res = new byte[BLOCK_SIZE];
+        encrypt(key, input, 0, res, 0);
+        return res;
     }
 
     /**
@@ -214,21 +198,9 @@ public class SM4Util {
      * @return
      */
     public byte[] encrypt(byte[] key, byte[] input, int inputOffset) {
-        int[] rk = expandKey(key);
-        int x0 = readByte(input, inputOffset);
-        int x1 = readByte(input, 4 + inputOffset);
-        int x2 = readByte(input, 8 + inputOffset);
-        int x3 = readByte(input, 12 + inputOffset);
-
-        for (int i = 0; i < rk.length; i++) {
-            int res = f(x0, x1, x2, x3, rk[i]);
-            x0 = x1;
-            x1 = x2;
-            x2 = x3;
-            x3 = res;
-        }
-
-        return reverse(x0, x1, x2, x3);
+        byte[] res = new byte[BLOCK_SIZE];
+        encrypt(key, input, inputOffset, res, 0);
+        return res;
     }
 
     /**
@@ -266,24 +238,9 @@ public class SM4Util {
      * @return
      */
     public byte[] decrypt(byte[] key, byte[] cipherText) {
-        int[] rk = expandKey(key);
-
-        int x0 = readByte(cipherText, 0);
-        int x1 = readByte(cipherText, 4);
-        int x2 = readByte(cipherText, 8);
-        int x3 = readByte(cipherText, 12);
-
-        for (int i = rk.length - 1; i >= 0; i--) {
-
-            int res = f(x0, x1, x2, x3, rk[i]);
-            x0 = x1;
-            x1 = x2;
-            x2 = x3;
-            x3 = res;
-
-        }
-
-        return reverse(x0, x1, x2, x3);
+        byte[] res = new byte[BLOCK_SIZE];
+        decrypt(key, cipherText, 0, res, 0);
+        return res;
     }
 
     /**
@@ -295,24 +252,9 @@ public class SM4Util {
      * @return
      */
     public byte[] decrypt(byte[] key, byte[] input, int inputOffset) {
-        int[] rk = expandKey(key);
-
-        int x0 = readByte(input, inputOffset);
-        int x1 = readByte(input, 4 + inputOffset);
-        int x2 = readByte(input, 8 + inputOffset);
-        int x3 = readByte(input, 12 + inputOffset);
-
-        for (int i = rk.length - 1; i >= 0; i--) {
-
-            int res = f(x0, x1, x2, x3, rk[i]);
-            x0 = x1;
-            x1 = x2;
-            x2 = x3;
-            x3 = res;
-
-        }
-        return reverse(x0, x1, x2, x3);
-
+        byte[] res = new byte[BLOCK_SIZE];
+        decrypt(key, input, inputOffset, res, 0);
+        return res;
     }
 
     /**
