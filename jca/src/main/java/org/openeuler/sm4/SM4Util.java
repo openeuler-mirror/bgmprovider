@@ -13,14 +13,17 @@ public class SM4Util {
     /**
      * τtrsform
      *
-     * @param input
-     * @return
+     * @param input input(a0,a1,a2,a3)
+     * @return τ(input)=(sbox(a0),sbox(a1),sbox(a2),sbox(a3))
      */
     private int tau(int input) {
-        int lowest8bit = (((int) sbox[(input << 24) >>> 24]) << 24) >>> 24;
-        int second8bit = (((int) sbox[(((input) >>> 8) << 24) >>> 24]) << 24) >>> 16;
-        int third8bit = (((int) sbox[((input >>> 16) << 24) >>> 24]) << 24) >>> 8;
-        int highest8bit = ((int) sbox[(input >>> 24)]) << 24;
+        int lowest8bit = sbox[input & 255] & 255;
+        int second8bit = sbox[(input >> 8) & 255] & 255;
+        int third8bit = sbox[(input >> 16) & 255] & 255;
+        int highest8bit = sbox[(input >> 24) & 255] & 255;
+        second8bit = second8bit << 8;
+        third8bit = third8bit << 16;
+        highest8bit = highest8bit << 24;
         return lowest8bit | second8bit | third8bit | highest8bit;
     }
 
