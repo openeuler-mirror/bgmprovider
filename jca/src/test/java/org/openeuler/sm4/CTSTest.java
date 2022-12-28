@@ -52,7 +52,7 @@ public class CTSTest {
      * @throws Exception
      */
     private void testNoPadding(Cipher bc, Cipher bgm, SecretKey key) throws Exception {
-        int times = 1000;
+        int times = 10000;
         for (int i = 0; i < times; i++) {
             //generate iv
             byte[] iv = new byte[16];
@@ -60,6 +60,9 @@ public class CTSTest {
             IvParameterSpec ivParam = new IvParameterSpec(iv);
             //generate plainText
             int plainTextLen = (((int) (Math.random() * 2047)) + 1) * 16;
+            while (plainTextLen < 16) {
+                plainTextLen = (((int) (Math.random() * 32767)) + 1);
+            }
             byte[] noPaddingPlainText = new byte[plainTextLen];
             SecureRandom random = new SecureRandom();
             random.nextBytes(noPaddingPlainText);
@@ -119,7 +122,7 @@ public class CTSTest {
      * @throws Exception
      */
     private void testWithPadding(Cipher bc, Cipher bgm, SecretKey key) throws Exception {
-        int times = 1000;
+        int times = 10000;
         for (int i = 0; i < times; i++) {
             //generate iv
             byte[] iv = new byte[16];
@@ -186,7 +189,7 @@ public class CTSTest {
      * @throws Exception
      */
     private void testUpdate(Cipher bc, Cipher bgm, SecretKey key) throws Exception {
-        int times = 1000;
+        int times = 10000;
         for (int i = 0; i < times; i++) {
             //generate iv
             byte[] iv = new byte[16];
@@ -194,6 +197,9 @@ public class CTSTest {
             IvParameterSpec ivParam = new IvParameterSpec(iv);
             //generate plainText
             int plainTextLen = (((int) (Math.random() * 32767)) + 1);
+            while (plainTextLen < 16) {
+                plainTextLen = (((int) (Math.random() * 32767)) + 1);
+            }
             byte[] noPaddingPlainText = new byte[plainTextLen];
             SecureRandom random = new SecureRandom();
             random.nextBytes(noPaddingPlainText);
@@ -219,7 +225,7 @@ public class CTSTest {
      * @throws Exception
      */
     private void testUpdateAndDofinal(Cipher bc, Cipher bgm, SecretKey key) throws Exception {
-        int times = 1000;
+        int times = 10000;
         for (int i = 0; i < times; i++) {
             //generate iv
             byte[] iv = new byte[16];
