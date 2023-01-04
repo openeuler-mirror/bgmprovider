@@ -329,7 +329,7 @@ public class CTS extends StreamModeBaseCipher {
                 int i;
                 for (i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
                     byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, i);
-                    if (!(i + 32 > inputLen)) {
+                    if (!(i + 32 > +inputOffset+inputLen)) {
                         byte[] xor = null;
                         xor = sm4.xor(decrypt, this.counter);
                         sm4.copyArray(input, i, 16, counter, 0);
@@ -418,7 +418,7 @@ public class CTS extends StreamModeBaseCipher {
                 int i;
                 for (i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
                     byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, i);
-                    if (!(i + 32 > inputLen)) {
+                    if (!(i + 32 > inputOffset+inputLen)) {
                         byte[] xor = null;
                         xor = sm4.xor(decrypt, this.counter);
                         sm4.copyArray(input, i, 16, counter, 0);

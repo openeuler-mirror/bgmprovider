@@ -77,7 +77,7 @@ public class OFB extends StreamModeBaseCipher {
         if (outputOffset + len > output.length) {
             throw new ShortBufferException();
         }
-        processOFB(input, inputOffset, inputLen, output, outputOffset);
+        processOFB(input, inputOffset, len, output, outputOffset);
         return len;
     }
 
