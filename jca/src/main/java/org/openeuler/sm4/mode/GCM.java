@@ -504,7 +504,11 @@ public class GCM extends StreamModeBaseCipher {
             sm4.readInt(AC, cLen, 12);
 
             byte[] encrypt0 = sm4.encrypt(key.getEncoded(), counter0, 0);
-            processG(AC, true);
+            if(aad==null && updateData==null){
+                processG(AC, true);
+            }else{
+                processG(AC,false);
+            }
             T = sm4.xor16Byte(g, encrypt0);
             sm4.copyArray(T, 0, tLen / 8, output, outputOffset + inputLen);
         } else if (inputLen < 16) {
