@@ -12,6 +12,7 @@ import javax.crypto.spec.IvParameterSpec;
 import java.security.Key;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.util.Arrays;
 
 /**
  * SM4 full test
@@ -366,15 +367,20 @@ public class SM4Test {
         byte[] bgmPlainText = bgm.doFinal(bgmCipherText);
         Assert.assertArrayEquals(bcPlainText, bgmPlainText);
 
-        random.nextBytes(iv);
-        gcmParameterSpec = new GCMParameterSpec(tLen, iv);
+        byte[] newIv = new byte[ivLen];
+        random.nextBytes(newIv);
+        while (ivLen!=0 && Arrays.equals(iv,newIv)){
+            random.nextBytes(newIv);
+        }
+
+        gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
         if (!algo.contains("CCM")) {
-            gcmParameterSpec = new GCMParameterSpec(tLen, iv);
+            gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
             bc.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
             bgm.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
         } else {
-            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
+            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
         }
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
@@ -398,8 +404,8 @@ public class SM4Test {
             bc.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
             bgm.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
         } else {
-            bc.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-            bgm.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+            bc.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(newIv));
+            bgm.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(newIv));
         }
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
@@ -511,15 +517,20 @@ public class SM4Test {
         byte[] bgmCipherText = bgm.update(plainText);
         Assert.assertArrayEquals(bcCipherText, bgmCipherText);
 
-        random.nextBytes(iv);
-        gcmParameterSpec = new GCMParameterSpec(tLen, iv);
+        byte[] newIv = new byte[ivLen];
+        random.nextBytes(newIv);
+        while (ivLen!=0 && Arrays.equals(iv,newIv)){
+            random.nextBytes(newIv);
+        }
+
+        gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
         if (!algo.contains("CCM")) {
-            gcmParameterSpec = new GCMParameterSpec(tLen, iv);
+            gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
             bc.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
             bgm.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
         } else {
-            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
+            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
         }
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
