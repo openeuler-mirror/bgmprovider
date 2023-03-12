@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,8 +22,7 @@
  * information or have any questions.
  */
 
-package org.openeuler.SM2;
-
+package org.openeuler.sm2;
 
 import org.openeuler.util.ECUtil;
 

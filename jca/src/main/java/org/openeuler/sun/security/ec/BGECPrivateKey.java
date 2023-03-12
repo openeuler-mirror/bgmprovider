@@ -23,7 +23,7 @@
  * questions.
  */
 
-package org.openeuler.SM2;
+package org.openeuler.sun.security.ec;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -31,9 +31,9 @@ import java.security.*;
 import java.security.interfaces.*;
 import java.security.spec.*;
 
-import org.openeuler.util.ECDomainParameters;
-import org.openeuler.util.ECParameters;
-import org.openeuler.util.ECPrivateKeyParameters;
+import org.openeuler.org.bouncycastle.ECDomainParameters;
+import org.openeuler.sun.security.util.ECParameters;
+import org.openeuler.org.bouncycastle.ECPrivateKeyParameters;
 
 import sun.security.util.ArrayUtil;
 import sun.security.util.DerInputStream;

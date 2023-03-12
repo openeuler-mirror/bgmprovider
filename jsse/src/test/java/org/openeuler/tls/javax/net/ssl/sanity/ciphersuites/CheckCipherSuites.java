@@ -26,8 +26,8 @@ package org.openeuler.tls.javax.net.ssl.sanity.ciphersuites;
  * @test
  * @bug 4750141 4895631 8217579 8163326
  * @summary Check enabled and supported ciphersuites are correct
- * @run main/othervm -Djdk.tls.client.protocols="TLSv1.3,TLSv1.2,TLSv1.1,TLSv1,SSLv3" CheckCipherSuites default
- * @run main/othervm -Djdk.tls.client.protocols="TLSv1.3,TLSv1.2,TLSv1.1,TLSv1,SSLv3" CheckCipherSuites limited
+ * @run main/othervm CheckCipherSuites default
+ * @run main/othervm CheckCipherSuites limited
  */
 
 import org.openeuler.BGMJCEProvider;
@@ -42,291 +42,259 @@ public class CheckCipherSuites {
     // List of enabled cipher suites when the "crypto.policy" security
     // property is set to "unlimited" (the default value).
     private final static String[] ENABLED_DEFAULT = {
-        // TLS 1.3 cipher suites
-        "TLS_AES_256_GCM_SHA384",
-        "TLS_AES_128_GCM_SHA256",
+            // TLS 1.3 cipher suites
+            "TLS_AES_256_GCM_SHA384",
+            "TLS_AES_128_GCM_SHA256",
 
-        // Suite B compliant cipher suites
-        "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            // Suite B compliant cipher suites
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
 
-        // AES_256(GCM) - ECDHE - forward screcy
-        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            // AES_256(GCM) - ECDHE - forward screcy
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 
-        // AES_128(GCM) - ECDHE - forward screcy
-        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            // AES_128(GCM) - ECDHE - forward screcy
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
 
-        // AES_256(GCM) - DHE - forward screcy
-        "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
-        "TLS_DHE_DSS_WITH_AES_256_GCM_SHA384",
+            // AES_256(GCM) - DHE - forward screcy
+            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_DHE_DSS_WITH_AES_256_GCM_SHA384",
 
-        // AES_128(GCM) - DHE - forward screcy
-        "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
+            // AES_128(GCM) - DHE - forward screcy
+            "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
 
-        // AES_256(CBC) - ECDHE - forward screcy
-        "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+            // AES_256(CBC) - ECDHE - forward screcy
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
 
-        // AES_256(CBC) - ECDHE - forward screcy
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+            // AES_256(CBC) - ECDHE - forward screcy
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
 
-        // AES_256(CBC) - DHE - forward screcy
-        "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
-        "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",
+            // AES_256(CBC) - DHE - forward screcy
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",
 
-        // AES_128(CBC) - DHE - forward screcy
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
+            // AES_128(CBC) - DHE - forward screcy
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
 
-        // AES_256(GCM) - not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384",
-        "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384",
+            // AES_256(GCM) - not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384",
 
-        // AES_128(GCM) - not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
+            // AES_128(GCM) - not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
 
-        // AES_256(CBC) - not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",
-        "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384",
+            // AES_256(CBC) - not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384",
 
-        // AES_128(CBC) - not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
+            // AES_128(CBC) - not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
 
-        // AES_256(CBC) - ECDHE - using SHA
-        "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+            // AES_256(CBC) - ECDHE - using SHA
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
 
-        // AES_128(CBC) - ECDHE - using SHA
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            // AES_128(CBC) - ECDHE - using SHA
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
 
-        // AES_256(CBC) - DHE - using SHA
-        "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-        "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
+            // AES_256(CBC) - DHE - using SHA
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
 
-        // AES_128(CBC) - DHE - using SHA
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+            // AES_128(CBC) - DHE - using SHA
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
 
-        // AES_256(CBC) - using SHA, not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
+            // AES_256(CBC) - using SHA, not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
 
-        // AES_128(CBC) - using SHA, not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
+            // AES_128(CBC) - using SHA, not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
 
-        // deprecated
-        "TLS_RSA_WITH_AES_256_GCM_SHA384",
-        "TLS_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_RSA_WITH_AES_256_CBC_SHA256",
-        "TLS_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_RSA_WITH_AES_256_CBC_SHA",
-        "TLS_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
+            // deprecated
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
 
-        // GM
-        "ECC_SM4_CBC_SM3",
-        "ECDHE_SM4_CBC_SM3",
-        "ECC_SM4_GCM_SM3",
-        "ECDHE_SM4_GCM_SM3"
+            // GM
+            "ECC_SM4_CBC_SM3",
+            "ECDHE_SM4_CBC_SM3",
+            "ECC_SM4_GCM_SM3",
+            "ECDHE_SM4_GCM_SM3"
     };
 
     // List of enabled cipher suites when the "crypto.policy" security
     // property is set to "limited".
     private final static String[] ENABLED_LIMITED = {
-        "TLS_AES_128_GCM_SHA256",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-        "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
-        "ECC_SM4_CBC_SM3",
-        "ECDHE_SM4_CBC_SM3",
-        "ECC_SM4_GCM_SM3",
-        "ECDHE_SM4_GCM_SM3"
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
+            "ECC_SM4_CBC_SM3",
+            "ECDHE_SM4_CBC_SM3",
+            "ECC_SM4_GCM_SM3",
+            "ECDHE_SM4_GCM_SM3"
     };
 
     // List of supported cipher suites when the "crypto.policy" security
     // property is set to "unlimited" (the default value).
     private final static String[] SUPPORTED_DEFAULT = {
-        // TLS 1.3 cipher suites
-        "TLS_AES_256_GCM_SHA384",
-        "TLS_AES_128_GCM_SHA256",
+            // TLS 1.3 cipher suites
+            "TLS_AES_256_GCM_SHA384",
+            "TLS_AES_128_GCM_SHA256",
 
-        // Suite B compliant cipher suites
-        "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            // Suite B compliant cipher suites
+            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
 
-        // AES_256(GCM) - ECDHE - forward screcy
-        "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
+            // AES_256(GCM) - ECDHE - forward screcy
+            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
 
-        // AES_128(GCM) - ECDHE - forward screcy
-        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            // AES_128(GCM) - ECDHE - forward screcy
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
 
-        // AES_256(GCM) - DHE - forward screcy
-        "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
-        "TLS_DHE_DSS_WITH_AES_256_GCM_SHA384",
+            // AES_256(GCM) - DHE - forward screcy
+            "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_DHE_DSS_WITH_AES_256_GCM_SHA384",
 
-        // AES_128(GCM) - DHE - forward screcy
-        "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
+            // AES_128(GCM) - DHE - forward screcy
+            "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
 
-        // AES_256(CBC) - ECDHE - forward screcy
-        "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
+            // AES_256(CBC) - ECDHE - forward screcy
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
 
-        // AES_256(CBC) - ECDHE - forward screcy
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+            // AES_256(CBC) - ECDHE - forward screcy
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
 
-        // AES_256(CBC) - DHE - forward screcy
-        "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
-        "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",
+            // AES_256(CBC) - DHE - forward screcy
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA256",
 
-        // AES_128(CBC) - DHE - forward screcy
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
+            // AES_128(CBC) - DHE - forward screcy
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
 
-        // AES_256(GCM) - not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384",
-        "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384",
+            // AES_256(GCM) - not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384",
+            "TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384",
 
-        // AES_128(GCM) - not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
+            // AES_128(GCM) - not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
 
-        // AES_256(CBC) - not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",
-        "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384",
+            // AES_256(CBC) - not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384",
 
-        // AES_128(CBC) - not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
+            // AES_128(CBC) - not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
 
-        // AES_256(CBC) - ECDHE - using SHA
-        "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
+            // AES_256(CBC) - ECDHE - using SHA
+            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
 
-        // AES_128(CBC) - ECDHE - using SHA
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            // AES_128(CBC) - ECDHE - using SHA
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
 
-        // AES_256(CBC) - DHE - using SHA
-        "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
-        "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
+            // AES_256(CBC) - DHE - using SHA
+            "TLS_DHE_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_256_CBC_SHA",
 
-        // AES_128(CBC) - DHE - using SHA
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+            // AES_128(CBC) - DHE - using SHA
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
 
-        // AES_256(CBC) - using SHA, not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
+            // AES_256(CBC) - using SHA, not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_256_CBC_SHA",
 
-        // AES_128(CBC) - using SHA, not forward screcy
-        "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
+            // AES_128(CBC) - using SHA, not forward screcy
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
 
-        // deprecated
-        "TLS_RSA_WITH_AES_256_GCM_SHA384",
-        "TLS_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_RSA_WITH_AES_256_CBC_SHA256",
-        "TLS_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_RSA_WITH_AES_256_CBC_SHA",
-        "TLS_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
+            // deprecated
+            "TLS_RSA_WITH_AES_256_GCM_SHA384",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_256_CBC_SHA256",
+            "TLS_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_RSA_WITH_AES_256_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
 
-        // GM
-        "ECC_SM4_CBC_SM3",
-        "ECDHE_SM4_CBC_SM3",
-        "ECC_SM4_GCM_SM3",
-        "ECDHE_SM4_GCM_SM3",
-        "TLS_KRB5_WITH_3DES_EDE_CBC_SHA",
-        "TLS_KRB5_WITH_3DES_EDE_CBC_MD5"
+            // GM
+            "ECC_SM4_CBC_SM3",
+            "ECDHE_SM4_CBC_SM3",
+            "ECC_SM4_GCM_SM3",
+            "ECDHE_SM4_GCM_SM3"
     };
 
     // List of supported cipher suites when the "crypto.policy" security
     // property is set to "limited".
     private final static String[] SUPPORTED_LIMITED = {
-        "TLS_AES_128_GCM_SHA256",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
-        "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_RSA_WITH_AES_128_GCM_SHA256",
-        "TLS_RSA_WITH_AES_128_CBC_SHA256",
-        "TLS_RSA_WITH_AES_128_CBC_SHA",
-        "TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_DHE_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA",
-        "SSL_RSA_WITH_3DES_EDE_CBC_SHA",
-        "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
-        "ECC_SM4_CBC_SM3",
-        "ECDHE_SM4_CBC_SM3",
-        "ECC_SM4_GCM_SM3",
-        "ECDHE_SM4_GCM_SM3",
-        "TLS_KRB5_WITH_3DES_EDE_CBC_SHA",
-        "TLS_KRB5_WITH_3DES_EDE_CBC_MD5"
+            "TLS_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_DHE_DSS_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA",
+            "TLS_ECDH_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_RSA_WITH_AES_128_GCM_SHA256",
+            "TLS_RSA_WITH_AES_128_CBC_SHA256",
+            "TLS_RSA_WITH_AES_128_CBC_SHA",
+            "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
+            "ECC_SM4_CBC_SM3",
+            "ECDHE_SM4_CBC_SM3",
+            "ECC_SM4_GCM_SM3",
+            "ECDHE_SM4_GCM_SM3"
     };
 
     private static void showSuites(String[] suites) {

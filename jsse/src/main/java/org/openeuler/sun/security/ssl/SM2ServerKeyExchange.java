@@ -27,7 +27,6 @@ package org.openeuler.sun.security.ssl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -39,17 +38,12 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECParameterSpec;
 import java.text.MessageFormat;
 import java.util.Locale;
-import java.util.Map;
 
-//import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
-//import org.openeuler.SM2KeyExchangeUtil;
-import org.openeuler.SM2.BGECPublicKey;
-import org.openeuler.SM2.SM2KeyExchangeUtil;
+import org.openeuler.sm2.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Credentials;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Possession;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
-import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Possession;
 import org.openeuler.sun.misc.HexDumpEncoder;

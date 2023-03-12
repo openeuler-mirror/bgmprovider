@@ -23,7 +23,10 @@
  * questions.
  */
 
-package org.openeuler.SM2;
+package org.openeuler.sun.security.ec;
+
+import org.openeuler.sun.security.ec.BGECPrivateKey;
+import org.openeuler.sun.security.ec.BGECPublicKey;
 
 import java.security.*;
 import java.security.interfaces.*;

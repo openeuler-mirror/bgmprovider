@@ -23,7 +23,7 @@
  * questions.
  */
 
-package org.openeuler.SM2;
+package org.openeuler.sun.security.ec;
 
 import java.math.BigInteger;
 import java.security.*;
@@ -35,6 +35,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.openeuler.sun.security.ec.BGECPrivateKey;
+import org.openeuler.sun.security.ec.BGECPublicKey;
 import org.openeuler.util.ECUtil;
 import org.openeuler.util.Util;
 import sun.security.jca.JCAUtil;

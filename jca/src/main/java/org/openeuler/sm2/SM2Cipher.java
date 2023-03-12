@@ -22,8 +22,9 @@
  * information or have any questions.
  */
 
-package org.openeuler.SM2;
+package org.openeuler.sm2;
 
+import org.openeuler.org.bouncycastle.*;
 import org.openeuler.util.*;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;

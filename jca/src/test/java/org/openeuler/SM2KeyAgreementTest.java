@@ -2,30 +2,20 @@ package org.openeuler;
 
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-//import org.bouncycastle.math.ec.ECPoint;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openeuler.BGMJCEProvider;
-import org.openeuler.SM2.BGECPublicKey;
-import org.openeuler.SM2.BGECPrivateKey;
-import org.openeuler.SM2.SM2KeyExchangeParameterSpec;
-import org.openeuler.SM2.SM2KeyExchangeUtil;
+import org.openeuler.sm2.SM2KeyExchangeParameterSpec;
+import org.openeuler.sm2.SM2KeyExchangeUtil;
 import org.openeuler.util.ECUtil;
 
 import javax.crypto.KeyAgreement;
 import java.math.BigInteger;
 import java.security.*;
 
-import java.security.interfaces.ECPrivateKey;
-import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECPoint;
-import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import sun.security.ec.ECKeyPairGenerator;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.KeyPairGeneratorSpi;
-import org.bouncycastle.jcajce.provider.asymmetric.x509.CertificateFactory;
 
 /**
  * SM2KeyAgreement test

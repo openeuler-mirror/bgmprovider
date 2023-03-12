@@ -37,10 +37,7 @@ import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLHandshakeException;
 
-//import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
-//import org.openeuler.SM2KeyExchangeUtil;
-import org.openeuler.SM2.BGECPublicKey;
-import org.openeuler.SM2.SM2KeyExchangeUtil;
+import org.openeuler.sm2.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroupType;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
