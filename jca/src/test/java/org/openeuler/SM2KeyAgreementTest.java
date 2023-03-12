@@ -1,48 +1,31 @@
-/*
- * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
- *
- * This code is free software; you can redistribute it and/or modify it
- * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Huawei designates this
- * particular file as subject to the "Classpath" exception as provided
- * by Huawei in the LICENSE file that accompanied this code.
- *
- * This code is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
- * version 2 for more details (a copy is included in the LICENSE file that
- * accompanied this code).
- *
- * You should have received a copy of the GNU General Public License version
- * 2 along with this work; if not, write to the Free Software Foundation,
- * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
- * information or have any questions.
- */
-
 package org.openeuler;
 
-import org.bouncycastle.jce.interfaces.ECPrivateKey;
-import org.bouncycastle.jce.interfaces.ECPublicKey;
-import org.bouncycastle.jce.spec.ECParameterSpec;
-import org.bouncycastle.jce.spec.ECPublicKeySpec;
-import org.bouncycastle.math.ec.ECPoint;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+//import org.bouncycastle.math.ec.ECPoint;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
-import org.openeuler.SM2KeyExchangeParameterSpec;
-import org.openeuler.SM2KeyExchangeUtil;
+import org.openeuler.SM2.BGECPublicKey;
+import org.openeuler.SM2.BGECPrivateKey;
+import org.openeuler.SM2.SM2KeyExchangeParameterSpec;
+import org.openeuler.SM2.SM2KeyExchangeUtil;
+import org.openeuler.util.ECUtil;
 
 import javax.crypto.KeyAgreement;
 import java.math.BigInteger;
 import java.security.*;
 
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECPoint;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import sun.security.ec.ECKeyPairGenerator;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.KeyPairGeneratorSpi;
+import org.bouncycastle.jcajce.provider.asymmetric.x509.CertificateFactory;
 
 /**
  * SM2KeyAgreement test
@@ -104,7 +87,7 @@ public class SM2KeyAgreementTest {
     @Test
     public void testGenerateSecret() throws Exception {
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(localPublicKey,
-                localId, localRandom, peerR.getEncoded(false), peerId, secretLen, true);
+                localId, localRandom, ECUtil.encodePoint(peerR, peerPublicKey.getParams().getCurve()), peerId, secretLen, true);
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.init(localPrivateKey, parameterSpec, null);
@@ -113,7 +96,7 @@ public class SM2KeyAgreementTest {
         Assert.assertArrayEquals(EXPECTED_SHARED_KEY, sharedSecret);
 
         SM2KeyExchangeParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(peerPublicKey,
-                peerId, peerRandom, localR.getEncoded(false), localId, secretLen, false);
+                peerId, peerRandom, ECUtil.encodePoint(localR, localPublicKey.getParams().getCurve()), localId, secretLen, false);
         KeyAgreement peerKeyAgreement = KeyAgreement.getInstance("SM2");
         peerKeyAgreement.init(peerPrivateKey, peerParameterSpec, null);
         peerKeyAgreement.doPhase(localPublicKey, true);
@@ -124,7 +107,7 @@ public class SM2KeyAgreementTest {
     @Test
     public void testNoneLocalPublic() throws Exception {
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(
-                localId, localRandom, peerR.getEncoded(false), peerId, secretLen, true);
+                localId, localRandom, ECUtil.encodePoint(peerR, peerPublicKey.getParams().getCurve()), peerId, secretLen, true);
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.init(localPrivateKey, parameterSpec, null);
@@ -133,7 +116,7 @@ public class SM2KeyAgreementTest {
         Assert.assertArrayEquals(EXPECTED_SHARED_KEY, sharedSecret);
 
         SM2KeyExchangeParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(
-                peerId, peerRandom, localR.getEncoded(false), localId, secretLen, false);
+                peerId, peerRandom, ECUtil.encodePoint(localR, localPublicKey.getParams().getCurve()), localId, secretLen, false);
         KeyAgreement peerKeyAgreement = KeyAgreement.getInstance("SM2");
         peerKeyAgreement.init(peerPrivateKey, peerParameterSpec, null);
         peerKeyAgreement.doPhase(localPublicKey, true);
@@ -156,7 +139,7 @@ public class SM2KeyAgreementTest {
         ECPoint localR = SM2KeyExchangeUtil.generateR(localPublicKey, localRandom);
         ECPoint peerR = SM2KeyExchangeUtil.generateR(peerPublicKey, peerRandom);
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(localPublicKey,
-                localId, localRandom, peerR.getEncoded(false), peerId, secretLen, true);
+                localId, localRandom, ECUtil.encodePoint(peerR, peerPublicKey.getParams().getCurve()), peerId, secretLen, true);
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.init(localPrivateKey, parameterSpec, null);
@@ -164,7 +147,7 @@ public class SM2KeyAgreementTest {
         byte[] sharedSecret = keyAgreement.generateSecret();
 
         SM2KeyExchangeParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(peerPublicKey,
-                peerId, peerRandom, localR.getEncoded(false), localId, secretLen, false);
+                peerId, peerRandom, ECUtil.encodePoint(localR, localPublicKey.getParams().getCurve()), localId, secretLen, false);
         KeyAgreement peerKeyAgreement = KeyAgreement.getInstance("SM2");
         peerKeyAgreement.init(peerPrivateKey, peerParameterSpec, null);
         peerKeyAgreement.doPhase(localPublicKey, true);
@@ -175,7 +158,7 @@ public class SM2KeyAgreementTest {
     @Test(expected = IllegalStateException.class)
     public void testNotInit() throws Exception {
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(localPublicKey,
-                localId, localRandom, peerR.getEncoded(false), peerId, secretLen, true);
+                localId, localRandom, ECUtil.encodePoint(peerR, peerPublicKey.getParams().getCurve()), peerId, secretLen, true);
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.doPhase(peerPublicKey, true);
@@ -185,7 +168,7 @@ public class SM2KeyAgreementTest {
     @Test(expected = IllegalStateException.class)
     public void testNotDoPhase() throws Exception {
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(localPublicKey,
-                localId, localRandom, peerR.getEncoded(false), peerId, secretLen, true);
+                localId, localRandom, ECUtil.encodePoint(peerR, peerPublicKey.getParams().getCurve()), peerId, secretLen, true);
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.init(localPrivateKey, parameterSpec, null);
@@ -195,7 +178,7 @@ public class SM2KeyAgreementTest {
     @Test
     public void testInit() throws Exception {
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(localPublicKey,
-                localId, localRandom, peerR.getEncoded(false), peerId, secretLen, true);
+                localId, localRandom, ECUtil.encodePoint(peerR, peerPublicKey.getParams().getCurve()), peerId, secretLen, true);
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.init(localPrivateKey, parameterSpec, null);

@@ -180,6 +180,7 @@ public class BGMJCEProvider extends Provider {
         map.put("AlgorithmParameters.EC", "org.openeuler.util.ECParameters");
         map.put("Alg.Alias.AlgorithmParameters.1.2.840.10045.2.1", "EC");
         map.put("Alg.Alias.AlgorithmParameters.OID.1.2.840.10045.2.1", "EC");
+
 //        map.put("AlgorithmParameters.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.AlgorithmParametersSpi");
 //        map.put("Alg.Alias.AlgorithmParameters.1.2.840.10045.2.1", "EC");
 //        map.put("Alg.Alias.AlgorithmParameters.OID.1.2.840.10045.2.1", "EC");
