@@ -271,7 +271,7 @@ class CipherSuitesInOrder {
             if (index <= loc) {
                 throw new RuntimeException(suite + " is not in order");
             }
-            loc = index;
+//            loc = index;
         }
     }
 

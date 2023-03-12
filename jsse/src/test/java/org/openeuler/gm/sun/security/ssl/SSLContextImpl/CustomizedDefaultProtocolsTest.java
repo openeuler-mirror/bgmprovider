@@ -63,10 +63,22 @@ public class CustomizedDefaultProtocolsTest {
 
 class CustomizedDefaultProtocols {
     enum ContextVersion {
+//        TLS_CV_01("SSL",
+//                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "GMTLS"}),
+//        TLS_CV_02("TLS",
+//                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "GMTLS"}),
+//        TLS_CV_05("TLSv1.1",
+//                new String[] {"SSLv3", "TLSv1", "TLSv1.1"}),
+//        TLS_CV_06("TLSv1.2",
+//                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2"}),
+//        TLS_CV_07("TLSv1.3",
+//                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"}),
+//        TLS_CV_08("Default",
+//                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "GMTLS"});
         TLS_CV_01("SSL",
-                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "GMTLS"}),
+                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "GMTLS"}),
         TLS_CV_02("TLS",
-                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "GMTLS"}),
+                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "GMTLS"}),
         TLS_CV_05("TLSv1.1",
                 new String[] {"SSLv3", "TLSv1", "TLSv1.1"}),
         TLS_CV_06("TLSv1.2",
@@ -74,7 +86,7 @@ class CustomizedDefaultProtocols {
         TLS_CV_07("TLSv1.3",
                 new String[] {"SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"}),
         TLS_CV_08("Default",
-                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "GMTLS"});
+                new String[] {"SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "GMTLS"});
 
         final String contextVersion;
         final String[] enabledProtocols;

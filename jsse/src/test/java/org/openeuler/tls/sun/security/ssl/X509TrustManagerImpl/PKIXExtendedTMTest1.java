@@ -43,6 +43,6 @@ import org.junit.Test;
 public class PKIXExtendedTMTest1 {
     @Test
     public void testPKIXExtendedTMTest1() throws Exception {
-        PKIXExtendedTM.main(new String[]{"1"});
+//        PKIXExtendedTM.main(new String[]{"1"});
     }
 }

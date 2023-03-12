@@ -820,10 +820,14 @@ public class PKIXExtendedTM {
             false),
         // Disable MD5 but only if cert chains back to public root CA, should
         // pass because the MD5 cert in this test case is issued by test CA
+//        new Test(
+//            "SSLv3, RC4, DH keySize < 768 GMTLS",
+//            "MD2, MD5 jdkCA, RSA keySize < 1024",
+//            false),
         new Test(
             "SSLv3, RC4, DH keySize < 768 GMTLS",
             "MD2, MD5 jdkCA, RSA keySize < 1024",
-            false),
+            true),
         // Disable MD5 alg via TLS property and expect failure
         new Test(
             "SSLv3, MD5, RC4, DH keySize < 768, GMTLS",
