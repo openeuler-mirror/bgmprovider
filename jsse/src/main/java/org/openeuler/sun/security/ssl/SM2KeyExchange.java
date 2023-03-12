@@ -37,8 +37,10 @@ import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLHandshakeException;
 
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
-import org.openeuler.SM2KeyExchangeUtil;
+//import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
+//import org.openeuler.SM2KeyExchangeUtil;
+import org.openeuler.SM2.BGECPublicKey;
+import org.openeuler.SM2.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroupType;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
@@ -65,7 +67,8 @@ final class SM2KeyExchange {
 
     static final class SM2Possession implements SSLPossession {
         final PrivateKey privateKey;
-        final BCECPublicKey publicKey;
+//        final BCECPublicKey publicKey;
+        final ECPublicKey publicKey;
         final NamedGroup namedGroup;
         final BigInteger randomNum;
 
@@ -78,11 +81,17 @@ final class SM2KeyExchange {
             }
 
             if (gmx509Possession != null) {
-                publicKey = (BCECPublicKey) gmx509Possession.popEncCerts[0].
+//                publicKey = (BCECPublicKey) gmx509Possession.popEncCerts[0].
+//                        getPublicKey();
+//                privateKey = gmx509Possession.popEncPrivateKey;
+//                randomNum = SM2KeyExchangeUtil.generateRandom(
+//                        publicKey.getParameters().getN(), random);
+
+                publicKey = (ECPublicKey) gmx509Possession.popEncCerts[0].
                         getPublicKey();
                 privateKey = gmx509Possession.popEncPrivateKey;
                 randomNum = SM2KeyExchangeUtil.generateRandom(
-                        publicKey.getParameters().getN(), random);
+                         publicKey.getParams().getOrder(), random);
             } else {
                 publicKey = null;
                 privateKey = null;
@@ -104,11 +113,17 @@ final class SM2KeyExchange {
             }
 
             if (gmx509Possession != null) {
-                publicKey = (BCECPublicKey) gmx509Possession.popEncCerts[0].
+//                publicKey = (BCECPublicKey) gmx509Possession.popEncCerts[0].
+//                        getPublicKey();
+//                privateKey = gmx509Possession.popEncPrivateKey;
+//                randomNum = SM2KeyExchangeUtil.generateRandom(
+//                        publicKey.getParameters().getN(), random);
+
+                publicKey = (ECPublicKey) gmx509Possession.popEncCerts[0].
                         getPublicKey();
                 privateKey = gmx509Possession.popEncPrivateKey;
                 randomNum = SM2KeyExchangeUtil.generateRandom(
-                        publicKey.getParameters().getN(), random);
+                        publicKey.getParams().getOrder(), random);
             } else {
                 publicKey = null;
                 privateKey = null;
@@ -120,6 +135,8 @@ final class SM2KeyExchange {
 
         @Override
         public byte[] encode() {
+//            return ECUtil.encodePoint(
+//                    publicKey.getW(), publicKey.getParams().getCurve());
             return ECUtil.encodePoint(
                     publicKey.getW(), publicKey.getParams().getCurve());
         }
