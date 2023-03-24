@@ -38,6 +38,7 @@ public class ECUtil {
 
     /**
      * Elliptic curve addition
+     *
      * @param ecP1
      * @param ecP2
      * @param curve
@@ -57,7 +58,7 @@ public class ECUtil {
 
         BigInteger p = null;
         if (curve.getField() instanceof ECFieldFp) {
-            p = ((ECFieldFp)curve.getField()).getP();
+            p = ((ECFieldFp) curve.getField()).getP();
         } else {
             throw new IllegalArgumentException("Unsupported finite field type or finite field type parameter error");
         }
@@ -90,6 +91,7 @@ public class ECUtil {
 
     /**
      * lliptic curve subtract
+     *
      * @param p1
      * @param p2
      * @param curve
@@ -103,6 +105,7 @@ public class ECUtil {
 
     /**
      * Elliptic curve multiplication
+     *
      * @param ecP
      * @param n
      * @param curve
@@ -126,17 +129,19 @@ public class ECUtil {
 
     /**
      * Elliptic curve multiplication
+     *
      * @param ecP
      * @param n
      * @param curve
      * @return The resulting point after adding n points together
      */
-    public static ECPoint multiply(ECPoint ecP, long n, EllipticCurve curve) {
+    public static ECPoint multiply(ECPoint ecP, int n, EllipticCurve curve) {
         return multiply(ecP, BigInteger.valueOf(n), curve);
     }
 
     /**
      * Decode a point on an elliptic curve
+     *
      * @param data
      * @param curve
      * @return The resulting byte array after decoding
@@ -150,7 +155,7 @@ public class ECUtil {
         // Per ANSI X9.62, an encoded point is a 1 byte type followed by
         // ceiling(log base 2 field-size / 8) bytes of x and the same of y.
         int n = (data.length - 1) / 2;
-        if (n != ((curve.getField().getFieldSize() + 7 ) >> 3)) {
+        if (n != ((curve.getField().getFieldSize() + 7) >> 3)) {
             throw new IOException("Point does not match field size");
         }
 
@@ -162,6 +167,7 @@ public class ECUtil {
 
     /**
      * Encode a point on an elliptic curve
+     *
      * @param point
      * @param curve
      * @return The resulting byte array after encoding
@@ -184,6 +190,7 @@ public class ECUtil {
 
     /**
      * Trim invalid bytes from a byte array
+     *
      * @param b
      * @return The resulting byte array after trimming
      */
@@ -201,6 +208,7 @@ public class ECUtil {
 
     /**
      * Get EC AlgorithmParameters
+     *
      * @param p
      * @return EC AlgorithmParameters
      */
@@ -218,6 +226,7 @@ public class ECUtil {
 
     /**
      * Get ECParameterSpec
+     *
      * @param p
      * @param spec
      * @return ECParameterSpec
@@ -236,6 +245,7 @@ public class ECUtil {
 
     /**
      * Get ECParameterSpec by name
+     *
      * @param p
      * @param name
      * @return ECParameterSpec
@@ -251,20 +261,34 @@ public class ECUtil {
         }
     }
 
-    public static ECParameterSpec getECParameterSpec(Provider p, int keySize) {
-        AlgorithmParameters parameters = getECParameters(p);
-
-        try {
-            parameters.init(new ECKeySizeParameterSpec(keySize));
-            return parameters.getParameterSpec(ECParameterSpec.class);
-        } catch (InvalidParameterSpecException ipse) {
-            return null;
+    /**
+     * Check if elliptic curve point is on target elliptic curve
+     *
+     * @param ecPoint
+     * @param curve
+     * @return true or false
+     */
+    public static boolean checkECPoint(ECPoint ecPoint, EllipticCurve curve) {
+        BigInteger p = null;
+        if (curve.getField() instanceof ECFieldFp) {
+            p = ((ECFieldFp) curve.getField()).getP();
+        } else {
+            throw new IllegalArgumentException("Unsupported finite field type or finite field type parameter error");
         }
 
+        BigInteger x = ecPoint.getAffineX();
+        BigInteger y = ecPoint.getAffineY();
+
+        BigInteger y_2 = y.pow(2).mod(p);
+        BigInteger x_3 = x.pow(3).mod(p);
+        BigInteger ax = curve.getA().multiply(x).mod(p);
+        BigInteger b = curve.getB().mod(p);
+        return y_2.equals(x_3.add(ax).add(b).mod(p));
     }
 
     /**
      * Determine if two ECParameterSpec objects are equal
+     *
      * @param spec1
      * @param spec2
      * @return true or false

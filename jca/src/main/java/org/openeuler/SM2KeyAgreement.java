@@ -22,7 +22,7 @@
  * information or have any questions.
  */
 
-package org.openeuler.sm2;
+package org.openeuler;
 
 import javax.crypto.KeyAgreementSpi;
 import javax.crypto.SecretKey;

@@ -31,9 +31,7 @@ import java.security.*;
 import java.security.interfaces.*;
 import java.security.spec.*;
 
-import org.openeuler.org.bouncycastle.ECDomainParameters;
 import org.openeuler.sun.security.util.ECParameters;
-import org.openeuler.org.bouncycastle.ECPrivateKeyParameters;
 
 import sun.security.util.ArrayUtil;
 import sun.security.util.DerInputStream;
@@ -71,9 +69,8 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
     private static final long serialVersionUID = 88695385615075129L;
 
     private BigInteger s;       // private value
-    private byte[] arrayS;      // private value as a little-endian array
+    private byte[] arrayS;      // private value as a big-endian array
     private ECParameterSpec params;
-    private ECPrivateKeyParameters ecPrivatekey;
 
     /**
      * Construct a key from its encoding. Called by the ECKeyFactory.
@@ -90,9 +87,6 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
             throws InvalidKeyException {
         this.s = s;
         this.params = params;
-        this.ecPrivatekey = new ECPrivateKeyParameters(this.s,
-                new ECDomainParameters(params.getCurve(), params.getGenerator(),
-                        params.getOrder(), BigInteger.valueOf(params.getCofactor())));
         makeEncoding(s);
 
     }
@@ -101,9 +95,6 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
             throws InvalidKeyException {
         this.arrayS = s.clone();
         this.params = params;
-        this.ecPrivatekey = new ECPrivateKeyParameters(getS(),
-                new ECDomainParameters(params.getCurve(), params.getGenerator(),
-                        params.getOrder(), BigInteger.valueOf(params.getCofactor())));
         makeEncoding(s);
     }
 
@@ -182,9 +173,6 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
         return params;
     }
 
-    public  ECPrivateKeyParameters getKeyParameters() {
-        return ecPrivatekey;
-    }
 
     /**
      * Parse the key. Called by PKCS8Key.
@@ -220,9 +208,6 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
                         + "encoded in the algorithm identifier");
             }
             params = algParams.getParameterSpec(ECParameterSpec.class);
-            ecPrivatekey = new ECPrivateKeyParameters(getS(),
-                    new ECDomainParameters(params.getCurve(), params.getGenerator(),
-                            params.getOrder(), BigInteger.valueOf(params.getCofactor())));
         } catch (IOException e) {
             throw new InvalidKeyException("Invalid EC private key", e);
         } catch (InvalidParameterSpecException e) {

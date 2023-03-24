@@ -39,7 +39,7 @@ import java.security.spec.ECParameterSpec;
 import java.text.MessageFormat;
 import java.util.Locale;
 
-import org.openeuler.sm2.SM2KeyExchangeUtil;
+import org.openeuler.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Credentials;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Possession;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;

@@ -136,17 +136,17 @@ public class BGMJCEProvider extends Provider {
     }
 
     private static void putSignatureSM3withSM2(Map<Object, Object> map) {
-        map.put("Signature.SM3withSM2", "org.openeuler.org.bouncycastle.SM2SignatureSpi$sm3WithSM2");
+        map.put("Signature.SM3withSM2", "org.openeuler.SM2SignatureSpi$sm3WithSM2");
         map.put("Alg.Alias.Signature.1.2.156.10197.1.501", "SM3withSM2");
         map.put("Alg.Alias.Signature.OID.1.2.156.10197.1.501", "SM3withSM2");
     }
 
     private static void putSM2(Map<Object, Object> map) {
-        map.put("Cipher.SM2", "org.openeuler.sm2.SM2Cipher");
+        map.put("Cipher.SM2", "org.openeuler.SM2Cipher");
 
-        map.put("KeyPairGenerator.SM2", "org.openeuler.sun.security.ec.SM2KeyPairGenerator");
+        map.put("KeyPairGenerator.SM2", "org.openeuler.SM2KeyPairGenerator");
 
-        map.put("KeyAgreement.SM2", "org.openeuler.sm2.SM2KeyAgreement");
+        map.put("KeyAgreement.SM2", "org.openeuler.SM2KeyAgreement");
 
         map.put("KeyFactory.EC", "org.openeuler.sun.security.ec.ECKeyFactory");
         map.put("Alg.Alias.KeyFactory.SM2", "EC");

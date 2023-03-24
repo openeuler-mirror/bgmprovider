@@ -5,8 +5,6 @@ import java.security.interfaces.ECPublicKey;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openeuler.sm2.SM2KeyExchangeParameterSpec;
-import org.openeuler.sm2.SM2KeyExchangeUtil;
 import org.openeuler.util.ECUtil;
 
 import javax.crypto.KeyAgreement;

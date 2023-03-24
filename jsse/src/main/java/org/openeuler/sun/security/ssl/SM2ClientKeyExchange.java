@@ -34,8 +34,8 @@ import java.util.Locale;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLException;
 
-import org.openeuler.sm2.SM2KeyExchangeParameterSpec;
-import org.openeuler.sm2.SM2KeyExchangeUtil;
+import org.openeuler.SM2KeyExchangeParameterSpec;
+import org.openeuler.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Credentials;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Possession;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;

@@ -27,14 +27,11 @@ package org.openeuler.sun.security.ec;
 
 import java.io.IOException;
 
-import java.math.BigInteger;
 import java.security.*;
 import java.security.interfaces.*;
 import java.security.spec.*;
 
-import org.openeuler.org.bouncycastle.ECDomainParameters;
 import org.openeuler.sun.security.util.ECParameters;
-import org.openeuler.org.bouncycastle.ECPublicKeyParameters;
 
 import sun.security.util.ECUtil;
 import sun.security.x509.*;
@@ -50,7 +47,6 @@ public final class BGECPublicKey extends X509Key implements ECPublicKey {
 
     private ECPoint w;
     private ECParameterSpec params;
-    private ECPublicKeyParameters ecPublickey;
 
     /**
      * Construct a key from its components. Used by the
@@ -65,9 +61,6 @@ public final class BGECPublicKey extends X509Key implements ECPublicKey {
         algid = new AlgorithmId
                 (AlgorithmId.EC_oid, ECParameters.getAlgorithmParameters(params));
         key = ECUtil.encodePoint(w, params.getCurve());
-        ecPublickey = new ECPublicKeyParameters(w,
-                new ECDomainParameters(params.getCurve(), params.getGenerator(),
-                        params.getOrder(), BigInteger.valueOf(params.getCofactor())));
     }
 
     /**
@@ -99,9 +92,6 @@ public final class BGECPublicKey extends X509Key implements ECPublicKey {
         return key.clone();
     }
 
-    public ECPublicKeyParameters getKeyParameters() {
-        return ecPublickey;
-    }
 
     /**
      * Parse the key. Called by X509Key.
@@ -117,9 +107,6 @@ public final class BGECPublicKey extends X509Key implements ECPublicKey {
         try {
             params = algParams.getParameterSpec(ECParameterSpec.class);
             w = ECUtil.decodePoint(key, params.getCurve());
-            ecPublickey = new ECPublicKeyParameters(w,
-                    new ECDomainParameters(params.getCurve(), params.getGenerator(),
-                            params.getOrder(), BigInteger.valueOf(params.getCofactor())));
         } catch (IOException e) {
             throw new InvalidKeyException("Invalid EC key", e);
         } catch (InvalidParameterSpecException e) {

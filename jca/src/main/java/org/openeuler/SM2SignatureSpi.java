@@ -1,11 +1,37 @@
-package org.openeuler.org.bouncycastle;
+/*
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Huawei designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Huawei in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
+ * information or have any questions.
+ */
 
+package org.openeuler;
+
+import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 import org.openeuler.util.ECUtil;
 import org.openeuler.util.Util;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -34,6 +60,9 @@ public class SM2SignatureSpi extends SignatureSpi {
 
     private ECPoint pubPoint;
 
+    private ByteArrayOutputStream byteBuf = new ByteArrayOutputStream();
+    private byte[] z;
+
     public SM2SignatureSpi() throws NoSuchAlgorithmException {
         this(MessageDigest.getInstance("SM3"));
     }
@@ -54,17 +83,17 @@ public class SM2SignatureSpi extends SignatureSpi {
     protected void engineInitVerify(PublicKey publicKey) {
         this.publicKey = (ECPublicKey) publicKey;
         ecParams = this.publicKey.getParams();
-        byte[] userID = getUserID();
-        byte[] idLen = new byte[2];
+        byte[] ID = getID();
+        byte[] entLen = new byte[2];
 
         // id bit length
-        idLen[0] = (byte) (((userID.length * 8) >> 8) & 0xFF);
-        idLen[1] = (byte) ((userID.length * 8) & 0xFF);
+        entLen[0] = (byte) (((ID.length * 8) >> 8) & 0xFF);
+        entLen[1] = (byte) ((ID.length * 8) & 0xFF);
 
         pubPoint = ((ECPublicKey) publicKey).getW();
 
-        byte[] z = getZ(idLen, userID);
-        digest.update(z);
+        z = getZ(entLen, ID);
+        byteBuf.reset();
     }
 
     /**
@@ -78,21 +107,26 @@ public class SM2SignatureSpi extends SignatureSpi {
     protected void engineInitSign(PrivateKey privateKey) {
         this.privateKey = (ECPrivateKey) privateKey;
         ecParams = this.privateKey.getParams();
-        byte[] userID = getUserID();
-        byte[] idLen = new byte[2];
+        byte[] ID = getID();
+        byte[] entLen = new byte[2];
 
         // id bit length
-        idLen[0] = (byte) (((userID.length * 8) >> 8) & 0xFF);
-        idLen[1] = (byte) ((userID.length * 8) & 0xFF);
+        entLen[0] = (byte) (((ID.length * 8) >> 8) & 0xFF);
+        entLen[1] = (byte) ((ID.length * 8) & 0xFF);
 
         pubPoint = ECUtil.multiply(ecParams.getGenerator(), ((ECPrivateKey) privateKey).getS(), ecParams.getCurve());
 
-        byte[] z = getZ(idLen, userID);
-        digest.update(z);
+        z = getZ(entLen, ID);
+        byteBuf.reset();
     }
 
-    protected byte[] getUserID() {
-        byte[] userID;
+    /**
+     * Get user ID
+     *
+     * @return ID
+     */
+    protected byte[] getID() {
+        byte[] ID;
 
         if (this.appRandom == null) {
             this.appRandom = new SecureRandom();
@@ -100,15 +134,14 @@ public class SM2SignatureSpi extends SignatureSpi {
 
         if (sm2Params == null || sm2Params.getID() == null) {
             // default value
-            userID = "1234567812345678".getBytes(StandardCharsets.UTF_8);
+            ID = "1234567812345678".getBytes(StandardCharsets.UTF_8);
         } else {
-            userID = sm2Params.getID();
-            if (userID.length >= 8192)
-            {
+            ID = sm2Params.getID();
+            if (ID.length >= 8192) {
                 throw new IllegalArgumentException("SM2 user ID must be less than 2^16 bits long");
             }
         }
-        return userID;
+        return ID;
     }
 
     /**
@@ -121,7 +154,7 @@ public class SM2SignatureSpi extends SignatureSpi {
      */
     @Override
     protected void engineUpdate(byte b) throws SignatureException {
-        digest.update(b);
+        byteBuf.write(b);
     }
 
     /**
@@ -136,7 +169,8 @@ public class SM2SignatureSpi extends SignatureSpi {
      */
     @Override
     protected void engineUpdate(byte[] b, int off, int len) throws SignatureException {
-        digest.update(b, off, len);
+//        digest.update(b, off, len);
+        byteBuf.write(b, off, len);
     }
 
     /**
@@ -152,54 +186,49 @@ public class SM2SignatureSpi extends SignatureSpi {
      */
     @Override
     protected byte[] engineSign() throws SignatureException {
-        try
-        {
-            byte[] eHash = digest.digest();
+        try {
+            byte[] m = byteBuf.toByteArray();
+            byteBuf.reset();
 
-            // Do not truncate values greater than n
-            BigInteger n = ecParams.getOrder();
+            //  e = H(Z || M)
+            digest.update(z);
+            digest.update(m);
+            byte[] eHash = digest.digest();
             BigInteger e = new BigInteger(1, eHash);
+
+            BigInteger n = ecParams.getOrder();
             BigInteger d = privateKey.getS();
 
-            BigInteger r, s;
+            BigInteger r, s, k;
 
-            // 5.2.1 Draft RFC:  SM2 Public Key Algorithms
-            do // generate s
-            {
-                BigInteger k;
-                do // generate r
-                {
-                    // A3
-                    k = nextK(n);
+            do {
+                do {
+                    do {
+                        // 1 <=k <= n-1
+                        int nBitLen = n.bitLength();
+                        k = Util.createRandomBigInteger(nBitLen, appRandom);
+                    }
+                    while (k.compareTo(BigInteger.ONE) < 0 || k.compareTo(n) >= 0);
 
-                    // A4
-                    ECPoint p = ECUtil.multiply(ecParams.getGenerator(), k, ecParams.getCurve());
+                    // (x1, y1) = [k]G
+                    BigInteger x1 = ECUtil.multiply(ecParams.getGenerator(), k, ecParams.getCurve()).getAffineX();
 
-                    // A5
-                    r = e.add(p.getAffineX()).mod(n);
+                    // r = (e + x1) mod n
+                    r = e.add(x1).mod(n);
                 }
                 while (r.equals(BigInteger.ZERO) || r.add(k).equals(n));
 
-                // A6
-                BigInteger dPlus1ModN = d.add(BigInteger.ONE).modInverse(n);
-
-                s = k.subtract(r.multiply(d)).mod(n);
-                s = dPlus1ModN.multiply(s).mod(n);
+                // S = ((1 + d)^(-1) * (k - r * d)) mod n
+                s = d.add(BigInteger.ONE).modInverse(n).multiply(k.subtract(r.multiply(d).mod(n)).mod(n)).mod(n);
             }
             while (s.equals(BigInteger.ZERO));
 
-            // A7
-            try
-            {
+            try {
                 return encodeSignature(n, r, s);
-            }
-            catch (Exception ex)
-            {
+            } catch (Exception ex) {
                 throw new SignatureException("unable to encode signature: " + ex.getMessage(), ex);
             }
-        }
-        catch (SignatureException e)
-        {
+        } catch (SignatureException e) {
             throw new SignatureException("unable to create signature: " + e.getMessage());
         }
     }
@@ -216,59 +245,51 @@ public class SM2SignatureSpi extends SignatureSpi {
      */
     @Override
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
-        try
-        {
+        try {
             BigInteger n = ecParams.getOrder();
-//            BigInteger[] rs = encoding.decode(n, sigBytes);
             BigInteger[] rs = decodeSignature(n, sigBytes);
 
             BigInteger r = rs[0], s = rs[1];
 
-            // 5.3.1 Draft RFC:  SM2 Public Key Algorithms
-            // B1
-            if (r.compareTo(BigInteger.ONE) < 0 || r.compareTo(n) >= 0)
-            {
+            // Require: 0 < r < n
+            if (r.compareTo(BigInteger.ZERO) <= 0 || r.compareTo(n) >= 0) {
                 return false;
             }
 
-            // B2
-            if (s.compareTo(BigInteger.ONE) < 0 || s.compareTo(n) >= 0)
-            {
+            // Require: 0 < s < n
+            if (s.compareTo(BigInteger.ZERO) <= 0 || s.compareTo(n) >= 0) {
                 return false;
             }
 
-            // B3
+            byte[] m = byteBuf.toByteArray();
+            byteBuf.reset();
+
+            // e = H(Z || m)
+            digest.update(z);
+            digest.update(m);
             byte[] eHash = digest.digest();
-
-            // B4
-            // Do not truncate values greater than n
             BigInteger e = new BigInteger(1, eHash);
 
-            // B5
+            // t = (r + s) mod n
             BigInteger t = r.add(s).mod(n);
-            if (t.equals(BigInteger.ZERO))
-            {
+            // Require: t != 0
+            if (t.equals(BigInteger.ZERO)) {
                 return false;
             }
 
-            // B6
+            // (x1, y1) = [s]G + [t]P
             ECPoint x1y1 = ECUtil.add(ECUtil.multiply(ecParams.getGenerator(), s, ecParams.getCurve()),
-                    ECUtil.multiply(pubPoint, t, ecParams.getCurve()),
-                    ecParams.getCurve());
-            if (x1y1.equals(ECPoint.POINT_INFINITY))
-            {
+                    ECUtil.multiply(pubPoint, t, ecParams.getCurve()), ecParams.getCurve());
+            if (x1y1.equals(ECPoint.POINT_INFINITY)) {
                 return false;
             }
 
-            // B7
-            BigInteger expectedR = e.add(x1y1.getAffineX()).mod(n);
+            // R = (e + x1) mod n
+            BigInteger R = e.add(x1y1.getAffineX()).mod(n);
 
-            return expectedR.equals(r);
-        }
-        catch (Exception e)
-        {
+            return R.equals(r);
+        } catch (Exception e) {
             throw new SignatureException(e.getMessage());
-//            return false;
         }
     }
 
@@ -304,7 +325,7 @@ public class SM2SignatureSpi extends SignatureSpi {
     @Override
     protected void engineSetParameter(AlgorithmParameterSpec params)
             throws InvalidAlgorithmParameterException {
-        if (params != null && !(params instanceof SM2ParameterSpec)) {
+        if (params == null || !(params instanceof SM2ParameterSpec)) {
             throw new InvalidAlgorithmParameterException("only SM2ParameterSpec supported");
         }
 
@@ -353,14 +374,14 @@ public class SM2SignatureSpi extends SignatureSpi {
         }
     }
 
-    private byte[] getZ(byte[] idLen, byte[] userID)
-    {
+    private byte[] getZ(byte[] entLen, byte[] ID) {
         digest.reset();
 
-        digest.update(idLen);
-        digest.update(userID);
-
         int curveLen = (ecParams.getCurve().getField().getFieldSize() + 7) / 8;
+
+        // Z = H(entLen || ID || a || b || xG || yG || xA || yA)
+        digest.update(entLen);
+        digest.update(ID);
         digest.update(Util.asUnsignedByteArray(curveLen, ecParams.getCurve().getA()));
         digest.update(Util.asUnsignedByteArray(curveLen, ecParams.getCurve().getB()));
         digest.update(Util.asUnsignedByteArray(curveLen, ecParams.getGenerator().getAffineX()));
@@ -371,30 +392,9 @@ public class SM2SignatureSpi extends SignatureSpi {
         return digest.digest();
     }
 
-    private BigInteger nextK(BigInteger n)
-    {
-        int qBitLength = n.bitLength();
-
-        BigInteger k;
-        do
-        {
-            k = Util.createRandomBigInteger(qBitLength, appRandom);
-        }
-        while (k.equals(BigInteger.ZERO) || k.compareTo(n) >= 0);
-
-        return k;
-    }
-
-    static public class sm3WithSM2
-            extends SM2SignatureSpi
-    {
-        public sm3WithSM2() throws NoSuchAlgorithmException {
-            super(MessageDigest.getInstance("SM3"));
-        }
-    }
-
     private byte[] encodeSignature(BigInteger n, BigInteger r, BigInteger s) throws IOException {
-        DerOutputStream out = new DerOutputStream((int) ((r.bitLength() + 7) / 8) + (s.bitLength() + 7) / 8 + 10);
+//        DerOutputStream out = new DerOutputStream((int) ((r.bitLength() + 7) / 8) + (s.bitLength() + 7) / 8 + 10);
+        DerOutputStream out = new DerOutputStream();
         out.putInteger(r);
         out.putInteger(s);
         DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
@@ -419,19 +419,24 @@ public class SM2SignatureSpi extends SignatureSpi {
             BigInteger r = values[0].getPositiveBigInteger();
             BigInteger s = values[1].getPositiveBigInteger();
 
-            if (r.signum() < 0 || (null != n && r.compareTo(n) >= 0))
-            {
+            if (r.signum() < 0 || (null != n && r.compareTo(n) >= 0)) {
                 throw new IllegalArgumentException("Value out of range");
             }
-            if (s.signum() < 0 || (null != n && s.compareTo(n) >= 0))
-            {
+            if (s.signum() < 0 || (null != n && s.compareTo(n) >= 0)) {
                 throw new IllegalArgumentException("Value out of range");
             }
 
-            return new BigInteger[]{ r, s };
+            return new BigInteger[]{r, s};
 
         } catch (Exception e) {
             throw new SignatureException("Invalid encoding for signature", e);
+        }
+    }
+
+    static public class sm3WithSM2
+            extends SM2SignatureSpi {
+        public sm3WithSM2() throws NoSuchAlgorithmException {
+            super(MessageDigest.getInstance("SM3"));
         }
     }
 }
