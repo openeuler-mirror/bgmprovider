@@ -7,7 +7,7 @@ import java.security.spec.AlgorithmParameterSpec;
 public class SM4BaseCipher extends CipherSpi {
     protected boolean isInitialized = false;
     protected final int BLOCKSIZE = 16;
-    protected int opmode = Cipher.ENCRYPT_MODE;//default
+    protected int opmode ;//default
     protected SM4Padding padding = new SM4Padding();//default
     protected SecureRandom random;
     protected SecretKey key;
