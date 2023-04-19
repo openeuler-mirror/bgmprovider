@@ -118,10 +118,10 @@ public class BGMJCEProvider extends Provider {
     }
 
     private static void putSM4(Map<Object, Object> map) {
-        map.put("Cipher.SM4", "org.bouncycastle.jcajce.provider.symmetric.SM4$ECB");
-        map.put("AlgorithmParameters.SM4", "org.bouncycastle.jcajce.provider.symmetric.SM4$AlgParams");
-        map.put("AlgorithmParameterGenerator.SM4", "org.bouncycastle.jcajce.provider.symmetric.SM4$AlgParams$AlgParamGen");
-        map.put("KeyGenerator.SM4", "org.bouncycastle.jcajce.provider.symmetric.SM4$AlgParams$KeyGen");
+        map.put("Cipher.SM4", "org.openeuler.sm4.SM4Cipher");
+        map.put("AlgorithmParameters.SM4", "org.openeuler.sm4.SM4Parameters");
+        map.put("AlgorithmParameterGenerator.SM4", "org.openeuler.sm4.SM4ParameterGenerator");
+        map.put("KeyGenerator.SM4", "org.openeuler.sm4.SM4KeyGenerator");
     }
 
     private static void putSM3(Map<Object, Object> map) {
@@ -136,7 +136,7 @@ public class BGMJCEProvider extends Provider {
     }
 
     private static void putSignatureSM3withSM2(Map<Object, Object> map) {
-        map.put("Signature.SM3withSM2", "org.openeuler.SM2SignatureSpi$sm3WithSM2");
+        map.put("Signature.SM3withSM2", "org.bouncycastle.jcajce.provider.asymmetric.ec.GMSignatureSpi$sm3WithSM2");
         map.put("Alg.Alias.Signature.1.2.156.10197.1.501", "SM3withSM2");
         map.put("Alg.Alias.Signature.OID.1.2.156.10197.1.501", "SM3withSM2");
     }
