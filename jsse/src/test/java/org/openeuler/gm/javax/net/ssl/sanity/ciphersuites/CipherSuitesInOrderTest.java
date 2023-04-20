@@ -182,7 +182,7 @@ class CipherSuitesInOrder {
 
         // show all of the supported cipher suites
         showSuites(supportedCipherSuites.toArray(new String[0]),
-            "All supported cipher suites");
+                 "All supported cipher suites");
 
         for (String protocol : protocols) {
             System.out.println("//");
@@ -249,7 +249,7 @@ class CipherSuitesInOrder {
         //
         SSLServerSocketFactory serverFactory = context.getServerSocketFactory();
         try (SSLServerSocket serverSocket
-                 = (SSLServerSocket) serverFactory.createServerSocket()) {
+                = (SSLServerSocket) serverFactory.createServerSocket()) {
             // check the order of endabled cipher suites
             ciphers = serverSocket.getEnabledCipherSuites();
             checkSuites(ciphers,
