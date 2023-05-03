@@ -82,8 +82,6 @@ final class SM2ClientKeyExchange {
                     "No SM2 credentials negotiated for client key exchange");
             }
 
-//            encodedPoint = SM2KeyExchangeUtil.generateR(((BCECPublicKey)publicKey),
-//                sm2Possession.randomNum).getEncoded(false);
             encodedPoint = ECUtil.encodePoint(SM2KeyExchangeUtil.generateR(((ECPublicKey)publicKey),
                     sm2Possession.randomNum), ((ECPublicKey)publicKey).getParams().getCurve());
         }

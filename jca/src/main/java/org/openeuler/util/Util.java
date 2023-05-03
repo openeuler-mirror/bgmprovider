@@ -21,19 +21,18 @@
  * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
  * information or have any questions.
  */
+
 package org.openeuler.util;
 
 import java.math.BigInteger;
 import java.security.SecureRandom;
 
 public class Util {
-
     /**
      * 32-bit cyclic shift left by k bits
-     *
      * @param x 32-bit number
      * @param k The number of bits that need to be rotated left
-     * @return (x < < k) | (x >>> (32 - k))
+     * @return (x << k) | (x >>> (32 - k))
      */
     public static int rotateShiftLeft(int x, int k) {
         return (x << k) | (x >>> (32 - k));
@@ -41,7 +40,6 @@ public class Util {
 
     /**
      * convert the numbers to big endian
-     *
      * @param ns  list of numbers
      * @param bs  Byte array to store converted numbers
      * @param off start position of bit array
@@ -55,7 +53,6 @@ public class Util {
 
     /**
      * convert the number to big endian
-     *
      * @param n   number
      * @param bs  Byte array to store converted numbers
      * @param off start position of bit array

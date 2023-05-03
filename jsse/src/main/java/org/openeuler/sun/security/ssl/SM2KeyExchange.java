@@ -78,12 +78,6 @@ final class SM2KeyExchange {
             }
 
             if (gmx509Possession != null) {
-//                publicKey = (BCECPublicKey) gmx509Possession.popEncCerts[0].
-//                        getPublicKey();
-//                privateKey = gmx509Possession.popEncPrivateKey;
-//                randomNum = SM2KeyExchangeUtil.generateRandom(
-//                        publicKey.getParameters().getN(), random);
-
                 publicKey = (ECPublicKey) gmx509Possession.popEncCerts[0].
                         getPublicKey();
                 privateKey = gmx509Possession.popEncPrivateKey;
@@ -110,12 +104,6 @@ final class SM2KeyExchange {
             }
 
             if (gmx509Possession != null) {
-//                publicKey = (BCECPublicKey) gmx509Possession.popEncCerts[0].
-//                        getPublicKey();
-//                privateKey = gmx509Possession.popEncPrivateKey;
-//                randomNum = SM2KeyExchangeUtil.generateRandom(
-//                        publicKey.getParameters().getN(), random);
-
                 publicKey = (ECPublicKey) gmx509Possession.popEncCerts[0].
                         getPublicKey();
                 privateKey = gmx509Possession.popEncPrivateKey;
@@ -132,8 +120,6 @@ final class SM2KeyExchange {
 
         @Override
         public byte[] encode() {
-//            return ECUtil.encodePoint(
-//                    publicKey.getW(), publicKey.getParams().getCurve());
             return ECUtil.encodePoint(
                     publicKey.getW(), publicKey.getParams().getCurve());
         }

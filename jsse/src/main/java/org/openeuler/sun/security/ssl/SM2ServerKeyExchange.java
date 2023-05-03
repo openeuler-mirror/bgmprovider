@@ -109,10 +109,6 @@ final class SM2ServerKeyExchange {
                     "No SM2 credentials negotiated for server key exchange");
             }
 
-//            BCECPublicKey publicKey = sm2Possession.publicKey;
-//            ECParameterSpec params = publicKey.getParams();
-//            publicPoint = SM2KeyExchangeUtil.generateR(publicKey,
-//                sm2Possession.randomNum).getEncoded(false);
             ECPublicKey publicKey = (ECPublicKey) sm2Possession.publicKey;
             ECParameterSpec params = publicKey.getParams();
             publicPoint = ECUtil.encodePoint(SM2KeyExchangeUtil.generateR(publicKey,

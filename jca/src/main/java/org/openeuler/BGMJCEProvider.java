@@ -143,11 +143,8 @@ public class BGMJCEProvider extends Provider {
 
     private static void putSM2(Map<Object, Object> map) {
         map.put("Cipher.SM2", "org.openeuler.SM2Cipher");
-
         map.put("KeyPairGenerator.SM2", "org.openeuler.SM2KeyPairGenerator");
-
         map.put("KeyAgreement.SM2", "org.openeuler.SM2KeyAgreement");
-
         map.put("KeyFactory.EC", "org.openeuler.sun.security.ec.ECKeyFactory");
         map.put("Alg.Alias.KeyFactory.SM2", "EC");
         map.put("Alg.Alias.KeyFactory.1.2.840.10045.2.1", "EC");

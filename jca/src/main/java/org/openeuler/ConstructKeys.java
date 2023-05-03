@@ -1,12 +1,13 @@
 /*
- * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 1999, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Huawei designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Huawei in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,8 +19,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
- * information or have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package org.openeuler;
@@ -56,15 +58,15 @@ final class ConstructKeys {
      *
      * @return a public key constructed from the encodedKey.
      */
-    private static PublicKey constructPublicKey(byte[] encodedKey,
-                                                String encodedKeyAlgorithm)
-            throws InvalidKeyException, NoSuchAlgorithmException
+    private static final PublicKey constructPublicKey(byte[] encodedKey,
+                                              String encodedKeyAlgorithm)
+        throws InvalidKeyException, NoSuchAlgorithmException
     {
         PublicKey key;
 
         try {
             KeyFactory keyFactory =
-                    KeyFactory.getInstance(encodedKeyAlgorithm);
+                KeyFactory.getInstance(encodedKeyAlgorithm);
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(encodedKey);
             key = keyFactory.generatePublic(keySpec);
         } catch (NoSuchAlgorithmException nsae) {
@@ -72,24 +74,24 @@ final class ConstructKeys {
             // provider which supports this algorithm
             try {
                 KeyFactory keyFactory =
-                        KeyFactory.getInstance(encodedKeyAlgorithm);
+                    KeyFactory.getInstance(encodedKeyAlgorithm);
                 X509EncodedKeySpec keySpec =
-                        new X509EncodedKeySpec(encodedKey);
+                    new X509EncodedKeySpec(encodedKey);
                 key = keyFactory.generatePublic(keySpec);
             } catch (NoSuchAlgorithmException nsae2) {
                 throw new NoSuchAlgorithmException("No installed providers " +
-                        "can create keys for the " +
-                        encodedKeyAlgorithm +
-                        "algorithm");
+                                                   "can create keys for the " +
+                                                   encodedKeyAlgorithm +
+                                                   "algorithm");
             } catch (InvalidKeySpecException ikse2) {
                 InvalidKeyException ike =
-                        new InvalidKeyException("Cannot construct public key");
+                    new InvalidKeyException("Cannot construct public key");
                 ike.initCause(ikse2);
                 throw ike;
             }
         } catch (InvalidKeySpecException ikse) {
             InvalidKeyException ike =
-                    new InvalidKeyException("Cannot construct public key");
+                new InvalidKeyException("Cannot construct public key");
             ike.initCause(ikse);
             throw ike;
         }
@@ -106,15 +108,15 @@ final class ConstructKeys {
      *
      * @return a private key constructed from the encodedKey.
      */
-    private static PrivateKey constructPrivateKey(byte[] encodedKey,
-                                                  String encodedKeyAlgorithm)
-            throws InvalidKeyException, NoSuchAlgorithmException
+    private static final PrivateKey constructPrivateKey(byte[] encodedKey,
+                                                String encodedKeyAlgorithm)
+        throws InvalidKeyException, NoSuchAlgorithmException
     {
         PrivateKey key = null;
 
         try {
             KeyFactory keyFactory =
-                    KeyFactory.getInstance(encodedKeyAlgorithm);
+                KeyFactory.getInstance(encodedKeyAlgorithm);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encodedKey);
             return keyFactory.generatePrivate(keySpec);
         } catch (NoSuchAlgorithmException nsae) {
@@ -122,24 +124,24 @@ final class ConstructKeys {
             // provider which supports this algorithm
             try {
                 KeyFactory keyFactory =
-                        KeyFactory.getInstance(encodedKeyAlgorithm);
+                    KeyFactory.getInstance(encodedKeyAlgorithm);
                 PKCS8EncodedKeySpec keySpec =
-                        new PKCS8EncodedKeySpec(encodedKey);
+                    new PKCS8EncodedKeySpec(encodedKey);
                 key = keyFactory.generatePrivate(keySpec);
             } catch (NoSuchAlgorithmException nsae2) {
                 throw new NoSuchAlgorithmException("No installed providers " +
-                        "can create keys for the " +
-                        encodedKeyAlgorithm +
-                        "algorithm");
+                                                   "can create keys for the " +
+                                                   encodedKeyAlgorithm +
+                                                   "algorithm");
             } catch (InvalidKeySpecException ikse2) {
                 InvalidKeyException ike =
-                        new InvalidKeyException("Cannot construct private key");
+                    new InvalidKeyException("Cannot construct private key");
                 ike.initCause(ikse2);
                 throw ike;
             }
         } catch (InvalidKeySpecException ikse) {
             InvalidKeyException ike =
-                    new InvalidKeyException("Cannot construct private key");
+                new InvalidKeyException("Cannot construct private key");
             ike.initCause(ikse);
             throw ike;
         }
@@ -156,31 +158,30 @@ final class ConstructKeys {
      *
      * @return a secret key constructed from the encodedKey.
      */
-    private static SecretKey constructSecretKey(byte[] encodedKey,
-                                                String encodedKeyAlgorithm)
+    private static final SecretKey constructSecretKey(byte[] encodedKey,
+                                              String encodedKeyAlgorithm)
     {
         return (new SecretKeySpec(encodedKey, encodedKeyAlgorithm));
     }
 
-    static Key constructKey(byte[] encoding, String keyAlgorithm,
-                            int keyType)
-            throws InvalidKeyException, NoSuchAlgorithmException {
+    static final Key constructKey(byte[] encoding, String keyAlgorithm,
+                                  int keyType)
+        throws InvalidKeyException, NoSuchAlgorithmException {
         Key result = null;
         switch (keyType) {
-            case Cipher.SECRET_KEY:
-                result = constructSecretKey(encoding,
-                        keyAlgorithm);
-                break;
-            case Cipher.PRIVATE_KEY:
-                result = constructPrivateKey(encoding,
-                        keyAlgorithm);
-                break;
-            case Cipher.PUBLIC_KEY:
-                result = constructPublicKey(encoding,
-                        keyAlgorithm);
-                break;
+        case Cipher.SECRET_KEY:
+            result = ConstructKeys.constructSecretKey(encoding,
+                                                      keyAlgorithm);
+            break;
+        case Cipher.PRIVATE_KEY:
+            result = ConstructKeys.constructPrivateKey(encoding,
+                                                       keyAlgorithm);
+            break;
+        case Cipher.PUBLIC_KEY:
+            result = ConstructKeys.constructPublicKey(encoding,
+                                                      keyAlgorithm);
+            break;
         }
         return result;
     }
 }
-
