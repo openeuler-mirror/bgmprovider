@@ -136,7 +136,7 @@ public class BGMJCEProvider extends Provider {
     }
 
     private static void putSignatureSM3withSM2(Map<Object, Object> map) {
-        map.put("Signature.SM3withSM2", "org.bouncycastle.jcajce.provider.asymmetric.ec.GMSignatureSpi$sm3WithSM2");
+        map.put("Signature.SM3withSM2", "org.openeuler.SM2SignatureSpi$sm3WithSM2");
         map.put("Alg.Alias.Signature.1.2.156.10197.1.501", "SM3withSM2");
         map.put("Alg.Alias.Signature.OID.1.2.156.10197.1.501", "SM3withSM2");
     }
