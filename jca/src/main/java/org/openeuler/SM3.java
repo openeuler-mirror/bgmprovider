@@ -216,12 +216,6 @@ public class SM3 extends MessageDigestSpi implements Cloneable{
         }
     }
 
-    /*
-    * Boolean function
-    * GGj(X;Y;Z) = X XOR Y XOR Z                       when 0  < = j < = 15
-    *            = (X AND Y) OR (NOT X AND Z)          when 16 < = j < = 63
-    * */
-
     /**
      * Boolean function
      * GGj(X;Y;Z) = X XOR Y XOR Z                       when 0  < = j < = 15

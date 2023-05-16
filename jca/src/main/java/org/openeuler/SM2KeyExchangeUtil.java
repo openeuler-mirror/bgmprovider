@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,18 +24,15 @@
 
 package org.openeuler;
 
-import org.bouncycastle.jce.interfaces.ECPrivateKey;
-import org.bouncycastle.jce.interfaces.ECPublicKey;
-import org.bouncycastle.jce.spec.ECParameterSpec;
-import org.bouncycastle.jce.spec.ECPublicKeySpec;
-import org.bouncycastle.math.ec.ECCurve;
-import org.bouncycastle.math.ec.ECPoint;
+import org.openeuler.util.ECUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.*;
-import java.security.spec.InvalidKeySpecException;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.*;
 import java.util.Arrays;
 
 /**
@@ -54,32 +51,39 @@ public class SM2KeyExchangeUtil {
 
         // RA = [rA]*G
         ECPoint RA = generateR(localPublicKey, rA);
-        BigInteger n = localPublicKey.getParameters().getN();
+        BigInteger n = localPublicKey.getParams().getOrder();
 
         // w = ceil(ceil(log2(n)/2) -1
         int w = (int) Math.ceil((double) n.subtract(BigInteger.ONE).bitLength() / 2) - 1;
         BigInteger wk = BigInteger.ONE.shiftLeft(w);
 
         // x1 = 2^w + (x1 & (2^w - 1))
-        BigInteger x1 = RA.getXCoord().toBigInteger();
+        BigInteger x1 = RA.getAffineX();
         x1 = wk.add(x1.and(wk.subtract(BigInteger.ONE)));
 
         // tA = (dA + x1 * rA) mod n
-        BigInteger dA = localPrivateKey.getD();
+        BigInteger dA = localPrivateKey.getS();
         BigInteger tA = dA.add(x1.multiply(rA)).mod(n);
 
         // x2 = 2^w + (x2 & (2^w - 1))
-        ECPoint RB = peerPublicKey.getParameters().getCurve().decodePoint(peerRBytes);
-        BigInteger x2 = RB.getXCoord().toBigInteger();
+//        ECPoint RB = peerPublicKey.getParameters().getCurve().decodePoint(peerRBytes);
+        ECPoint RB = ECUtil.decodePoint(peerRBytes, peerPublicKey.getParams().getCurve());
+        BigInteger x2 = RB.getAffineX();
         x2 = wk.add(x2.and(wk.subtract(BigInteger.ONE)));
 
         // V = (PB + RB * x2) * (h * tA)
-        BigInteger h = localPublicKey.getParameters().getH();
-        ECPoint PB = peerPublicKey.getQ();
-        ECPoint V = PB.add(RB.multiply(x2)).multiply(h.multiply(tA)).normalize();
+        BigInteger h = BigInteger.valueOf(localPublicKey.getParams().getCofactor());
+        ECPoint PB = peerPublicKey.getW();
+//        ECPoint V = PB.add(RB.multiply(x2)).multiply(h.multiply(tA)).normalize();
+        EllipticCurve peerCurve = peerPublicKey.getParams().getCurve();
+        ECPoint V = ECUtil.multiply(ECUtil.add(PB,
+                                               ECUtil.multiply(RB, x2, peerCurve),
+                                               peerCurve),
+                                    h.multiply(tA),
+                                    peerCurve);
 
-        BigInteger xV = V.getXCoord().toBigInteger();
-        BigInteger yV = V.getYCoord().toBigInteger();
+        BigInteger xV = V.getAffineX();
+        BigInteger yV = V.getAffineY();
 
         MessageDigest messageDigest = MessageDigest.getInstance("SM3");
         byte[] ZA = generateZ(localId, localPublicKey, messageDigest);
@@ -108,12 +112,13 @@ public class SM2KeyExchangeUtil {
      * @return R
      */
     public static ECPoint generateR(ECPublicKey publicKey, BigInteger random) {
-        ECPoint g = publicKey.getParameters().getG();
-        return g.multiply(random).normalize();
+        ECPoint g = publicKey.getParams().getGenerator();
+//        return g.multiply(random).normalize();
+        return ECUtil.multiply(g, random, publicKey.getParams().getCurve());
     }
 
     public static BigInteger generateRandom(ECPublicKey publicKey, SecureRandom secureRandom) {
-        BigInteger n = publicKey.getParameters().getN();
+        BigInteger n = publicKey.getParams().getOrder();
         return generateRandom(n, secureRandom);
     }
 
@@ -153,21 +158,21 @@ public class SM2KeyExchangeUtil {
             idBytes = DEFAULT_ID;
         }
         int idBitsLen = idBytes.length * 8;
-        ECCurve curve = publicKey.getParameters().getCurve();
-        BigInteger a = curve.getA().toBigInteger();
-        BigInteger b = curve.getB().toBigInteger();
+        EllipticCurve curve = publicKey.getParams().getCurve();
+        BigInteger a = curve.getA();
+        BigInteger b = curve.getB();
 
-        ECPoint g = publicKey.getParameters().getG();
-        BigInteger gX = g.getXCoord().toBigInteger();
-        BigInteger gY = g.getYCoord().toBigInteger();
+        ECPoint g = publicKey.getParams().getGenerator();
+        BigInteger gX = g.getAffineX();
+        BigInteger gY = g.getAffineY();
 
-        ECPoint q = publicKey.getQ();
-        BigInteger qX = q.getXCoord().toBigInteger();
-        BigInteger qY = q.getYCoord().toBigInteger();
+        ECPoint q = publicKey.getW();
+        BigInteger qX = q.getAffineX();
+        BigInteger qY = q.getAffineY();
 
         int m = 0;
-        if (curve instanceof ECCurve.F2m) {
-            m = ((ECCurve.F2m) curve).getM();
+        if (curve.getField() instanceof ECFieldF2m) {
+            m = ((ECFieldF2m) curve.getField()).getM();
         }
 
         BigInteger[] elements = new BigInteger[]{a, b, gX, gY, qX, qY};
@@ -283,12 +288,13 @@ public class SM2KeyExchangeUtil {
      * @throws InvalidKeyException
      */
     public static ECPublicKey generatePublicKey(ECPrivateKey privateKey) throws InvalidKeyException {
-        ECParameterSpec parameters = privateKey.getParameters();
+        ECParameterSpec parameters = privateKey.getParams();
 
         // P = G * d
-        BigInteger d = privateKey.getD();
-        ECPoint G = parameters.getG();
-        ECPoint P = G.multiply(d);
+        BigInteger d = privateKey.getS();
+        ECPoint G = parameters.getGenerator();
+//        ECPoint P = G.multiply(d);
+        ECPoint P = ECUtil.multiply(G, d, parameters.getCurve());
         ECPublicKeySpec ecPublicKeySpec = new ECPublicKeySpec(P, parameters);
 
         try {

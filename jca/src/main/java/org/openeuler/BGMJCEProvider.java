@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -145,18 +145,18 @@ public class BGMJCEProvider extends Provider {
         map.put("Cipher.SM2", "org.openeuler.SM2Cipher");
         map.put("KeyPairGenerator.SM2", "org.openeuler.SM2KeyPairGenerator");
         map.put("KeyAgreement.SM2", "org.openeuler.SM2KeyAgreement");
-        map.put("KeyFactory.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi$EC");
+        map.put("KeyFactory.EC", "org.openeuler.sun.security.ec.ECKeyFactory");
         map.put("Alg.Alias.KeyFactory.SM2", "EC");
         map.put("Alg.Alias.KeyFactory.1.2.840.10045.2.1", "EC");
         map.put("Alg.Alias.KeyFactory.OID.1.2.840.10045.2.1", "EC");
     }
 
     private static void putKeyPairGenerator(Map<Object, Object> map) {
-        map.put("KeyPairGenerator.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.KeyPairGeneratorSpi$EC");
+        map.put("KeyPairGenerator.EC", "org.openeuler.ECCKeyPairGenerator");
     }
 
     private static void putAlgorithmParameters(Map<Object, Object> map) {
-        map.put("AlgorithmParameters.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.AlgorithmParametersSpi");
+        map.put("AlgorithmParameters.EC", "org.openeuler.sun.security.util.ECParameters");
         map.put("Alg.Alias.AlgorithmParameters.1.2.840.10045.2.1", "EC");
         map.put("Alg.Alias.AlgorithmParameters.OID.1.2.840.10045.2.1", "EC");
     }
