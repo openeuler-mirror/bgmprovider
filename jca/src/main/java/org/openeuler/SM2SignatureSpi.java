@@ -292,27 +292,6 @@ public class SM2SignatureSpi extends SignatureSpi {
         }
     }
 
-    /**
-     * Sets the specified algorithm parameter to the specified
-     * value. This method supplies a general-purpose mechanism through
-     * which it is possible to set the various parameters of this object.
-     * A parameter may be any settable parameter for the algorithm, such as
-     * a parameter size, or a source of random bits for signature generation
-     * (if appropriate), or an indication of whether or not to perform
-     * a specific but optional computation. A uniform algorithm-specific
-     * naming scheme for each parameter is desirable but left unspecified
-     * at this time.
-     *
-     * @param param the string identifier of the parameter.
-     * @param value the parameter value.
-     * @throws InvalidParameterException if {@code param} is an
-     *                                   invalid parameter for this signature algorithm engine,
-     *                                   the parameter is already set
-     *                                   and cannot be set again, a security exception occurs, and so on.
-     * @deprecated Replaced by {@link
-     * #engineSetParameter(AlgorithmParameterSpec)
-     * engineSetParameter}.
-     */
     // set parameter, not supported. See JCA doc
     @Override
     @Deprecated
@@ -331,25 +310,6 @@ public class SM2SignatureSpi extends SignatureSpi {
         sm2Params = (SM2ParameterSpec) params;
     }
 
-    /**
-     * Gets the value of the specified algorithm parameter.
-     * This method supplies a general-purpose mechanism through which it
-     * is possible to get the various parameters of this object. A parameter
-     * may be any settable parameter for the algorithm, such as a parameter
-     * size, or  a source of random bits for signature generation (if
-     * appropriate), or an indication of whether or not to perform a
-     * specific but optional computation. A uniform algorithm-specific
-     * naming scheme for each parameter is desirable but left unspecified
-     * at this time.
-     *
-     * @param param the string name of the parameter.
-     * @return the object that represents the parameter value, or {@code null} if
-     * there is none.
-     * @throws InvalidParameterException if {@code param} is an
-     *                                   invalid parameter for this engine, or another exception occurs while
-     *                                   trying to get this parameter.
-     * @deprecated
-     */
     // get parameter, not supported. See JCA doc
     @Override
     @Deprecated
