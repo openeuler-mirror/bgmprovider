@@ -42,6 +42,7 @@
                             <testExcludes>
                                 <exclude>**/krb5/auto/*.java</exclude>
                                 <exclude>org/openeuler/tls/javax/net/ssl/GetInstanceTest.java</exclude>
+                                <exclude>org/openeuler/gm/javax/net/ssl/templates/TestNameService.java</exclude>
                             </testExcludes>
                         </configuration>
                     </plugin>
@@ -103,6 +104,7 @@
                         <configuration>
                             <testExcludes>
                                 <exclude>**/krb5/auto/*.java</exclude>
+                                <exclude>org/openeuler/gm/javax/net/ssl/templates/TestNameService.java</exclude>
                             </testExcludes>
                         </configuration>
                     </plugin>
