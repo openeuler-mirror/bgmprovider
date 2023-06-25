@@ -66,7 +66,6 @@ public class SM2KeyExchangeUtil {
         BigInteger tA = dA.add(x1.multiply(rA)).mod(n);
 
         // x2 = 2^w + (x2 & (2^w - 1))
-//        ECPoint RB = peerPublicKey.getParameters().getCurve().decodePoint(peerRBytes);
         ECPoint RB = ECUtil.decodePoint(peerRBytes, peerPublicKey.getParams().getCurve());
         BigInteger x2 = RB.getAffineX();
         x2 = wk.add(x2.and(wk.subtract(BigInteger.ONE)));
@@ -74,7 +73,6 @@ public class SM2KeyExchangeUtil {
         // V = (PB + RB * x2) * (h * tA)
         BigInteger h = BigInteger.valueOf(localPublicKey.getParams().getCofactor());
         ECPoint PB = peerPublicKey.getW();
-//        ECPoint V = PB.add(RB.multiply(x2)).multiply(h.multiply(tA)).normalize();
         EllipticCurve peerCurve = peerPublicKey.getParams().getCurve();
         ECPoint V = ECUtil.multiply(ECUtil.add(PB,
                                                ECUtil.multiply(RB, x2, peerCurve),
@@ -113,7 +111,6 @@ public class SM2KeyExchangeUtil {
      */
     public static ECPoint generateR(ECPublicKey publicKey, BigInteger random) {
         ECPoint g = publicKey.getParams().getGenerator();
-//        return g.multiply(random).normalize();
         return ECUtil.multiply(g, random, publicKey.getParams().getCurve());
     }
 
@@ -293,7 +290,6 @@ public class SM2KeyExchangeUtil {
         // P = G * d
         BigInteger d = privateKey.getS();
         ECPoint G = parameters.getGenerator();
-//        ECPoint P = G.multiply(d);
         ECPoint P = ECUtil.multiply(G, d, parameters.getCurve());
         ECPublicKeySpec ecPublicKeySpec = new ECPublicKeySpec(P, parameters);
 
