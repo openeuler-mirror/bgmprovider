@@ -44,8 +44,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Enumeration;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import static org.openeuler.gm.TestUtils.*;
 
 public class KeyStoreManagerTest extends BaseTest {
@@ -159,10 +157,9 @@ public class KeyStoreManagerTest extends BaseTest {
 
     @Test
     public void testTLS() {
-        AtomicBoolean isServerStarted = new AtomicBoolean(false);
-        ServerThread serverThread = new ServerThread(isServerStarted);
+        ServerThread serverThread = new ServerThread(ServerThread.ServerStatus.INITIAL);
         serverThread.start();
-        while (!isServerStarted.get()) {
+        while (serverThread.getServerStatus() == ServerThread.ServerStatus.INITIAL) {
             try {
                 Thread.sleep(10L);
             } catch (InterruptedException e) {
@@ -170,15 +167,33 @@ public class KeyStoreManagerTest extends BaseTest {
             }
         }
         startClient(serverThread.getServerPort());
+        while(serverThread.getServerStatus() != ServerThread.ServerStatus.STOPPED) {
+            try {
+                Thread.sleep(10L);
+            } catch (InterruptedException e) {
+                System.err.println(e.getMessage());
+            }
+        }
     }
 
-    private class ServerThread extends Thread {
+    private static class ServerThread extends Thread {
+
+        enum ServerStatus {INITIAL,STARTED,STOPPED;}
+
         private int serverPort;
 
-        private AtomicBoolean isServerStarted;
+        private volatile ServerStatus serverStatus;
 
-        ServerThread(AtomicBoolean isServerStarted) {
-            this.isServerStarted = isServerStarted;
+        ServerThread(ServerStatus serverStatus) {
+            this.serverStatus = serverStatus;
+        }
+
+        public void setServerStatus(ServerStatus serverStatus) {
+            this.serverStatus = serverStatus;
+        }
+
+        public ServerStatus getServerStatus() {
+            return serverStatus;
         }
 
         public void setServerPort(int serverPort) {
@@ -191,9 +206,9 @@ public class KeyStoreManagerTest extends BaseTest {
 
         @Override
         public void run() {
-            startServer(0, isServerStarted);
+            startServer(0);
         }
-        private void startServer(int serverPort, AtomicBoolean isServerStarted) {
+        private void startServer(int serverPort) {
             String[] expectedPaths = getPaths(new String[]{
                     "server-rsa.keystore",
                     "server-ec.keystore",
@@ -210,14 +225,13 @@ public class KeyStoreManagerTest extends BaseTest {
                 sslContext.init(keyManagers, null, null);
                 SSLServerSocketFactory ssf = sslContext.getServerSocketFactory();
                 serverSocket = ssf.createServerSocket(serverPort);
-                isServerStarted.set(true);
+                setServerStatus(ServerStatus.STARTED);
                 setServerPort(serverSocket.getLocalPort());
                 Socket socket = serverSocket.accept();
                 DataInputStream inputStream = new DataInputStream(socket.getInputStream());
                 String message = inputStream.readUTF();
                 System.out.println("server receive : " + message);
             } catch (Exception e) {
-                isServerStarted.set(true);
                 throw new RuntimeException(e);
             } finally {
                 System.getProperties().remove("javax.net.ssl.keyStore");
@@ -230,6 +244,7 @@ public class KeyStoreManagerTest extends BaseTest {
                         System.err.println(e.getMessage());
                     }
                 }
+                setServerStatus(ServerStatus.STOPPED);
             }
         }
     }
