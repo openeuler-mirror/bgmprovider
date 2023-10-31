@@ -33,6 +33,7 @@ package org.openeuler.gm.javax.net.ssl.ServerName;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
 import org.openeuler.BGMJSSEProvider;
+import org.openeuler.gm.TestUtils;
 import org.openeuler.gm.javax.net.ssl.templates.SSLExampleCert;
 
 import javax.net.ssl.*;
@@ -60,7 +61,9 @@ class EndingDotHostname {
             e.printStackTrace();
         }
 
-        System.setProperty("jdk.net.hosts.file", "hostsForExample");
+        String hostsFilePath = TestUtils.getPath(".") + "hostsForExample";
+        System.out.println("hostsFilePath: " + hostsFilePath);
+        System.setProperty("jdk.net.hosts.file", hostsFilePath);
 
         Security.insertProviderAt(new BGMJCEProvider(), 1);
         Security.insertProviderAt(new BGMJSSEProvider(), 2);
