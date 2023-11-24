@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,29 +24,33 @@
 
 package org.openeuler;
 
-import org.bouncycastle.jcajce.provider.asymmetric.ec.KeyPairGeneratorSpi;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidParameterException;
-import java.security.KeyPair;
-import java.security.SecureRandom;
+import java.math.BigInteger;
+import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPoint;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.openeuler.sun.security.ec.BGECPrivateKey;
+import org.openeuler.sun.security.ec.BGECPublicKey;
+import org.openeuler.util.ECUtil;
+import org.openeuler.util.GMUtil;
+import org.openeuler.util.Util;
+import sun.security.jca.JCAUtil;
+
 /**
- * The difference between EC and SM key pair generation is that the elliptic curve is different.
- * Refer to the key pair generation method of EC to implement the initialize(int, SecureRandom) method.
- * Delegate the implementation of the two methods of initialize(AlgorithmParameterSpec, SecureRandom)
- * and generateKeyPair to KeyPairGeneratorSpi.EC.
- *
- * @see KeyPairGeneratorSpi.EC#initialize(int, SecureRandom)
- * @see KeyPairGeneratorSpi.EC#initialize(AlgorithmParameterSpec, SecureRandom)
- * @see KeyPairGeneratorSpi.EC#generateKeyPair()
+ * SM2 keypair generator.
  */
-public class SM2KeyPairGenerator extends java.security.KeyPairGeneratorSpi {
+public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
+
+    // used to seed the keypair generator
+    private SecureRandom random;
+
+    // parameters specified via init, if any
+    private AlgorithmParameterSpec params = null;
+
     // sm2p256v1 key size
     private static final int SM2P256V1_KEY_SIZE = 256;
 
@@ -60,8 +64,6 @@ public class SM2KeyPairGenerator extends java.security.KeyPairGeneratorSpi {
         initECGenParameterSpecMap();
     }
 
-    private KeyPairGeneratorSpi keyPairGenerator;
-
     private boolean isInitialized;
 
     private static void initECGenParameterSpecMap() {
@@ -70,15 +72,20 @@ public class SM2KeyPairGenerator extends java.security.KeyPairGeneratorSpi {
         ecGenParameterSpecMap.put(WAPIP192V1_KEY_SIZE, new ECGenParameterSpec("wapip192v1"));
     }
 
+    /**
+     * Constructs a new ECKeyPairGenerator. By default, the sm2p256v1 curve is used
+     */
     public SM2KeyPairGenerator() {
-        this.keyPairGenerator = new KeyPairGeneratorSpi.EC("SM2", BouncyCastleProvider.CONFIGURATION);
+        // initialize to default in case the app does not call initialize()
+        initialize(SM2P256V1_KEY_SIZE, null);
     }
 
+
     @Override
-    public void initialize(int keysize, SecureRandom random) {
-        ECGenParameterSpec ecGenParameterSpec = ecGenParameterSpecMap.get(keysize);
+    public void initialize(int keySize, SecureRandom random) {
+        ECGenParameterSpec ecGenParameterSpec = ecGenParameterSpecMap.get(keySize);
         if (ecGenParameterSpec == null) {
-            throw new InvalidParameterException("Unknown key size.");
+            throw new InvalidParameterException("Unknown key size, the sm2 algorithm only supports sm2p256v1 and wapip192v1 curve");
         }
         try {
             initialize(ecGenParameterSpec, random);
@@ -90,7 +97,38 @@ public class SM2KeyPairGenerator extends java.security.KeyPairGeneratorSpi {
     @Override
     public void initialize(AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidAlgorithmParameterException {
-        keyPairGenerator.initialize(params, random);
+
+        if (!GMUtil.isGMCurve(params)) {
+            throw new InvalidAlgorithmParameterException(
+                    "Not a GM curve : " +
+                            ((params instanceof ECGenParameterSpec) ?
+                                    ((ECGenParameterSpec) params).getName() : params));
+        }
+
+        ECParameterSpec ecSpec;
+
+        if (params instanceof ECParameterSpec) {
+            ECParameterSpec ecParams = (ECParameterSpec) params;
+            ecSpec = ECUtil.getECParameterSpec(null, ecParams);
+            if (ecSpec == null) {
+                throw new InvalidAlgorithmParameterException(
+                        "Unsupported curve: " + params);
+            }
+        } else if (params instanceof ECGenParameterSpec) {
+            String name = ((ECGenParameterSpec) params).getName();
+            ecSpec = ECUtil.getECParameterSpec(null, name);
+            if (ecSpec == null) {
+                throw new InvalidAlgorithmParameterException(
+                        "Unknown curve name: " + name);
+            }
+        } else {
+            throw new InvalidAlgorithmParameterException(
+                    "ECParameterSpec or ECGenParameterSpec required for SM2");
+        }
+
+        this.params = ecSpec;
+        this.random = random;
+
         isInitialized = true;
     }
 
@@ -99,6 +137,32 @@ public class SM2KeyPairGenerator extends java.security.KeyPairGeneratorSpi {
         if (!isInitialized) {
             initialize(SM2P256V1_KEY_SIZE, new SecureRandom());
         }
-        return keyPairGenerator.generateKeyPair();
+
+        if (random == null) {
+            random = JCAUtil.getSecureRandom();
+        }
+
+        try {
+            ECParameterSpec ecParams = (ECParameterSpec) params;
+            BigInteger n = ((ECParameterSpec) params).getOrder();
+            int nBitLength = n.bitLength();
+
+            BigInteger d;
+            do {
+                d = Util.createRandomBigInteger(nBitLength, random);
+            }
+            while (d.compareTo(BigInteger.ONE) < 0 || (d.compareTo(n) >= 0));
+
+            ECPoint genPoint = ecParams.getGenerator();
+            ECPoint w = ECUtil.multiply(genPoint, d, ecParams.getCurve());
+
+            PrivateKey privateKey = new BGECPrivateKey(d, ecParams);
+            PublicKey publicKey = new BGECPublicKey(w, ecParams);
+
+            return new KeyPair(publicKey, privateKey);
+        } catch (Exception ex) {
+            throw new ProviderException(ex);
+        }
     }
 }
+

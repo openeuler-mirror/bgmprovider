@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,7 +53,10 @@ public class BGMJCEProvider extends Provider {
                 return;
             }
             Map<ObjectIdentifier,String> nameTable = (Map<ObjectIdentifier,String>) object;
+            nameTable.put(newObjectIdentifier("1.2.156.10197.1.104"), "SM4");
+            nameTable.put(newObjectIdentifier("1.2.156.10197.1.301"), "SM2");
             nameTable.put(newObjectIdentifier("1.2.156.10197.1.401"), "SM3");
+            nameTable.put(newObjectIdentifier("1.2.156.10197.1.501"), "SM3withSM2");
         } catch (NoSuchFieldException | IllegalAccessException | IOException e) {
             // skip
         }
@@ -108,9 +111,6 @@ public class BGMJCEProvider extends Provider {
         if (!"false".equalsIgnoreCase(props.getProperty("jce.signatureSM2withSM2"))) {
             putSignatureSM3withSM2(map);
         }
-        if (!"false".equalsIgnoreCase(props.getProperty("jce.keypairGenerator"))) {
-            putKeyPairGenerator(map);
-        }
         if (!"false".equalsIgnoreCase(props.getProperty("jce.algorithmParameters"))) {
             putAlgorithmParameters(map);
         }
@@ -120,25 +120,25 @@ public class BGMJCEProvider extends Provider {
     }
 
     private static void putSM4(Map<Object, Object> map) {
-        map.put("Cipher.SM4", "org.bouncycastle.jcajce.provider.symmetric.SM4$ECB");
-        map.put("AlgorithmParameters.SM4", "org.bouncycastle.jcajce.provider.symmetric.SM4$AlgParams");
-        map.put("AlgorithmParameterGenerator.SM4", "org.bouncycastle.jcajce.provider.symmetric.SM4$AlgParams$AlgParamGen");
-        map.put("KeyGenerator.SM4", "org.bouncycastle.jcajce.provider.symmetric.SM4$AlgParams$KeyGen");
+        map.put("Cipher.SM4", "org.openeuler.sm4.SM4Cipher");
+        map.put("AlgorithmParameters.SM4", "org.openeuler.sm4.SM4Parameters");
+        map.put("AlgorithmParameterGenerator.SM4", "org.openeuler.sm4.SM4ParameterGenerator");
+        map.put("KeyGenerator.SM4", "org.openeuler.sm4.SM4KeyGenerator");
     }
 
     private static void putSM3(Map<Object, Object> map) {
-        map.put("MessageDigest.SM3", "org.bouncycastle.jcajce.provider.digest.SM3$Digest");
+        map.put("MessageDigest.SM3", "org.openeuler.SM3");
         map.put("Alg.Alias.MessageDigest.OID.1.2.156.10197.1.401", "SM3");
         map.put("Alg.Alias.MessageDigest.1.2.156.10197.1.401", "SM3");
     }
 
     private static void putHmacSM3(Map<Object, Object> map) {
-        map.put("Mac.HmacSM3", "org.bouncycastle.jcajce.provider.digest.SM3$HashMac");
-        map.put("KeyGenerator.HmacSM3", "org.bouncycastle.jcajce.provider.digest.SM3$KeyGenerator");
+        map.put("Mac.HmacSM3", "org.openeuler.com.sun.crypto.provider.HmacCore$HmacSM3");
+        map.put("KeyGenerator.HmacSM3", "org.openeuler.HmacSM3KeyGenerator");
     }
 
     private static void putSignatureSM3withSM2(Map<Object, Object> map) {
-        map.put("Signature.SM3withSM2", "org.bouncycastle.jcajce.provider.asymmetric.ec.GMSignatureSpi$sm3WithSM2");
+        map.put("Signature.SM3withSM2", "org.openeuler.SM2SignatureSpi$sm3WithSM2");
         map.put("Alg.Alias.Signature.1.2.156.10197.1.501", "SM3withSM2");
         map.put("Alg.Alias.Signature.OID.1.2.156.10197.1.501", "SM3withSM2");
     }
@@ -147,27 +147,30 @@ public class BGMJCEProvider extends Provider {
         map.put("Cipher.SM2", "org.openeuler.SM2Cipher");
         map.put("KeyPairGenerator.SM2", "org.openeuler.SM2KeyPairGenerator");
         map.put("KeyAgreement.SM2", "org.openeuler.SM2KeyAgreement");
-        map.put("KeyFactory.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi$EC");
         map.put("Alg.Alias.KeyFactory.SM2", "EC");
+        map.put("Alg.Alias.KeyFactory.1.2.156.10197.1.301", "SM2");
+        map.put("Alg.Alias.KeyFactory.OID.1.2.156.10197.1.301", "SM2");
+        map.put("KeyFactory.EC", "org.openeuler.sun.security.ec.ECKeyFactory");
         map.put("Alg.Alias.KeyFactory.1.2.840.10045.2.1", "EC");
         map.put("Alg.Alias.KeyFactory.OID.1.2.840.10045.2.1", "EC");
-    }
-
-    private static void putKeyPairGenerator(Map<Object, Object> map) {
-        map.put("KeyPairGenerator.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.KeyPairGeneratorSpi$EC");
+        map.put("KeyPairGenerator.EC", "org.openeuler.ECCKeyPairGenerator");
     }
 
     private static void putAlgorithmParameters(Map<Object, Object> map) {
-        map.put("AlgorithmParameters.EC", "org.bouncycastle.jcajce.provider.asymmetric.ec.AlgorithmParametersSpi");
+        map.put("AlgorithmParameters.EC", "org.openeuler.sun.security.util.ECParameters");
         map.put("Alg.Alias.AlgorithmParameters.1.2.840.10045.2.1", "EC");
         map.put("Alg.Alias.AlgorithmParameters.OID.1.2.840.10045.2.1", "EC");
+
+        map.put("Alg.Alias.AlgorithmParameters.SM2", "EC");
+        map.put("Alg.Alias.AlgorithmParameters.1.2.156.10197.1.301", "SM2");
+        map.put("Alg.Alias.AlgorithmParameters.OID.1.2.156.10197.1.301", "SM2");
     }
 
     private static void putPBES2Algorithm(Map<Object, Object> map) {
         // AlgorithmParameters
         map.put("AlgorithmParameters.GMPBES2",
                 "org.openeuler.com.sun.crypto.provider.PBES2Parameters$General");
-        map.put("Alg.Alias.AlgorithmParameters.OID" + OID_PKCS5_GM_PBES2,
+        map.put("Alg.Alias.AlgorithmParameters.OID." + OID_PKCS5_GM_PBES2,
                 "GMPBES2");
         map.put("Alg.Alias.AlgorithmParameters." + OID_PKCS5_GM_PBES2,
                 "GMPBES2");

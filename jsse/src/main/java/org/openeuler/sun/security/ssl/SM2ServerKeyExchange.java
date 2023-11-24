@@ -27,7 +27,6 @@ package org.openeuler.sun.security.ssl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
@@ -39,18 +38,16 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECParameterSpec;
 import java.text.MessageFormat;
 import java.util.Locale;
-import java.util.Map;
 
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.openeuler.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Credentials;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Possession;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
-import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Possession;
 import org.openeuler.sun.misc.HexDumpEncoder;
+import org.openeuler.util.ECUtil;
 
 /**
  * Pack of the ServerKeyExchange handshake message.
@@ -112,10 +109,10 @@ final class SM2ServerKeyExchange {
                     "No SM2 credentials negotiated for server key exchange");
             }
 
-            BCECPublicKey publicKey = sm2Possession.publicKey;
+            ECPublicKey publicKey = (ECPublicKey) sm2Possession.publicKey;
             ECParameterSpec params = publicKey.getParams();
-            publicPoint = SM2KeyExchangeUtil.generateR(publicKey,
-                sm2Possession.randomNum).getEncoded(false);
+            publicPoint = ECUtil.encodePoint(SM2KeyExchangeUtil.generateR(publicKey,
+                    sm2Possession.randomNum), params.getCurve());
 
             this.namedGroup = NamedGroup.valueOf(params);
             if ((namedGroup == null) || (namedGroup.oid == null) ) {

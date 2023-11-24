@@ -34,7 +34,6 @@ import java.util.Locale;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLException;
 
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.openeuler.SM2KeyExchangeParameterSpec;
 import org.openeuler.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Credentials;
@@ -43,6 +42,7 @@ import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import org.openeuler.sun.misc.HexDumpEncoder;
+import org.openeuler.util.ECUtil;
 
 /**
  * Pack of the "ClientKeyExchange" handshake message.
@@ -82,8 +82,8 @@ final class SM2ClientKeyExchange {
                     "No SM2 credentials negotiated for client key exchange");
             }
 
-            encodedPoint = SM2KeyExchangeUtil.generateR(((BCECPublicKey)publicKey),
-                sm2Possession.randomNum).getEncoded(false);
+            encodedPoint = ECUtil.encodePoint(SM2KeyExchangeUtil.generateR(((ECPublicKey)publicKey),
+                    sm2Possession.randomNum), ((ECPublicKey)publicKey).getParams().getCurve());
         }
 
         SM2ClientKeyExchangeMessage(HandshakeContext handshakeContext,
