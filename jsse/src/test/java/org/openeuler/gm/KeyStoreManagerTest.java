@@ -44,8 +44,6 @@ import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Enumeration;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import static org.openeuler.gm.TestUtils.*;
 
 public class KeyStoreManagerTest extends BaseTest {
@@ -55,7 +53,6 @@ public class KeyStoreManagerTest extends BaseTest {
     private static final String BGM_BASE_PACKAGE = "org.openeuler.sun.security.ssl";
     private static final String BGM_DEFAULTMANAGERSHOLDER_CLASS_NAME = BGM_BASE_PACKAGE +
             ".SSLContextImpl$DefaultManagersHolder";
-    private static final int PORT = 9999;
 
     @BeforeClass
     public static void beforeClass() {
@@ -142,6 +139,7 @@ public class KeyStoreManagerTest extends BaseTest {
             String alias = e.nextElement();
             if (store.isKeyEntry(alias)) {
                 // test certificate chain
+                System.out.println("alias=" + alias);
                 Certificate[] expectedCerts = store.getCertificateChain(alias);
                 X509Certificate[] actualCerts = keyManager.getCertificateChain(alias);
                 Assert.assertArrayEquals(expectedCerts, actualCerts);
@@ -159,64 +157,101 @@ public class KeyStoreManagerTest extends BaseTest {
 
     @Test
     public void testTLS() {
-        AtomicBoolean isServerStarted = new AtomicBoolean(false);
-        Thread serverThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                startServer(PORT, isServerStarted);
-            }
-        });
+        ServerThread serverThread = new ServerThread(ServerThread.ServerStatus.INITIAL);
         serverThread.start();
-        while (!isServerStarted.get()) {
+        while (serverThread.getServerStatus() == ServerThread.ServerStatus.INITIAL) {
             try {
                 Thread.sleep(10L);
             } catch (InterruptedException e) {
                 System.err.println(e.getMessage());
             }
         }
-        startClient(PORT);
-    }
-
-    private void startServer(int port, AtomicBoolean isServerStarted) {
-        String[] expectedPaths = getPaths(new String[]{
-                "server-rsa.keystore",
-                "server-ec.keystore",
-                "server-sm2-sig.keystore",
-                "server-sm2-enc.keystore"
-        });
-        ServerSocket serverSocket = null;
-        try {
-            System.setProperty("javax.net.ssl.keyStore", arrayToString(expectedPaths));
-            System.setProperty("javax.net.ssl.keyStoreType", PKCS12);
-            System.setProperty("javax.net.ssl.keyStorePassword", PASSWD);
-            SSLContext sslContext = SSLContext.getInstance("TLS", BGMJSSEPROVIDER);
-            KeyManager[] keyManagers = getKeyManagers();
-            sslContext.init(keyManagers, null, null);
-            SSLServerSocketFactory ssf = sslContext.getServerSocketFactory();
-            serverSocket = ssf.createServerSocket(port);
-            isServerStarted.set(true);
-            Socket socket = serverSocket.accept();
-            DataInputStream inputStream = new DataInputStream(socket.getInputStream());
-            String message = inputStream.readUTF();
-            System.out.println("server receive : " + message);
-        } catch (Exception e) {
-            isServerStarted.set(true);
-            throw new RuntimeException(e);
-        } finally {
-            System.getProperties().remove("javax.net.ssl.keyStore");
-            System.getProperties().remove("javax.net.ssl.keyStoreType");
-            System.getProperties().remove("javax.net.ssl.keyStorePassword");
-            if (serverSocket != null) {
-                try {
-                    serverSocket.close();
-                } catch (IOException e) {
-                    System.err.println(e.getMessage());
-                }
+        startClient(serverThread.getServerPort());
+        while(serverThread.getServerStatus() != ServerThread.ServerStatus.STOPPED) {
+            try {
+                Thread.sleep(10L);
+            } catch (InterruptedException e) {
+                System.err.println(e.getMessage());
             }
         }
     }
 
-    private void startClient(int port) {
+    private static class ServerThread extends Thread {
+
+        enum ServerStatus {INITIAL,STARTED,STOPPED;}
+
+        private int serverPort;
+
+        private volatile ServerStatus serverStatus;
+
+        ServerThread(ServerStatus serverStatus) {
+            this.serverStatus = serverStatus;
+        }
+
+        public void setServerStatus(ServerStatus serverStatus) {
+            this.serverStatus = serverStatus;
+        }
+
+        public ServerStatus getServerStatus() {
+            return serverStatus;
+        }
+
+        public void setServerPort(int serverPort) {
+            this.serverPort = serverPort;
+        }
+
+        public int getServerPort() {
+            return serverPort;
+        }
+
+        @Override
+        public void run() {
+            startServer(0);
+        }
+        private void startServer(int serverPort) {
+            String[] expectedPaths = getPaths(new String[]{
+                    "server-rsa.keystore",
+                    "server-ec.keystore",
+                    "server-sm2-sig.keystore",
+                    "server-sm2-enc.keystore"
+            });
+            ServerSocket serverSocket = null;
+            try {
+                System.setProperty("javax.net.ssl.keyStore", arrayToString(expectedPaths));
+                System.setProperty("javax.net.ssl.keyStoreType", PKCS12);
+                System.setProperty("javax.net.ssl.keyStorePassword", PASSWD);
+                SSLContext sslContext = SSLContext.getInstance("TLS", BGMJSSEPROVIDER);
+                KeyManager[] keyManagers = getKeyManagers();
+                sslContext.init(keyManagers, null, null);
+                SSLServerSocketFactory ssf = sslContext.getServerSocketFactory();
+                serverSocket = ssf.createServerSocket(serverPort);
+                setServerStatus(ServerStatus.STARTED);
+                setServerPort(serverSocket.getLocalPort());
+                Socket socket = serverSocket.accept();
+                DataInputStream inputStream = new DataInputStream(socket.getInputStream());
+                String message = inputStream.readUTF();
+                System.out.println("server receive : " + message);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                System.getProperties().remove("javax.net.ssl.keyStore");
+                System.getProperties().remove("javax.net.ssl.keyStoreType");
+                System.getProperties().remove("javax.net.ssl.keyStorePassword");
+                if (serverSocket != null) {
+                    try {
+                        serverSocket.close();
+                    } catch (IOException e) {
+                        System.err.println(e.getMessage());
+                    }
+                }
+                setServerStatus(ServerStatus.STOPPED);
+            }
+        }
+    }
+
+
+
+    private void startClient(int serverPort) {
         Socket socket = null;
         try {
             SSLContext sslContext = SSLContext.getInstance("GMTLS");
@@ -227,7 +262,7 @@ public class KeyStoreManagerTest extends BaseTest {
             tmf.init(ks);
             sslContext.init(null, tmf.getTrustManagers(), null);
             SSLSocketFactory sf = sslContext.getSocketFactory();
-            socket = sf.createSocket("localhost", port);
+            socket = sf.createSocket("localhost", serverPort);
             DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
             String message = "Hello Server";
             System.out.println("Client send : " + message);

@@ -201,7 +201,8 @@ class BadTSProvider {
             }
 
             cause = cause.getCause();
-            if (!(cause instanceof NoSuchProviderException)) {
+            if (!(cause instanceof NoSuchProviderException) &&
+                    !(cause instanceof KeyManagementException)) {
                 se.printStackTrace();
                 throw new Exception("Unexpected exception" + se);
             }

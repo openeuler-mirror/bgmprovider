@@ -32,20 +32,15 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 public class TestUtils {
-    private static final int JRE_VERSION_8 = 8;
-    private static final int JRE_VERSION_11 = 11;
-
     private static final boolean supportTLS13;
     private static final boolean supportPEMFile;
     private static final TomcatVersion tomcatVersion;
-    private static final int jreVersion;
     private static final boolean supportTLS;
 
     static {
         tomcatVersion = TomcatVersion.valueOf(ServerInfo.getServerInfo());
         supportTLS13 = tomcatVersion.isSupportTLS13();
         supportPEMFile = tomcatVersion.isSupportPEMFile();
-        jreVersion = getMajorVersion(System.getProperty("java.specification.version", "1.6"));
         supportTLS = tomcatVersion.isSupportTLS();
     }
 
@@ -141,33 +136,6 @@ public class TestUtils {
 
     public static TomcatVersion getTomcatVersion() {
         return tomcatVersion;
-    }
-
-    public static boolean isJre8() {
-        return jreVersion == JRE_VERSION_8;
-    }
-
-    public static boolean isJre11() {
-        return jreVersion == JRE_VERSION_11;
-    }
-
-    public static int getJreVersion() {
-        return jreVersion;
-    }
-
-    private static int getMajorVersion(final String javaSpecVersion) {
-        final String[] components = javaSpecVersion.split("\\.");
-        final int[] version = new int[components.length];
-        for (int i = 0; i < components.length; i++) {
-            version[i] = Integer.parseInt(components[i]);
-        }
-
-        if (version[0] == 1) {
-            assert version[1] >= 6;
-            return version[1];
-        } else {
-            return version[0];
-        }
     }
 
     public static boolean isSupportTLS() {

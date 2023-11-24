@@ -37,6 +37,8 @@ import java.util.Set;
 
 import sun.security.x509.X509CertImpl;
 
+import static org.openeuler.gm.X509CertImplHandler.getFingerprint;
+
 /**
  * This class checks if Symantec issued TLS Server certificates should be
  * restricted.
@@ -180,8 +182,8 @@ final class SymantecTLSPolicy {
 
     private static String fingerprint(X509Certificate cert) {
         return (cert instanceof X509CertImpl)
-               ? ((X509CertImpl)cert).getFingerprint("SHA-256")
-               : X509CertImpl.getFingerprint("SHA-256", cert);
+                ? getFingerprint("SHA-256", (X509CertImpl) cert)
+                : getFingerprint("SHA-256", cert);
     }
 
     private static void checkNotBefore(LocalDate notBeforeDate,

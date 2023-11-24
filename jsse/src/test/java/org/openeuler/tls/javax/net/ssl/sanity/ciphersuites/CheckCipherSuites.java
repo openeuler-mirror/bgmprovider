@@ -26,8 +26,8 @@ package org.openeuler.tls.javax.net.ssl.sanity.ciphersuites;
  * @test
  * @bug 4750141 4895631 8217579 8163326
  * @summary Check enabled and supported ciphersuites are correct
- * @run main/othervm -Djdk.tls.client.protocols="TLSv1.3,TLSv1.2,TLSv1.1,TLSv1,SSLv3" CheckCipherSuites default
- * @run main/othervm -Djdk.tls.client.protocols="TLSv1.3,TLSv1.2,TLSv1.1,TLSv1,SSLv3" CheckCipherSuites limited
+ * @run main/othervm CheckCipherSuites default
+ * @run main/othervm CheckCipherSuites limited
  */
 
 import org.openeuler.BGMJCEProvider;

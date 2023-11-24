@@ -24,9 +24,9 @@
 
 package org.openeuler;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
+import java.lang.reflect.InvocationTargetException;
 import java.security.Provider;
 import java.util.Map;
 
@@ -34,12 +34,17 @@ public class CompatibleOracleJdkHandler {
     /**
      * @see javax.crypto.JceSecurity#verificationResults
      */
-    private static Map<Provider, Object> verificationResults;
+    private static Map verificationResults;
 
     /**
      * JceSecurity class
      */
     private static Class<?> jceSecurityClass;
+
+    /**
+     * javax.crypto.JceSecurity$IdentityWrapper constructor
+     */
+    private static Constructor<?> identityWrapperConstructor;
 
     static {
         init();
@@ -50,7 +55,11 @@ public class CompatibleOracleJdkHandler {
         if (jceSecurityClass != null && verificationResults != null) {
             // The verificationResults is IdentityHashMap, not thread safe.
             synchronized (jceSecurityClass) {
-                verificationResults.put(provider, Boolean.TRUE);
+                if (identityWrapperConstructor != null) {
+                    verificationResults.put(newIdentityWrapper(provider), Boolean.TRUE);
+                } else {
+                    verificationResults.put(provider, Boolean.TRUE);
+                }
             }
         }
     }
@@ -64,7 +73,7 @@ public class CompatibleOracleJdkHandler {
     @SuppressWarnings("unchecked")
     private static void init() {
         // Not oracle jdk, return directly.
-        if (!isOracleJdk()) {
+        if (!JavaVersion.isOracleJdk()) {
             return;
         }
 
@@ -75,20 +84,22 @@ public class CompatibleOracleJdkHandler {
             verificationResultsField.setAccessible(true);
             Object object = verificationResultsField.get(null);
             if (object instanceof Map) {
-                verificationResults = (Map<Provider, Object>) object;
+                verificationResults = (Map) object;
             }
-        } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException e) {
+            Class<?> identityWrapperClass = Class.forName("javax.crypto.JceSecurity$IdentityWrapper");
+            identityWrapperConstructor = identityWrapperClass.getDeclaredConstructor(Provider.class);
+            identityWrapperConstructor.setAccessible(true);
+        } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException e) {
             // ignore exception
         }
     }
 
-    public static boolean isOracleJdk() {
-        String vendor = AccessController.doPrivileged(new PrivilegedAction<String>() {
-            @Override
-            public String run() {
-                return System.getProperty("java.vendor");
-            }
-        });
-        return vendor != null && vendor.startsWith("Oracle");
+    private static Object newIdentityWrapper(Provider provider) {
+        try {
+            return identityWrapperConstructor.newInstance(provider);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            // ignore exception
+        }
+        return null;
     }
 }

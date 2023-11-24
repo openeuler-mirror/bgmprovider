@@ -39,13 +39,13 @@ import java.util.concurrent.Future;
 import static org.openeuler.gm.TestUtils.getPath;
 
 public class SSLSocketTestBase extends BaseTest {
-    private static final int TIMEOUT = 5000;
+    private static final int TIMEOUT = 30000;
     static {
         init();
     }
 
     private static final String HOST = "localhost";
-    private static final int PORT = 9988;
+
     private static final String HELLO_SERVER = "hello server";
     private static final String HELLO_CLIENT = "hello client";
 
@@ -230,6 +230,9 @@ public class SSLSocketTestBase extends BaseTest {
     }
 
     static class ReqParameters {
+
+        // server port
+        protected int serverPort;
         // SSLContext protocol
         protected String contextProtocol;
 
@@ -260,6 +263,10 @@ public class SSLSocketTestBase extends BaseTest {
         protected String expectedCiphersuite;
 
         protected SSLContext sslContext;
+
+        public int getServerPort() {
+            return serverPort;
+        }
 
         public String getContextProtocol() {
             return contextProtocol;
@@ -322,9 +329,12 @@ public class SSLSocketTestBase extends BaseTest {
             this.expectedProtocol = builder.expectedProtocol;
             this.expectedCiphersuite = builder.expectedCiphersuite;
             this.sslContext = builder.sslContext;
+            this.serverPort = builder.serverPort;
         }
 
         static class Builder {
+            // server port
+            private int serverPort;
             // SSLContext protocol
             private String contextProtocol;
 
@@ -360,6 +370,11 @@ public class SSLSocketTestBase extends BaseTest {
 
             //sslContext for session resumption
             private SSLContext sslContext;
+
+            Builder serverPort(int serverPort) {
+                this.serverPort = serverPort;
+                return this;
+            }
 
             Builder contextProtocol(String contextProtocol) {
                 this.contextProtocol = contextProtocol;
@@ -528,7 +543,9 @@ public class SSLSocketTestBase extends BaseTest {
             SSLServerSocket serverSocket = null;
             SSLSocket sslSocket = null;
             try {
-                serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(PORT);
+                serverSocket = (SSLServerSocket) serverSocketFactory.createServerSocket(reqParameters.serverPort);
+                reqParameters.serverPort = serverSocket.getLocalPort();
+                System.out.println("serverPort:" +  reqParameters.serverPort);
                 if (enableCipherSuites != null && enableCipherSuites.length != 0) {
                     serverSocket.setEnabledCipherSuites(enableCipherSuites);
                 }
@@ -538,6 +555,7 @@ public class SSLSocketTestBase extends BaseTest {
                 setReady(true);
                 sslSocket = (SSLSocket) serverSocket.accept();
                 sslSocket.setNeedClientAuth(clientAuthType);
+                sslSocket.setSoTimeout(TIMEOUT);
 
                 if (Status.SESSION_RESUMPTION_START.equals(status)) {
                     resumptionSessionId = sslSocket.getSession().getId();
@@ -684,7 +702,8 @@ public class SSLSocketTestBase extends BaseTest {
             SocketFactory socketFactory = sslContext.getSocketFactory();
             SSLSocket sslSocket = null;
             try {
-                sslSocket = (SSLSocket) socketFactory.createSocket(HOST, PORT);
+                sslSocket = (SSLSocket) socketFactory.createSocket(HOST, reqParameters.serverPort);
+
                 if (enableCipherSuites != null && enableCipherSuites.length != 0) {
                     sslSocket.setEnabledCipherSuites(enableCipherSuites);
                 }
@@ -735,6 +754,7 @@ public class SSLSocketTestBase extends BaseTest {
             while (!serverThread.isReady()) {
                 Thread.sleep(10L);
             }
+            clientParams.serverPort = serverParams.serverPort;
             clientThread = new ClientThread(clientParams);
             Future<?> clientFuture = executorService.submit(clientThread);
             clientFuture.get();
@@ -746,6 +766,7 @@ public class SSLSocketTestBase extends BaseTest {
                         .enableProtocols(clientParams.enableProtocols)
                         .enableCipherSuites(clientParams.getEnableCipherSuites())
                         .status(Status.SESSION_RESUMPTION_REUSE)
+                        .serverPort(clientParams.serverPort)
                         .build();
 
                 ClientThread resumptionClientThread = new ClientThread(clientResumptionParams);

@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.openeuler</groupId>
         <artifactId>gmssl</artifactId>
-        <version>1.0.4.1</version>
+        <version>1.0.8</version>
     </parent>
 
     <artifactId>jca</artifactId>
@@ -28,12 +28,38 @@
 
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk15on</artifactId>
+            <artifactId>bcprov-jdk18on</artifactId>
         </dependency>
     </dependencies>
 
+    <profiles>
+        <profile>
+            <id>jdk17</id>
+            <activation>
+                <jdk>17</jdk>
+            </activation>
+            <properties>
+                <argLine>
+                    --add-exports=java.base/sun.security.x509=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.util=ALL-UNNAMED
+                    --add-exports=java.base/com.sun.crypto.provider=ALL-UNNAMED
+                    --add-opens=java.base/sun.security.util=ALL-UNNAMED
+                    --add-opens=java.base/com.sun.crypto.provider=ALL-UNNAMED
+                    --add-opens=java.base/javax.crypto=ALL-UNNAMED
+                </argLine>
+            </properties>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>${argLine}</argLine>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>

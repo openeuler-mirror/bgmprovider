@@ -364,7 +364,7 @@ final class SSLSocketOutputRecord extends OutputRecord implements SSLRecord {
      * the peer must have similar protections.
      */
     private boolean needToSplitPayload() {
-        return (!protocolVersion.useTLS11PlusSpec()) &&
+        return (!(protocolVersion.useTLS11PlusSpec() || protocolVersion.useGMTLSSpec())) &&
                 writeCipher.isCBCMode() && !isFirstAppOutputRecord &&
                 Record.enableCBCProtection;
     }

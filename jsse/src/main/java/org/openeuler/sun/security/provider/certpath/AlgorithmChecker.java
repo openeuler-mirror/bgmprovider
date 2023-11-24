@@ -25,6 +25,7 @@
 
 package org.openeuler.sun.security.provider.certpath;
 
+import java.lang.reflect.Method;
 import java.security.AlgorithmConstraints;
 import java.security.CryptoPrimitive;
 import java.util.Collection;
@@ -51,8 +52,9 @@ import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPublicKey;
 import java.security.spec.DSAPublicKeySpec;
 
+import org.openeuler.gm.DisabledAlgorithmConstraintsHandler;
 import sun.security.util.ConstraintsParameters;
-import org.openeuler.sun.security.util.Debug;
+import sun.security.util.Debug;
 import sun.security.util.DisabledAlgorithmConstraints;
 import org.openeuler.sun.security.validator.Validator;
 import sun.security.x509.AlgorithmId;
@@ -282,14 +284,15 @@ public final class AlgorithmChecker extends PKIXCertPathChecker {
 
         // Check against local constraints if it is DisabledAlgorithmConstraints
         if (constraints instanceof DisabledAlgorithmConstraints) {
-            ((DisabledAlgorithmConstraints)constraints).permits(currSigAlg,
-                currSigAlgParams, cp);
+            DisabledAlgorithmConstraintsHandler.permits((DisabledAlgorithmConstraints)constraints, currSigAlg,
+                    currSigAlgParams, cp, true);
             // DisabledAlgorithmsConstraints does not check primitives, so key
             // additional key check.
 
         } else {
             // Perform the default constraints checking anyway.
-            certPathDefaultConstraints.permits(currSigAlg, currSigAlgParams, cp);
+            DisabledAlgorithmConstraintsHandler.permits(certPathDefaultConstraints, currSigAlg,
+                    currSigAlgParams, cp, true);
             // Call locally set constraints to check key with primitives.
             if (!constraints.permits(primitives, currPubKey)) {
                 throw new CertPathValidatorException(
@@ -410,9 +413,9 @@ public final class AlgorithmChecker extends PKIXCertPathChecker {
     static void check(PublicKey key, AlgorithmId algorithmId, String variant,
                       TrustAnchor anchor) throws CertPathValidatorException {
 
-        certPathDefaultConstraints.permits(algorithmId.getName(),
-            algorithmId.getParameters(),
-            new CertPathConstraintsParameters(key, variant, anchor));
+        DisabledAlgorithmConstraintsHandler.permits(certPathDefaultConstraints, algorithmId.getName(),
+                algorithmId.getParameters(),
+                new CertPathConstraintsParameters(key, variant, anchor),true);
     }
 }
 

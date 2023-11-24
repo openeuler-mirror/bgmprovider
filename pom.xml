@@ -7,7 +7,7 @@
     <groupId>org.openeuler</groupId>
     <artifactId>gmssl</artifactId>
     <packaging>pom</packaging>
-    <version>1.0.4.1</version>
+    <version>1.0.8</version>
     <modules>
         <module>jca</module>
         <module>jsse</module>
@@ -45,8 +45,8 @@
             </dependency>
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.69</version>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>1.75</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -70,11 +70,12 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.22.1</version>
                     <configuration>
-                        <excludes>
-                            <exclude>**/CustomizedDefaultProtocolsTest.java</exclude>
-                            <exclude>**/B8025710Test.java</exclude>
-                        </excludes>
-                        <forkMode>pertest</forkMode>
+                        <forkCount>0.5C</forkCount>
+                        <parallel>none</parallel>
+                        <reuseForks>false</reuseForks>
+                        <forkedProcessTimeoutInSeconds>90</forkedProcessTimeoutInSeconds>
+                        <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                        <goal>aggregate</goal>
                     </configuration>
                 </plugin>
                 <plugin>
