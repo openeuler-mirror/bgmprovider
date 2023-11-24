@@ -64,7 +64,7 @@ public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
     @Override
     public void initialize(int keysize, SecureRandom random) {
 
-        initialize(keysize, random);
+        engine.initialize(keysize, random);
         isInitialized = true;
     }
 
