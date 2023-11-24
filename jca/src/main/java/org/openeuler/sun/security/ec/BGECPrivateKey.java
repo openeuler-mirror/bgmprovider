@@ -25,7 +25,9 @@
 
 package org.openeuler.sun.security.ec;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.interfaces.*;
@@ -33,10 +35,7 @@ import java.security.spec.*;
 
 import org.openeuler.sun.security.util.ECParameters;
 
-import sun.security.util.ArrayUtil;
-import sun.security.util.DerInputStream;
-import sun.security.util.DerOutputStream;
-import sun.security.util.DerValue;
+import sun.security.util.*;
 import sun.security.x509.AlgorithmId;
 import sun.security.pkcs.PKCS8Key;
 
@@ -72,11 +71,16 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
     private byte[] arrayS;      // private value as a big-endian array
     private ECParameterSpec params;
 
+    /* The version for this key */
+    private static final int V1 = 0;
+    private static final int V2 = 1;
+
     /**
      * Construct a key from its encoding. Called by the ECKeyFactory.
      */
     public BGECPrivateKey(byte[] encoded) throws InvalidKeyException {
-        decode(encoded);
+        decode(new ByteArrayInputStream(encoded));
+        parseKeyBits();
     }
 
     /**
@@ -150,7 +154,7 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
     public BigInteger getS() {
         if (s == null) {
             byte[] arrCopy = arrayS.clone();
-//            ArrayUtil.reverse(arrCopy);
+            ArrayUtil.reverse(arrCopy);
             s = new BigInteger(1, arrCopy);
         }
         return s;
@@ -159,7 +163,7 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
     public byte[] getArrayS() {
         if (arrayS == null) {
             byte[] arr = getS().toByteArray();
-//            ArrayUtil.reverse(arr);
+            ArrayUtil.reverse(arr);
             int byteLength = (params.getOrder().bitLength() + 7) / 8;
             arrayS = new byte[byteLength];
             int length = Math.min(byteLength, arr.length);
@@ -190,7 +194,7 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
                 throw new IOException("Version must be 1");
             }
             byte[] privData = data.getOctetString();
-//            ArrayUtil.reverse(privData);
+            ArrayUtil.reverse(privData);
             arrayS = privData;
             while (data.available() != 0) {
                 DerValue value = data.getDerValue();
@@ -204,7 +208,7 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
             }
             AlgorithmParameters algParams = this.algid.getParameters();
             if (algParams == null) {
-                throw new InvalidKeyException("SM2 domain parameters must be "
+                throw new InvalidKeyException("EC domain parameters must be "
                         + "encoded in the algorithm identifier");
             }
             params = algParams.getParameterSpec(ECParameterSpec.class);
@@ -212,6 +216,46 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
             throw new InvalidKeyException("Invalid EC private key", e);
         } catch (InvalidParameterSpecException e) {
             throw new InvalidKeyException("Invalid EC private key", e);
+        }
+    }
+
+    public void decode(InputStream is) throws InvalidKeyException {
+        try {
+            DerValue val = new DerValue(is);
+            if (val.tag != DerValue.tag_Sequence) {
+                throw new InvalidKeyException("invalid key format");
+            }
+
+            int version = val.data.getInteger();
+            if (version != V1 && version != V2) {
+                throw new InvalidKeyException("unknown version: " + version);
+            }
+            algid = AlgorithmId.parse (val.data.getDerValue ());
+            key = val.data.getOctetString ();
+
+            DerValue next;
+            if (val.data.available() == 0) {
+                return;
+            }
+            next = val.data.getDerValue();
+            if (next.isContextSpecific((byte)0)) {
+                if (val.data.available() == 0) {
+                    return;
+                }
+                next = val.data.getDerValue();
+            }
+
+            if (next.isContextSpecific((byte)1)) {
+                if (version == V1) {
+                    throw new InvalidKeyException("publicKey seen in v1");
+                }
+                if (val.data.available() == 0) {
+                    return;
+                }
+            }
+            throw new InvalidKeyException("Extra bytes");
+        } catch (IOException e) {
+            throw new InvalidKeyException("IOException : " + e.getMessage());
         }
     }
 }

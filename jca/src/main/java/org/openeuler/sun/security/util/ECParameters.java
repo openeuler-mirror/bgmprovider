@@ -83,7 +83,7 @@ public final class ECParameters extends AlgorithmParametersSpi {
             throws InvalidKeyException {
         try {
             AlgorithmParameters params =
-                    AlgorithmParameters.getInstance("EC");
+                    AlgorithmParameters.getInstance("EC", "BGMJCEProvider");
             params.init(spec);
             return params;
         } catch (GeneralSecurityException e) {

@@ -24,6 +24,8 @@
 
 package org.openeuler;
 
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
 
 import java.nio.charset.StandardCharsets;
@@ -49,8 +51,13 @@ public class SM4Test {
     private static String plainText = "helloworldhellow";  // 16bytes for NoPadding
     private static String shortPlainText = "helloworld"; // 5 bytes for padding
 
-    public static void main(String[] args) throws Exception {
+    @BeforeClass
+    public static void beforeClass() {
         Security.insertProviderAt(new BGMJCEProvider(), 1);
+    }
+
+    @Test
+    public void test() throws Exception {
         test(plainText, "SM4/CBC/NOPADDING", new byte[]{86, 69, 47, -115, -63, 54, 35, 24, -2, 114, 113, 102, 82, 20, 69, 59});
         test(shortPlainText, "SM4/CBC/PKCS5Padding", new byte[]{10, 105, 75, -80, -85, -68, 13, -53, 42, 91, -64, 99, 104, 35, -85, 8});
         test(plainText, "SM4/ECB/NOPADDING", new byte[]{103, 36, -31, -53, -109, -12, -71, -79, -54, 106, 10, -3, -35, -22, -122, -67});

@@ -25,6 +25,7 @@
 package org.openeuler;
 
 import org.openeuler.org.bouncycastle.SM2ParameterSpec;
+import org.openeuler.sun.security.ec.ECKeyFactory;
 import org.openeuler.util.ECUtil;
 import org.openeuler.util.Util;
 import sun.security.util.DerInputStream;
@@ -80,8 +81,8 @@ public class SM2SignatureSpi extends SignatureSpi {
      *                  going to be verified.
      */
     @Override
-    protected void engineInitVerify(PublicKey publicKey) {
-        this.publicKey = (ECPublicKey) publicKey;
+    protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
+        this.publicKey = (ECPublicKey) ECKeyFactory.toECKey(publicKey);
         ecParams = this.publicKey.getParams();
         byte[] ID = getID();
         byte[] entLen = new byte[2];
@@ -104,8 +105,8 @@ public class SM2SignatureSpi extends SignatureSpi {
      *                   will be generated.
      */
     @Override
-    protected void engineInitSign(PrivateKey privateKey) {
-        this.privateKey = (ECPrivateKey) privateKey;
+    protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
+        this.privateKey = (ECPrivateKey) ECKeyFactory.toECKey(privateKey);
         ecParams = this.privateKey.getParams();
         byte[] ID = getID();
         byte[] entLen = new byte[2];
@@ -114,7 +115,7 @@ public class SM2SignatureSpi extends SignatureSpi {
         entLen[0] = (byte) (((ID.length * 8) >> 8) & 0xFF);
         entLen[1] = (byte) ((ID.length * 8) & 0xFF);
 
-        pubPoint = ECUtil.multiply(ecParams.getGenerator(), ((ECPrivateKey) privateKey).getS(), ecParams.getCurve());
+        pubPoint = ECUtil.multiply(ecParams.getGenerator(),this.privateKey.getS(), ecParams.getCurve());
 
         z = getZ(entLen, ID);
         byteBuf.reset();

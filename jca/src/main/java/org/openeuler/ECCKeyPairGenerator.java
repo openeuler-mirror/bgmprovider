@@ -26,6 +26,7 @@ package org.openeuler;
 
 import org.openeuler.sun.security.ec.BGECPrivateKey;
 import org.openeuler.sun.security.ec.BGECPublicKey;
+import org.openeuler.util.GMUtil;
 import sun.security.ec.ECKeyPairGenerator;
 
 import java.security.*;
@@ -42,9 +43,13 @@ public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
     // parameters specified via init, if any
     private AlgorithmParameterSpec params = null;
 
-    KeyPairGeneratorSpi engine = new ECKeyPairGenerator();
+    private KeyPairGeneratorSpi engine = new ECKeyPairGenerator();
+
+    private KeyPairGeneratorSpi sm2Engine = new SM2KeyPairGenerator();
 
     private boolean isInitialized = false;
+
+    private boolean isGMCurve = false;
 
     public ECCKeyPairGenerator() {
         initialize(256, null);
@@ -63,7 +68,6 @@ public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
      */
     @Override
     public void initialize(int keysize, SecureRandom random) {
-
         engine.initialize(keysize, random);
         isInitialized = true;
     }
@@ -72,7 +76,12 @@ public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
     @Override
     public void initialize(AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidAlgorithmParameterException {
-        engine.initialize(params, random);
+        isGMCurve = GMUtil.isGMCurve(params);
+        if (isGMCurve) {
+            sm2Engine.initialize(params, random);
+        } else {
+            engine.initialize(params, random);
+        }
         isInitialized = true;
     }
 
@@ -89,6 +98,9 @@ public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
     public KeyPair generateKeyPair() {
         if (!isInitialized) {
             initialize(256, new SecureRandom());
+        }
+        if (isGMCurve) {
+            return sm2Engine.generateKeyPair();
         }
         KeyPair keyPair = engine.generateKeyPair();
 

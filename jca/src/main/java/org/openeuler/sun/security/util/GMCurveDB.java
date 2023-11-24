@@ -57,7 +57,7 @@ public class  GMCurveDB {
     public static final String SPLIT_PATTERN = ",|\\[|\\]";
 
     // Used by SunECEntries
-    public static Collection<? extends ECNamedCurve>getSupportedCurves() {
+    public static Collection<? extends ECNamedCurve> getSupportedCurves() {
         return specCollection;
     }
 
@@ -172,7 +172,7 @@ public class  GMCurveDB {
         Pattern nameSplitPattern = Holder.nameSplitPattern;
 
         /* SM2 prime curves */
-        add("sm2p256v1", "1.2.156.10197.1.301", PD,
+        add("sm2p256v1", "1.2.156.10197.1.301", P,
                 "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFF",
                 "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000000FFFFFFFFFFFFFFFC",
                 "28E9FA9E9D9F5E344D5A9E4BCF6509A7F39789F515AB8F92DDBCBD414D940E93",
@@ -181,7 +181,7 @@ public class  GMCurveDB {
                 "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123",
                 1, nameSplitPattern);
 
-        add("wapip192v1", "1.2.156.10197.1.301.101", PD,
+        add("wapip192v1", "1.2.156.10197.1.301.101", P,
                 "BDB6F4FE3E8B1D9E0DA8C0D46F4C318CEFE4AFE3B6B8551F",
                 "BB8E5E8FBC115E139FE6A814FE48AAA6F0ADA1AA5DF91985",
                 "1854BEBDC31B21B7AEFC80AB0ECD10D5B1B3308E6DBF11C1",

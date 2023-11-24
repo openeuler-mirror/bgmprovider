@@ -31,8 +31,21 @@ import org.junit.Test;
 import java.security.*;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.ECGenParameterSpec;
 
 public class ECKeyPairGeneratorTest {
+
+    private static final String[] GM_NAMED_CURVES = new String[]{
+            "sm2p256v1", "1.2.156.10197.1.301",
+            "wapip192v1", "1.2.156.10197.1.301.101",
+    };
+
+    private static final String[] N_GM_NAMED_CURVES = new String[]{
+            "secp256r1", "1.2.840.10045.3.1.7",
+            "secp384r1", "1.3.132.0.34",
+            "secp521r1", "1.3.132.0.35",
+    };
 
     @BeforeClass
     public static void beforeClass() {
@@ -40,17 +53,53 @@ public class ECKeyPairGeneratorTest {
     }
 
     @Test
-    public void generateKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BGMJCEProvider");
+    public void generateECKeyPair() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException {
+        for (String nameCurve : GM_NAMED_CURVES) {
+            System.out.println("test GM: " + nameCurve);
+            generateKeyPair(new ECGenParameterSpec(nameCurve), "EC");
+        }
+
+        for (String nameCurve : N_GM_NAMED_CURVES) {
+            System.out.println("test non-GM: " + nameCurve);
+            generateKeyPair(new ECGenParameterSpec(nameCurve), "EC");
+        }
+    }
+
+    @Test
+    public void generateSM2KeyPair() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException {
+        for (String nameCurve : GM_NAMED_CURVES) {
+            System.out.println("test GM: " + nameCurve);
+            generateKeyPair(new ECGenParameterSpec(nameCurve), "SM2");
+        }
+
+        boolean success = true;
+        for (String nameCurve : N_GM_NAMED_CURVES) {
+            System.out.println("test non-GM: " + nameCurve);
+            try {
+                generateKeyPair(new ECGenParameterSpec(nameCurve), "SM2");
+                success = false;
+            } catch (InvalidAlgorithmParameterException e) {
+                // skip
+            }
+            Assert.assertTrue("Unable to generate non-GM ECPrivateKey", success);
+        }
+    }
+
+    private void generateKeyPair(AlgorithmParameterSpec params, String algorithm)
+            throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+        keyPairGenerator.initialize(params);
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
         Assert.assertTrue("Illegal EC private key type", keyPair.getPrivate() instanceof ECPrivateKey);
         Assert.assertTrue("Illegal EC public key type", keyPair.getPublic() instanceof ECPublicKey);
     }
 
     @Test
-    public void getInstance() throws NoSuchAlgorithmException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC");
+    public void getInstance() throws NoSuchAlgorithmException, NoSuchProviderException {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BGMJCEProvider");
+        keyPairGenerator = KeyPairGenerator.getInstance("EC");
         Assert.assertEquals("Not expected KeyPairGenerator instance",
                 keyPairGenerator.getProvider().getName(), "BGMJCEProvider");
     }
+
 }

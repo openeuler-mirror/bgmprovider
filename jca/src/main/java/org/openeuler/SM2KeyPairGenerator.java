@@ -36,6 +36,7 @@ import java.util.Map;
 import org.openeuler.sun.security.ec.BGECPrivateKey;
 import org.openeuler.sun.security.ec.BGECPublicKey;
 import org.openeuler.util.ECUtil;
+import org.openeuler.util.GMUtil;
 import org.openeuler.util.Util;
 import sun.security.jca.JCAUtil;
 
@@ -96,6 +97,13 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
     @Override
     public void initialize(AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidAlgorithmParameterException {
+
+        if (!GMUtil.isGMCurve(params)) {
+            throw new InvalidAlgorithmParameterException(
+                    "Not a GM curve : " +
+                            ((params instanceof ECGenParameterSpec) ?
+                                    ((ECGenParameterSpec) params).getName() : params));
+        }
 
         ECParameterSpec ecSpec;
 
