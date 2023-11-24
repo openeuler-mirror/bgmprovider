@@ -738,7 +738,7 @@ public class GCM extends StreamModeBaseCipher {
                 }
                 for (int i = 0; i + 16 <= arr.length; i += 16) {
                     if (i == 0) {
-                        g = GMacUtil.mult(H, org.bouncycastle.util.Arrays.copyOfRange(arr, i, i + 16));
+                        g = GMacUtil.mult(H, Arrays.copyOfRange(arr, i, i + 16));
                     } else {
                         g = sm4.xor16Byte(g, Arrays.copyOfRange(arr, i, i + 16));
                         g = GMacUtil.mult(g, H);

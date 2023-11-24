@@ -1,7 +1,7 @@
 package org.openeuler.sm4;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
 
@@ -15,19 +15,24 @@ import java.util.Arrays;
  * SM4 full test
  */
 public class SM4Test {
-
-    public static void installProvider() {
+    @BeforeClass
+    public static void beforeClass() {
         Security.insertProviderAt(new BGMJCEProvider(), 1);
-        Security.insertProviderAt(new BouncyCastleProvider(), 2);
+        try {
+            Class<?> clazz = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
+            Provider bcProvider = (Provider) clazz.newInstance();
+            Security.insertProviderAt(bcProvider, 2);
+        } catch (Exception e) {
+            System.err.println("BouncyCastleProvider does not exist");
+        }
     }
 
-    public static void main(String[] args) throws Exception {
-        installProvider();
-        test();
-    }
-
-
-    public static void test() throws Exception {
+    @Test
+    public void test() throws Exception {
+        if (Security.getProvider("BC") == null) {
+            System.out.println("Skip test, BouncyCastleProvider does not exist");
+            return;
+        }
         KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
         keyGen.init(16);
         SecretKey key = keyGen.generateKey();
