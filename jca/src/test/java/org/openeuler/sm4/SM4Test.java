@@ -34,7 +34,7 @@ public class SM4Test {
             return;
         }
         KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
-        keyGen.init(16);
+        keyGen.init(128);
         SecretKey key = keyGen.generateKey();
 
         test("SM4/CBC/NOPADDING", key, 16, 64);

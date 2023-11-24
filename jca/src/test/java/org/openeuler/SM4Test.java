@@ -24,14 +24,19 @@
 
 package org.openeuler;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
 
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidParameterException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.security.Security;
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -54,6 +59,23 @@ public class SM4Test {
     @BeforeClass
     public static void beforeClass() {
         Security.insertProviderAt(new BGMJCEProvider(), 1);
+    }
+
+    @Test
+    public void testKeyGenerator() throws NoSuchAlgorithmException {
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("SM4");
+        SecretKey secretKey = keyGenerator.generateKey();
+        Assert.assertEquals(16, secretKey.getEncoded().length);
+
+        keyGenerator.init(128);
+        secretKey = keyGenerator.generateKey();
+        Assert.assertEquals(16, secretKey.getEncoded().length);
+
+        try {
+            keyGenerator.init(256);
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof InvalidParameterException);
+        }
     }
 
     @Test
