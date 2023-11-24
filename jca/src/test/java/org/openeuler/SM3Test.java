@@ -24,11 +24,12 @@
 
 package org.openeuler;
 
-import org.openeuler.BGMJCEProvider;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.util.Arrays;
 import java.util.Random;
@@ -38,13 +39,13 @@ public class SM3Test {
     private static String algo = "SM3";
     private static byte[] expectRes = new byte[]{40, -103, -71, 4, -80, -49, 94, 112, 11, -75, -66, 121, 63, 80, 62, -14, -45, -75, -34, 66, -77, -34, -26, 26, 33, -23, 45, 52, -74, 67, -18, 118};
 
-    public static void main(String[] args) throws Exception {
+    @BeforeClass
+    public static void beforeClass() {
         Security.insertProviderAt(new BGMJCEProvider(), 1);
-        test();
-        randTest();
     }
 
-    public static void test() throws Exception {
+    @Test
+    public void test() throws Exception {
         MessageDigest md = MessageDigest.getInstance(algo);
         md.update(plainText.getBytes(StandardCharsets.UTF_8));
         MessageDigest md2 = (MessageDigest) md.clone();
@@ -54,7 +55,8 @@ public class SM3Test {
         }
     }
 
-    public static void randTest() throws Exception {
+    @Test
+    public  void randTest() throws Exception {
         String[] randResult = {
                 "bb372719ca7e1f9bb4f671aa23310c8aeef3896ccb1974f8e827aed5c143b51",
                 "8025d533e91c706091e12d5a70ae1ebf2fd374cfab59715e5c44374eadcbeeb8",

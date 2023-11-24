@@ -25,6 +25,7 @@
 
 package org.openeuler.sun.security.util;
 
+import org.openeuler.ObjectIdentifierHandler;
 import sun.security.util.DerOutputStream;
 import sun.security.util.NamedCurve;
 import sun.security.util.ObjectIdentifier;
@@ -58,17 +59,12 @@ public final class ECNamedCurve extends ECParameterSpec {
         DerOutputStream out = new DerOutputStream();
 
         try {
-            out.putOID(new ObjectIdentifier(oid));
+            out.putOID(ObjectIdentifierHandler.newObjectIdentifier(oid));
         } catch (IOException e) {
             throw new RuntimeException("Internal error", e);
         }
 
         encoded = out.toByteArray();
-    }
-
-    ECNamedCurve(NamedCurve params) {
-        this(params.getName(), params.getObjectId(), params.getCurve(),
-                params.getGenerator(), params.getOrder(), params.getCofactor());
     }
 
     public String getName() {

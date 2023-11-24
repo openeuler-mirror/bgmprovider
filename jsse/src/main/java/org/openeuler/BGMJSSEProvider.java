@@ -69,9 +69,6 @@ public class BGMJSSEProvider extends Provider {
         if (!"false".equalsIgnoreCase(props.getProperty("jsse.sslContext"))) {
             putSSLContext(map);
         }
-        if (!"false".equalsIgnoreCase(props.getProperty("jsse.certificateFactory"))) {
-            putCertificateFactory(map);
-        }
         if (!"false".equalsIgnoreCase(props.getProperty("jsse.keystore"))) {
             putKeyStore(map);
         }
@@ -116,11 +113,6 @@ public class BGMJSSEProvider extends Provider {
         map.put("SSLContext.Default", "org.openeuler.sun.security.ssl.SSLContextImpl$DefaultSSLContext");
         map.put("Alg.Alias.SSLContext.SSLv3", "TLSv1");
         map.put("Alg.Alias.SSLContext.SSL", "TLS");
-    }
-
-    private static void putCertificateFactory(Map<Object, Object> map) {
-        map.put("CertificateFactory.X.509", "org.bouncycastle.jcajce.provider.asymmetric.x509.CertificateFactory");
-        map.put("Alg.Alias.CertificateFactory.X509", "X.509");
     }
 
     private static void putKeyStore(Map<Object, Object> map) {

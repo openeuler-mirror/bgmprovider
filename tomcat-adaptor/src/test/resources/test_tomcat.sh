@@ -234,7 +234,7 @@ do
         rm $detail_log
     fi
 
-    mvn -Dtomcat.version=$ele clean test > $detail_log 2>&1
+    mvn -Dtomcat.version=$ele $TEST_JAVA_OPTS clean test > $detail_log 2>&1
     
     if [ $? -ne 0 ]; then
         echo "Test tomcat $ele failed!" >> $result_log 2>&1

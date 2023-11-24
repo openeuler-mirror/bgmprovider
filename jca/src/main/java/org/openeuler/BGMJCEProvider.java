@@ -53,7 +53,10 @@ public class BGMJCEProvider extends Provider {
                 return;
             }
             Map<ObjectIdentifier,String> nameTable = (Map<ObjectIdentifier,String>) object;
+            nameTable.put(newObjectIdentifier("1.2.156.10197.1.104"), "SM4");
+            nameTable.put(newObjectIdentifier("1.2.156.10197.1.301"), "SM2");
             nameTable.put(newObjectIdentifier("1.2.156.10197.1.401"), "SM3");
+            nameTable.put(newObjectIdentifier("1.2.156.10197.1.501"), "SM3withSM2");
         } catch (NoSuchFieldException | IllegalAccessException | IOException e) {
             // skip
         }
@@ -108,9 +111,6 @@ public class BGMJCEProvider extends Provider {
         if (!"false".equalsIgnoreCase(props.getProperty("jce.signatureSM2withSM2"))) {
             putSignatureSM3withSM2(map);
         }
-        if (!"false".equalsIgnoreCase(props.getProperty("jce.keypairGenerator"))) {
-            putKeyPairGenerator(map);
-        }
         if (!"false".equalsIgnoreCase(props.getProperty("jce.algorithmParameters"))) {
             putAlgorithmParameters(map);
         }
@@ -147,13 +147,12 @@ public class BGMJCEProvider extends Provider {
         map.put("Cipher.SM2", "org.openeuler.SM2Cipher");
         map.put("KeyPairGenerator.SM2", "org.openeuler.SM2KeyPairGenerator");
         map.put("KeyAgreement.SM2", "org.openeuler.SM2KeyAgreement");
-        map.put("KeyFactory.EC", "org.openeuler.sun.security.ec.ECKeyFactory");
         map.put("Alg.Alias.KeyFactory.SM2", "EC");
+        map.put("Alg.Alias.KeyFactory.1.2.156.10197.1.301", "SM2");
+        map.put("Alg.Alias.KeyFactory.OID.1.2.156.10197.1.301", "SM2");
+        map.put("KeyFactory.EC", "org.openeuler.sun.security.ec.ECKeyFactory");
         map.put("Alg.Alias.KeyFactory.1.2.840.10045.2.1", "EC");
         map.put("Alg.Alias.KeyFactory.OID.1.2.840.10045.2.1", "EC");
-    }
-
-    private static void putKeyPairGenerator(Map<Object, Object> map) {
         map.put("KeyPairGenerator.EC", "org.openeuler.ECCKeyPairGenerator");
     }
 
@@ -161,13 +160,17 @@ public class BGMJCEProvider extends Provider {
         map.put("AlgorithmParameters.EC", "org.openeuler.sun.security.util.ECParameters");
         map.put("Alg.Alias.AlgorithmParameters.1.2.840.10045.2.1", "EC");
         map.put("Alg.Alias.AlgorithmParameters.OID.1.2.840.10045.2.1", "EC");
+
+        map.put("Alg.Alias.AlgorithmParameters.SM2", "EC");
+        map.put("Alg.Alias.AlgorithmParameters.1.2.156.10197.1.301", "SM2");
+        map.put("Alg.Alias.AlgorithmParameters.OID.1.2.156.10197.1.301", "SM2");
     }
 
     private static void putPBES2Algorithm(Map<Object, Object> map) {
         // AlgorithmParameters
         map.put("AlgorithmParameters.GMPBES2",
                 "org.openeuler.com.sun.crypto.provider.PBES2Parameters$General");
-        map.put("Alg.Alias.AlgorithmParameters.OID" + OID_PKCS5_GM_PBES2,
+        map.put("Alg.Alias.AlgorithmParameters.OID." + OID_PKCS5_GM_PBES2,
                 "GMPBES2");
         map.put("Alg.Alias.AlgorithmParameters." + OID_PKCS5_GM_PBES2,
                 "GMPBES2");

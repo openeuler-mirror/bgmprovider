@@ -115,6 +115,7 @@ public class SSLSocketTest extends SSLSocketTestBase {
 
     @Test
     public void testServerRenegotiate() {
+        System.setProperty("javax.net.debug", "all");
         test("TLS", null, null,
                 "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
                 Status.SERVER_RENEGOTIATE);

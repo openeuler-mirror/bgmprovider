@@ -1,3 +1,27 @@
+/*                                                                                                                                           
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Huawei designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Huawei in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
+ * information or have any questions.
+ */
+
 package org.openeuler.sm4.mode;
 
 import org.openeuler.sm4.GMacUtil;
@@ -738,7 +762,7 @@ public class GCM extends StreamModeBaseCipher {
                 }
                 for (int i = 0; i + 16 <= arr.length; i += 16) {
                     if (i == 0) {
-                        g = GMacUtil.mult(H, org.bouncycastle.util.Arrays.copyOfRange(arr, i, i + 16));
+                        g = GMacUtil.mult(H, Arrays.copyOfRange(arr, i, i + 16));
                     } else {
                         g = sm4.xor16Byte(g, Arrays.copyOfRange(arr, i, i + 16));
                         g = GMacUtil.mult(g, H);
