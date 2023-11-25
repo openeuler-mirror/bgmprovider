@@ -267,7 +267,7 @@ public class CFB extends StreamModeBaseCipher {
      */
     private void decryptCFB(byte[] input, int inputOffset, int inputLen, byte[] res, int offset) {
         for (int i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
-            byte[] encrypt = sm4.encrypt(key.getEncoded(), counter);
+            byte[] encrypt = sm4.encrypt(this.rk, counter);
             byte[] xor = sm4.xor(encrypt, 0, encrypt.length, input, i, 16);
             sm4.copyArray(input, i, 16, counter, 0);
             sm4.copyArray(xor, 0, xor.length, res, offset + i - inputOffset);
@@ -285,7 +285,7 @@ public class CFB extends StreamModeBaseCipher {
      */
     private void encryptCFB(byte[] input, int inputOffset, int inputLen, byte[] res, int offset) {
         for (int i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
-            byte[] encrypt = sm4.encrypt(key.getEncoded(), counter);
+            byte[] encrypt = sm4.encrypt(this.rk, counter);
             byte[] xor = sm4.xor(encrypt, 0, 16, input, i, 16);
             this.counter = xor;
             sm4.copyArray(xor, 0, xor.length, res, offset + i - inputOffset);
@@ -306,14 +306,14 @@ public class CFB extends StreamModeBaseCipher {
         for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
             byte[] xor = null;
             byte[] encrypt = null;
-            encrypt = sm4.encrypt(key.getEncoded(), this.counter, 0);
+            encrypt = sm4.encrypt(this.rk, this.counter, 0);
             xor = sm4.xor(input, i, 16, encrypt, 0, 16);
             this.counter = xor;
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
         }
         if (inputLen % 16 != 0) {
             byte[] fill = this.padding.fill(input, i, inputLen % 16);
-            byte[] encrypt = sm4.encrypt(key.getEncoded(), counter);
+            byte[] encrypt = sm4.encrypt(this.rk, counter);
             byte[] xor = sm4.xor(fill, encrypt);
             this.counter = xor;
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
@@ -321,7 +321,7 @@ public class CFB extends StreamModeBaseCipher {
         if (inputLen % 16 == 0 && !this.padding.getPadding().toUpperCase().equals("NOPADDING")) {
             byte[] block = new byte[16];
             Arrays.fill(block, (byte) 16);
-            byte[] encrypt = sm4.encrypt(this.key.getEncoded(), counter);
+            byte[] encrypt = sm4.encrypt(this.rk, counter);
             byte[] xor = sm4.xor(encrypt, block);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
         }
@@ -346,14 +346,14 @@ public class CFB extends StreamModeBaseCipher {
             if (inputLen == 16) {
                 byte[] encrypt = null;
                 if (cipher == null) {
-                    encrypt = sm4.encrypt(key.getEncoded(), counter);
+                    encrypt = sm4.encrypt(this.rk, counter);
                 } else {
-                    encrypt = sm4.encrypt(key.getEncoded(), cipher);
+                    encrypt = sm4.encrypt(this.rk, cipher);
                 }
                 byte[] xor = sm4.xor(input, inputOffset, inputLen, encrypt, 0, 16);
                 sm4.copyArray(xor, 0, xor.length, res, res.length - 16);
             } else {
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), input, inputOffset + inputLen - 32);
+                byte[] encrypt = sm4.encrypt(this.rk, input, inputOffset + inputLen - 32);
                 byte[] xor = sm4.xor(encrypt, 0, 16, input, inputOffset + inputLen - 16, 16);
                 sm4.copyArray(xor, 0, xor.length, res, res.length - 16);
             }
@@ -361,16 +361,16 @@ public class CFB extends StreamModeBaseCipher {
             if (inputLen == 16) {
                 byte[] encrypt = null;
                 if (cipher == null) {
-                    encrypt = sm4.encrypt(key.getEncoded(), counter);
+                    encrypt = sm4.encrypt(this.rk, counter);
                 } else {
-                    encrypt = sm4.encrypt(key.getEncoded(), cipher);
+                    encrypt = sm4.encrypt(this.rk, cipher);
                 }
                 byte[] xor = sm4.xor(encrypt, 0, 16, input, inputOffset + inputLen - 16, 16);
                 byte[] recover = this.padding.recover(xor);
                 res = new byte[recover.length + extra];
                 sm4.copyArray(recover, 0, recover.length, res, res.length - recover.length);
             } else {
-                byte[] last128bit = sm4.encrypt(this.key.getEncoded(), input, inputOffset + inputLen - 32);
+                byte[] last128bit = sm4.encrypt(this.rk, input, inputOffset + inputLen - 32);
                 byte[] last128BitPlainTextWithPadding = sm4.xor(last128bit, 0, 16, input, inputLen + inputOffset - 16, 16);
                 byte[] lastNoPaddingPlainText = this.padding.recover(last128BitPlainTextWithPadding);
                 res = new byte[inputLen - 16 + lastNoPaddingPlainText.length + extra];
@@ -406,14 +406,14 @@ public class CFB extends StreamModeBaseCipher {
             if (inputLen == 16) {
                 byte[] encrypt = null;
                 if (cipher == null) {
-                    encrypt = sm4.encrypt(key.getEncoded(), counter);
+                    encrypt = sm4.encrypt(this.rk, counter);
                 } else {
-                    encrypt = sm4.encrypt(key.getEncoded(), cipher);
+                    encrypt = sm4.encrypt(this.rk, cipher);
                 }
                 byte[] xor = sm4.xor(input, inputOffset, inputLen, encrypt, 0, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + need - 16);
             } else {
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), input, inputOffset + inputLen - 32);
+                byte[] encrypt = sm4.encrypt(this.rk, input, inputOffset + inputLen - 32);
                 byte[] xor = sm4.xor(encrypt, 0, 16, input, inputOffset + inputLen - 16, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + need - 16);
             }
@@ -422,9 +422,9 @@ public class CFB extends StreamModeBaseCipher {
             if (inputLen == 16) {
                 byte[] encrypt = null;
                 if (cipher == null) {
-                    encrypt = sm4.encrypt(key.getEncoded(), counter);
+                    encrypt = sm4.encrypt(this.rk, counter);
                 } else {
-                    encrypt = sm4.encrypt(key.getEncoded(), cipher);
+                    encrypt = sm4.encrypt(this.rk, cipher);
                 }
                 byte[] xor = sm4.xor(encrypt, 0, 16, input, inputOffset + inputLen - 16, 16);
                 byte[] recover = this.padding.recover(xor);
@@ -434,7 +434,7 @@ public class CFB extends StreamModeBaseCipher {
                 }
                 sm4.copyArray(recover, 0, recover.length, output, outputOffset + need - recover.length);
             } else {
-                byte[] last128bit = sm4.encrypt(this.key.getEncoded(), input, inputOffset + inputLen - 32);
+                byte[] last128bit = sm4.encrypt(this.rk, input, inputOffset + inputLen - 32);
                 byte[] last128BitPlainTextWithPadding = sm4.xor(last128bit, 0, 16, input, inputLen + inputOffset - 16, 16);
                 byte[] lastNoPaddingPlainText = this.padding.recover(last128BitPlainTextWithPadding);
                 need = inputLen - 16 + lastNoPaddingPlainText.length + extra;

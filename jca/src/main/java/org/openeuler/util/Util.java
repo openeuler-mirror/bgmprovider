@@ -64,46 +64,51 @@ public class Util {
         bs[++off] = (byte) (n);
     }
 
-    /**
-     * Create a large integer of a specific bit length
-     *
-     * @param bitLength
-     * @param random
-     * @return A Biginteger with a bit length of bitLength
-     */
-    public static BigInteger createRandomBigInteger(int bitLength, SecureRandom random) {
-        return new BigInteger(1, createRandom(bitLength, random));
+
+    public static int bigEndianToInt(byte[] bs, int off) {
+        int n = bs[off] << 24;
+        n |= (bs[++off] & 0xff) << 16;
+        n |= (bs[++off] & 0xff) << 8;
+        n |= (bs[++off] & 0xff);
+        return n;
     }
 
     /**
      * Create a large integer of a specific bit length
      *
-     * @param bitLength
+     * @param bitLen
      * @param random
-     * @return A byte array of a Biginteger with a bit length of bitLength
+     * @return A Biginteger with a bit length of bitLen
+     */
+    public static BigInteger createRandomBigInteger(int bitLen, SecureRandom random) {
+        byte[] randomBytes = createRandom(bitLen, random);
+        return new BigInteger(1, randomBytes);
+    }
+
+    /**
+     * Create a large integer of a specific bit length
+     *
+     * @param bitLen
+     * @param random
+     * @return A byte array of a Biginteger with a bit length of bitLen
      * @throws IllegalArgumentException
      */
-    private static byte[] createRandom(int bitLength, SecureRandom random)
+    private static byte[] createRandom(int bitLen, SecureRandom random)
             throws IllegalArgumentException {
-        if (bitLength < 1) {
-            throw new IllegalArgumentException("bitLength must be at least 1");
+        if (bitLen < 1) {
+            throw new IllegalArgumentException("The bit length must be at least 1");
         }
 
-        int nBytes = (bitLength + 7) / 8;
-
-        byte[] rv = new byte[nBytes];
-
+        int byteLen = (bitLen + 7) / 8;
+        byte[] randomBytes = new byte[byteLen];
         if (random == null) {
             random = new SecureRandom();
         }
+        random.nextBytes(randomBytes);
+        int xBits = 8 * byteLen - bitLen;
+        randomBytes[0] &= (byte) (255 >>> xBits);
 
-        random.nextBytes(rv);
-
-        // strip off any excess bits in the MSB
-        int xBits = 8 * nBytes - bitLength;
-        rv[0] &= (byte) (255 >>> xBits);
-
-        return rv;
+        return randomBytes;
     }
 
     /**

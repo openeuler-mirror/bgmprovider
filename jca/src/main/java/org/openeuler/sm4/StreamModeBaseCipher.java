@@ -1,5 +1,7 @@
 package org.openeuler.sm4;
 
+import org.openeuler.BGMJCEProvider;
+
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import java.security.*;
@@ -13,80 +15,44 @@ public class StreamModeBaseCipher extends SM4BaseCipher {
     protected byte[] iv;
     protected  byte[] counter = new byte[BLOCKSIZE];//data to be used in the next encryption(decryption)
 
-
     @Override
     public void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
+        try {
+            engineInit(opmode, key, (AlgorithmParameterSpec) null, random);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException(e.getMessage());
         }
-        if (opmode == Cipher.ENCRYPT_MODE) {
-            //generate iv
-            this.opmode = opmode;
-            this.key = (SecretKey) key;
-            this.random = random;
-            iv = new byte[BLOCKSIZE];
-            if (this.random == null) {
-                this.random = new SecureRandom();
-            }
-            random.nextBytes(iv);
-            sm4.copyArray(iv,0,iv.length,counter,0);
-        } else if (opmode == Cipher.DECRYPT_MODE) {
-            throw new InvalidKeyException("need Ivparam");
-        }
-        isInitialized = true;
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
-        if (params == null) {
-            if (this.opmode == Cipher.ENCRYPT_MODE) {
-                //generate IV
-                if (this.random == null) {
-                    this.random = new SecureRandom();
-                }
-                this.iv = new byte[16];
-                this.random.nextBytes(this.iv);
-            } else if (this.opmode == Cipher.DECRYPT_MODE) {
-                throw new InvalidAlgorithmParameterException("need an IV.");
-            }
-        } else {
-            IvParameterSpec parameterSpec = null;
+    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        AlgorithmParameterSpec spec = null;
+        String paramType = null;
+        if (params != null) {
             try {
-                parameterSpec = params.getParameterSpec(IvParameterSpec.class);
+                paramType = "IV";
+                spec = params.getParameterSpec(IvParameterSpec.class);
             } catch (InvalidParameterSpecException e) {
-                throw new InvalidAlgorithmParameterException(e);
+                throw new InvalidAlgorithmParameterException
+                        ("Wrong parameter type: " + paramType + " expected");
             }
-            if (parameterSpec == null) {
-                throw new InvalidAlgorithmParameterException();
-            }
-            if (parameterSpec.getIV().length != 16) {
-                throw new InvalidAlgorithmParameterException("IV must be 16 bytes long.");
-            }
-            this.iv = parameterSpec.getIV();
         }
-        sm4.copyArray(iv, 0, iv.length, counter, 0);
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
-        isInitialized = true;
+        engineInit(opmode, key, spec, random);
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
+    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        super.engineInit(opmode, key, params, random);
         if (params == null) {
             if (this.opmode == Cipher.ENCRYPT_MODE) {
                 //generate iv
-                if (this.random == null) {
-                    this.random = new SecureRandom();
-                }
                 this.iv = new byte[16];
-                this.random.nextBytes(this.iv);
+                if (random == null) {
+                    random = BGMJCEProvider.getRandom();
+                }
+                random.nextBytes(iv);
             } else if (this.opmode == Cipher.DECRYPT_MODE) {
                 throw new InvalidAlgorithmParameterException("need an IV");
             }
@@ -102,19 +68,18 @@ public class StreamModeBaseCipher extends SM4BaseCipher {
             }
         }
         sm4.copyArray(iv, 0, iv.length, counter, 0);
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
         isInitialized = true;
     }
 
     @Override
-    public byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen) throws IllegalBlockSizeException, BadPaddingException {
+    public byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
+            throws IllegalBlockSizeException, BadPaddingException {
         return null;
     }
 
     @Override
-    public int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+    public int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset)
+            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         return 0;
     }
 

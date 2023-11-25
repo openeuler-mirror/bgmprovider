@@ -1,5 +1,6 @@
 package org.openeuler.sm4.mode;
 
+import org.openeuler.BGMJCEProvider;
 import org.openeuler.sm4.StreamModeBaseCipher;
 
 import javax.crypto.*;
@@ -13,57 +14,45 @@ import java.util.Arrays;
  * SM4 CTR mode
  */
 public class CTR extends StreamModeBaseCipher {
+
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
+    public void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
+        try {
+            engineInit(opmode, key, (AlgorithmParameterSpec) null, random);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException(e.getMessage());
         }
-        if (params == null) {
-            if (this.opmode == Cipher.ENCRYPT_MODE) {
-                //generate iv
-                if (this.random == null) {
-                    this.random = new SecureRandom();
-                }
-                this.iv = new byte[16];
-                this.random.nextBytes(this.iv);
-            } else if (this.opmode == Cipher.DECRYPT_MODE) {
-                throw new InvalidAlgorithmParameterException("need an IV.");
-            }
-        } else {
-            IvParameterSpec parameterSpec = null;
-            try {
-                parameterSpec = params.getParameterSpec(IvParameterSpec.class);
-            } catch (InvalidParameterSpecException e) {
-                throw new InvalidAlgorithmParameterException(e);
-            }
-            if (parameterSpec == null) {
-                throw new InvalidAlgorithmParameterException();
-            }
-            if (parameterSpec.getIV().length < 8 || parameterSpec.getIV().length > 16) {
-                throw new InvalidAlgorithmParameterException("IV must be 8-16 bytes long.");
-            }
-            this.iv = parameterSpec.getIV();
-        }
-        sm4.copyArray(iv, 0, iv.length, counter, 0);
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
-        isInitialized = true;
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
+    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        AlgorithmParameterSpec spec = null;
+        String paramType = null;
+        if (params != null) {
+            try {
+                paramType = "IV";
+                spec = params.getParameterSpec(IvParameterSpec.class);
+            } catch (InvalidParameterSpecException e) {
+                throw new InvalidAlgorithmParameterException
+                        ("Wrong parameter type: " + paramType + " expected");
+            }
         }
+        engineInit(opmode, key, spec, random);
+    }
+
+    @Override
+    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) 
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        init(opmode, key);
         if (params == null) {
             if (this.opmode == Cipher.ENCRYPT_MODE) {
                 //generate iv
-                if (this.random == null) {
-                    this.random = new SecureRandom();
+                if (random == null) {
+                    random = BGMJCEProvider.getRandom();
                 }
                 this.iv = new byte[16];
-                this.random.nextBytes(this.iv);
+                random.nextBytes(this.iv);
             } else if (this.opmode == Cipher.DECRYPT_MODE) {
                 throw new InvalidAlgorithmParameterException("need an IV");
             }
@@ -79,9 +68,6 @@ public class CTR extends StreamModeBaseCipher {
             }
         }
         sm4.copyArray(iv, 0, iv.length, counter, 0);
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
         isInitialized = true;
     }
 
@@ -279,13 +265,13 @@ public class CTR extends StreamModeBaseCipher {
             for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
                 byte[] encrypt = null;
                 byte[] xor = null;
-                encrypt = sm4.encrypt(this.key.getEncoded(), this.counter, 0);
+                encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 incrementCount();
                 xor = sm4.xor(encrypt, 0, 16, input, i, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
             }
             if (inputLen % 16 != 0) {
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), this.counter, 0);
+                byte[] encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 incrementCount();
                 byte[] xor = sm4.xor(encrypt, 0, 16, input, i, inputLen % 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
@@ -295,14 +281,14 @@ public class CTR extends StreamModeBaseCipher {
             for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
                 byte[] encrypt = null;
                 byte[] xor = null;
-                encrypt = sm4.encrypt(this.key.getEncoded(), this.counter, 0);
+                encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 incrementCount();
                 xor = sm4.xor(encrypt, 0, 16, input, i, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
             }
             if (inputLen % 16 != 0) {
                 byte[] fill = this.padding.fill(input, i, inputLen % 16);
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), this.counter, 0);
+                byte[] encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 incrementCount();
                 byte[] xor = sm4.xor(encrypt, 0, 16, fill, 0, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
@@ -310,7 +296,7 @@ public class CTR extends StreamModeBaseCipher {
             if (inputLen % 16 == 0 && !this.padding.getPadding().toUpperCase().equals("NOPADDING")) {
                 byte[] block = new byte[16];
                 Arrays.fill(block, (byte) 16);
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), counter, 0);
+                byte[] encrypt = sm4.encrypt(this.rk, counter, 0);
                 incrementCount();
                 byte[] xor = sm4.xor(encrypt, block);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
@@ -333,13 +319,13 @@ public class CTR extends StreamModeBaseCipher {
             for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
                 byte[] encrypt = null;
                 byte[] xor = null;
-                encrypt = sm4.encrypt(this.key.getEncoded(), this.counter, 0);
+                encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 incrementCount();
                 xor = sm4.xor(encrypt, 0, 16, input, i, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
             }
             if (inputLen % 16 != 0) {
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), this.counter, 0);
+                byte[] encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 incrementCount();
                 byte[] xor = sm4.xor(encrypt, 0, 16, input, i, inputLen % 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
@@ -411,7 +397,7 @@ public class CTR extends StreamModeBaseCipher {
      */
     private void processCTR(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
         for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-            byte[] encrypt = sm4.encrypt(key.getEncoded(), counter, 0);
+            byte[] encrypt = sm4.encrypt(this.rk, counter, 0);
             incrementCount();
             byte[] xor = sm4.xor(encrypt, 0, 16, input, i, 16);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
