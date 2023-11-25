@@ -24,16 +24,29 @@
 
 package org.openeuler;
 
-import java.security.Provider;
+class BGMJSSEConfig {
 
-public class BGMProvider extends AbstractProvider {
-
-    public BGMProvider() {
-       super("BGMProvider", 1.8d, "BGMProvider");
+    static boolean enableKeyManagerFactory() {
+        return Config.enable("jsse.keyManagerFactory");
     }
 
-    @Override
-    protected AbstractEntries createEntries(Provider provider) {
-        return new BGMEntries(provider);
+    static boolean enableTrustManagerFactory() {
+        return Config.enable("jsse.trustManagerFactory");
+    }
+
+    static boolean enableKeyGenerator() {
+        return Config.enable("jsse.keyGenerator");
+    }
+
+    static boolean enableSSLContext() {
+        return Config.enable("jsse.sslContext");
+    }
+
+    static boolean enableCertificateFactory() {
+        return Config.enable("jsse.certificateFactory");
+    }
+
+    static boolean enableKeyStore() {
+        return Config.enable("jsse.keystore");
     }
 }

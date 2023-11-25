@@ -24,16 +24,44 @@
 
 package org.openeuler;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.security.Provider;
+import java.util.Iterator;
 
-public class BGMProvider extends AbstractProvider {
+abstract class AbstractProvider extends Provider {
 
-    public BGMProvider() {
-       super("BGMProvider", 1.8d, "BGMProvider");
+    protected AbstractProvider(String name, double version, String info) {
+        super(name, version, info);
+        putEntries(this);
+        CompatibleOracleJdkHandler.skipJarVerify(this);
     }
 
-    @Override
-    protected AbstractEntries createEntries(Provider provider) {
-        return new BGMEntries(provider);
+    protected void putEntries(AbstractEntries entries) {
+        Iterator<Service> iterator = entries.iterator();
+        if (System.getSecurityManager() == null) {
+            putEntries(iterator);
+        } else {
+            AccessController.doPrivileged(new PrivilegedAction<Void>() {
+                @Override
+                public Void run() {
+                    putEntries(iterator);
+                    return null;
+                }
+            });
+        }
+    }
+
+    protected void putEntries(Provider provider) {
+        AbstractEntries entries = createEntries(provider);
+        putEntries(entries);
+    }
+
+    protected abstract AbstractEntries createEntries(Provider provider);
+
+    private void putEntries(Iterator<Provider.Service> iterator) {
+        while (iterator.hasNext()) {
+            putService(iterator.next());
+        }
     }
 }

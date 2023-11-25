@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,14 +26,15 @@ package org.openeuler;
 
 import java.security.Provider;
 
-public class BGMProvider extends AbstractProvider {
+public class BGMEntries extends AbstractEntries {
 
-    public BGMProvider() {
-       super("BGMProvider", 1.8d, "BGMProvider");
+    BGMEntries(Provider provider) {
+        super(provider);
     }
 
     @Override
-    protected AbstractEntries createEntries(Provider provider) {
-        return new BGMEntries(provider);
+    protected void putServices(Provider provider) {
+        add(BGMJCEProvider.createJCEEntries(provider));
+        add(BGMJSSEProvider.createJSSEEntries(provider));
     }
 }
