@@ -24,6 +24,7 @@
 
 package org.openeuler.sm4.mode;
 
+import org.openeuler.BGMJCEProvider;
 import org.openeuler.sm4.GMacUtil;
 import org.openeuler.sm4.StreamModeBaseCipher;
 
@@ -54,43 +55,25 @@ public class GCM extends StreamModeBaseCipher {
 
     @Override
     public void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
+        try {
+            engineInit(opmode, key, (AlgorithmParameterSpec) null, random);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException(e.getMessage());
         }
-        if (this.opmode == Cipher.ENCRYPT_MODE) {
-            //generate iv
-            this.iv = new byte[defaultIvLen];
-            if (this.random == null) {
-                this.random = new SecureRandom();
-            }
-            random.nextBytes(this.iv);
-        } else if (this.opmode == Cipher.DECRYPT_MODE) {
-            throw new InvalidKeyException("need Ivparam");
-        }
-        this.key = (SecretKey) key;
-        this.opmode = opmode;
-        this.random = random;
-        H = sm4.encrypt(key.getEncoded(), new byte[16], 0);
-        counter0 = GMacUtil.getCounter0(iv, H);
-        sm4.copyArray(counter0, 0, counter0.length, counter, 0);
-        inc32();
-        this.isInitialized = true;
-
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
+    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        init(opmode, key);
         if (params == null) {
             if (this.opmode == Cipher.ENCRYPT_MODE) {
                 //generate IV
-                if (this.random == null) {
-                    this.random = new SecureRandom();
-                }
                 this.iv = new byte[defaultIvLen];
-                this.random.nextBytes(this.iv);
+                if (random == null) {
+                    random = BGMJCEProvider.getRandom();
+                }
+                random.nextBytes(this.iv);
             } else if (this.opmode == Cipher.DECRYPT_MODE) {
                 throw new InvalidAlgorithmParameterException("need an IV");
             }
@@ -122,10 +105,7 @@ public class GCM extends StreamModeBaseCipher {
             }
 
         }
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
-        H = sm4.encrypt(key.getEncoded(), new byte[16], 0);
+        H = sm4.encrypt(this.rk, new byte[16], 0);
         counter0 = GMacUtil.getCounter0(iv, H);
         sm4.copyArray(counter0, 0, counter0.length, counter, 0);
         inc32();
@@ -133,66 +113,24 @@ public class GCM extends StreamModeBaseCipher {
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
-        if (params == null) {
-            if (this.opmode == Cipher.ENCRYPT_MODE) {
-                //generate IV
-                if (this.random == null) {
-                    this.random = new SecureRandom();
-                }
-                this.iv = new byte[defaultIvLen];
-                this.random.nextBytes(this.iv);
-            } else if (this.opmode == Cipher.DECRYPT_MODE) {
-                throw new InvalidAlgorithmParameterException("need an IV.");
-            }
-        } else {
-            IvParameterSpec parameterSpec = null;
-            GCMParameterSpec gcmParameterSpec = null;
+    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        AlgorithmParameterSpec spec = null;
+        String paramType = null;
+        if (params != null) {
             try {
-                gcmParameterSpec = params.getParameterSpec(GCMParameterSpec.class);
-            } catch (InvalidParameterSpecException invalidParameterSpecException) {
-
-            }
-            if (gcmParameterSpec == null) {
+                paramType = "GCM or IV";
+                spec = params.getParameterSpec(GCMParameterSpec.class);
+            } catch (InvalidParameterSpecException e) {
                 try {
-                    parameterSpec = params.getParameterSpec(IvParameterSpec.class);
-                } catch (InvalidParameterSpecException e) {
+                    spec = params.getParameterSpec(IvParameterSpec.class);
+                } catch (InvalidParameterSpecException ex) {
+                    throw new InvalidAlgorithmParameterException
+                        ("Wrong parameter type: " + paramType + " expected");
                 }
-
-                if (parameterSpec == null) {
-                    throw new InvalidAlgorithmParameterException();
-                } else {
-                    if (parameterSpec.getIV() == null || parameterSpec.getIV().length < 1) {
-                        throw new InvalidAlgorithmParameterException("IV at least 1 byte long.");
-                    }
-                    if (Arrays.equals(this.iv, parameterSpec.getIV()) && opmode == Cipher.ENCRYPT_MODE) {
-                        throw new InvalidAlgorithmParameterException("cannot reuse nonce for GCM encryption");
-                    }
-                    this.iv = parameterSpec.getIV();
-                }
-            } else {
-                if (gcmParameterSpec.getIV() == null || gcmParameterSpec.getIV().length < 1) {
-                    throw new InvalidAlgorithmParameterException("IV at least 1 byte long.");
-                }
-                checkTagLen(gcmParameterSpec);
-                if (Arrays.equals(this.iv, gcmParameterSpec.getIV()) && opmode == Cipher.ENCRYPT_MODE) {
-                    throw new InvalidAlgorithmParameterException("cannot reuse nonce for GCM encryption");
-                }
-                this.tLen = gcmParameterSpec.getTLen();
-                this.iv = gcmParameterSpec.getIV();
             }
         }
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
-        H = sm4.encrypt(key.getEncoded(), new byte[16], 0);
-        counter0 = GMacUtil.getCounter0(iv, H);
-        sm4.copyArray(counter0, 0, counter0.length, counter, 0);
-        inc32();
-        this.isInitialized = true;
+        engineInit(opmode, key, spec, random);
     }
 
     @Override
@@ -502,7 +440,7 @@ public class GCM extends StreamModeBaseCipher {
      */
     private void processGCM(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
         for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-            byte[] encrypt = sm4.encrypt(key.getEncoded(), counter, 0);
+            byte[] encrypt = sm4.encrypt(this.rk, counter, 0);
             inc32();
             byte[] xor = sm4.xor(encrypt, 0, 16, input, i, 16);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
@@ -524,10 +462,10 @@ public class GCM extends StreamModeBaseCipher {
         if (inputLen == 0) {
             byte[] AC = new byte[16];
             aLen = (aLen * 8);
-            sm4.readInt(AC, aLen, 4);
-            sm4.readInt(AC, cLen, 12);
+            sm4.intToBigEndian(AC, aLen, 4);
+            sm4.intToBigEndian(AC, cLen, 12);
 
-            byte[] encrypt0 = sm4.encrypt(key.getEncoded(), counter0, 0);
+            byte[] encrypt0 = sm4.encrypt(this.rk, counter0, 0);
             if(aad==null && updateData==null){
                 processG(AC, true);
             }else{
@@ -538,7 +476,7 @@ public class GCM extends StreamModeBaseCipher {
         } else if (inputLen < 16) {
             byte[] xor = null;
             //对计数器加密
-            byte[] encrypt = sm4.encrypt(this.key.getEncoded(), this.counter, 0);
+            byte[] encrypt = sm4.encrypt(this.rk, this.counter, 0);
             inc32();
             xor = sm4.xor(encrypt, 0, 16, input, inputOffset, inputLen);
             processG(xor, first);
@@ -547,10 +485,10 @@ public class GCM extends StreamModeBaseCipher {
             byte[] AC = new byte[16];
             aLen = (aLen * 8);
             cLen = cLen + (xor.length * 8);
-            sm4.readInt(AC, aLen, 4);
-            sm4.readInt(AC, cLen, 12);
+            sm4.intToBigEndian(AC, aLen, 4);
+            sm4.intToBigEndian(AC, cLen, 12);
 
-            byte[] encrypt0 = sm4.encrypt(key.getEncoded(), counter0, 0);
+            byte[] encrypt0 = sm4.encrypt(this.rk, counter0, 0);
             processG(AC, false);
             T = sm4.xor16Byte(g, encrypt0);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset);
@@ -559,7 +497,7 @@ public class GCM extends StreamModeBaseCipher {
             for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
                 byte[] encrypt = null;
                 byte[] xor = null;
-                encrypt = sm4.encrypt(this.key.getEncoded(), this.counter, 0);
+                encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 inc32();
                 xor = sm4.xor(encrypt, 0, 16, input, i, 16);
                 if (i == inputOffset) {
@@ -572,17 +510,17 @@ public class GCM extends StreamModeBaseCipher {
                     byte[] AC = new byte[16];
                     aLen = (aLen * 8);
                     cLen += inputLen * 8;
-                    sm4.readInt(AC, aLen, 4);
-                    sm4.readInt(AC, cLen, 12);
+                    sm4.intToBigEndian(AC, aLen, 4);
+                    sm4.intToBigEndian(AC, cLen, 12);
 
-                    byte[] encrypt0 = sm4.encrypt(key.getEncoded(), counter0, 0);
+                    byte[] encrypt0 = sm4.encrypt(this.rk, counter0, 0);
                     processG(AC, false);
                     T = sm4.xor16Byte(g, encrypt0);
                     sm4.copyArray(T, 0, tLen / 8, output, outputOffset + inputLen);
                 }
             }
             if (inputLen % 16 != 0) {
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), this.counter, 0);
+                byte[] encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 inc32();
                 byte[] xor = sm4.xor(encrypt, 0, 16, input, inputLen + inputOffset - (inputLen % 16), inputLen % 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + inputLen - inputLen % 16);
@@ -591,10 +529,10 @@ public class GCM extends StreamModeBaseCipher {
                 byte[] AC = new byte[16];
                 aLen = (aLen * 8);
                 cLen += inputLen * 8;
-                sm4.readInt(AC, aLen, 4);
-                sm4.readInt(AC, cLen, 12);
+                sm4.intToBigEndian(AC, aLen, 4);
+                sm4.intToBigEndian(AC, cLen, 12);
 
-                byte[] encrypt0 = sm4.encrypt(key.getEncoded(), counter0, 0);
+                byte[] encrypt0 = sm4.encrypt(this.rk, counter0, 0);
                 processG(AC, false);
                 T = sm4.xor16Byte(g, encrypt0);
                 sm4.copyArray(T, 0, tLen / 8, output, outputOffset + inputLen);
@@ -622,15 +560,15 @@ public class GCM extends StreamModeBaseCipher {
             byte[] AC = new byte[16];
             aLen = (aLen * 8);
             cLen += cipher.length * 8;
-            sm4.readInt(AC, aLen, 4);
-            sm4.readInt(AC, cLen, 12);
+            sm4.intToBigEndian(AC, aLen, 4);
+            sm4.intToBigEndian(AC, cLen, 12);
 
-            byte[] encrypt0 = sm4.encrypt(key.getEncoded(), counter0, 0);
+            byte[] encrypt0 = sm4.encrypt(this.rk, counter0, 0);
             processG(AC, false);
             T = sm4.xor16Byte(g, encrypt0);
             T = Arrays.copyOfRange(T, 0, _T.length);
             checkMac(T, _T);
-            byte[] encrypt = sm4.encrypt(this.key.getEncoded(), this.counter, 0);
+            byte[] encrypt = sm4.encrypt(this.rk, this.counter, 0);
             inc32();
             byte[] xor = sm4.xor(encrypt, cipher);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset);
@@ -641,7 +579,7 @@ public class GCM extends StreamModeBaseCipher {
                 byte[] curBlock = Arrays.copyOfRange(cipherText, i, i + 16);
                 byte[] encrypt = null;
                 byte[] xor = null;
-                encrypt = sm4.encrypt(this.key.getEncoded(), this.counter, 0);
+                encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 inc32();
                 if (i == 0) {
                     processG(curBlock, first);
@@ -654,10 +592,10 @@ public class GCM extends StreamModeBaseCipher {
                     byte[] AC = new byte[16];
                     aLen = (aLen * 8);
                     cLen += cipherText.length * 8;
-                    sm4.readInt(AC, aLen, 4);
-                    sm4.readInt(AC, cLen, 12);
+                    sm4.intToBigEndian(AC, aLen, 4);
+                    sm4.intToBigEndian(AC, cLen, 12);
 
-                    byte[] encrypt0 = sm4.encrypt(key.getEncoded(), counter0, 0);
+                    byte[] encrypt0 = sm4.encrypt(this.rk, counter0, 0);
                     processG(AC, false);
                     T = sm4.xor16Byte(g, encrypt0);
                     T = Arrays.copyOfRange(T, 0, _T.length);
@@ -666,7 +604,7 @@ public class GCM extends StreamModeBaseCipher {
             }
             if (cipherText.length % 16 != 0) {
                 byte[] curBlock = Arrays.copyOfRange(cipherText, cipherText.length - (cipherText.length % 16), cipherText.length);
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), this.counter, 0);
+                byte[] encrypt = sm4.encrypt(this.rk, this.counter, 0);
                 inc32();
                 byte[] xor = sm4.xor(encrypt, curBlock);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + inputLen - (tLen / 8) - (cipherText.length % 16));
@@ -675,10 +613,10 @@ public class GCM extends StreamModeBaseCipher {
                 byte[] AC = new byte[16];
                 aLen = (aLen * 8);
                 cLen += (inputLen - (tLen / 8)) * 8;
-                sm4.readInt(AC, aLen, 4);
-                sm4.readInt(AC, cLen, 12);
+                sm4.intToBigEndian(AC, aLen, 4);
+                sm4.intToBigEndian(AC, cLen, 12);
 
-                byte[] encrypt0 = sm4.encrypt(key.getEncoded(), counter0, 0);
+                byte[] encrypt0 = sm4.encrypt(this.rk, counter0, 0);
                 processG(AC, false);
                 T = sm4.xor16Byte(g, encrypt0);
                 T = Arrays.copyOfRange(T, 0, _T.length);

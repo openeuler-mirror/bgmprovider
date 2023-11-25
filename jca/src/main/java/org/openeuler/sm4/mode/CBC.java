@@ -265,7 +265,7 @@ public class CBC extends StreamModeBaseCipher {
         if (this.padding.getPadding().toUpperCase().equals("NOPADDING")) {
             res = new byte[inputLen + extra];
             if (inputLen == 16) {
-                byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, inputOffset);
+                byte[] decrypt = sm4.decrypt(this.rk, input, inputOffset);
                 byte[] xor = null;
                 if (cipher == null) {
                     xor = sm4.xor(decrypt, counter);
@@ -274,13 +274,13 @@ public class CBC extends StreamModeBaseCipher {
                 }
                 sm4.copyArray(xor, 0, xor.length, res, res.length - 16);
             } else {
-                byte[] last128bit = sm4.decrypt(this.key.getEncoded(), input, inputOffset + inputLen - 16);
+                byte[] last128bit = sm4.decrypt(this.rk, input, inputOffset + inputLen - 16);
                 byte[] xor = sm4.xor(last128bit, 0, 16, input, inputLen + inputOffset - 32, 16);
                 sm4.copyArray(xor, 0, xor.length, res, res.length - 16);
             }
         } else {
             if (inputLen == 16) {
-                byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, inputOffset);
+                byte[] decrypt = sm4.decrypt(this.rk, input, inputOffset);
                 byte[] xor = null;
                 if (cipher == null) {
                     xor = sm4.xor(decrypt, counter);
@@ -291,7 +291,7 @@ public class CBC extends StreamModeBaseCipher {
                 res = new byte[recover.length + extra];
                 sm4.copyArray(recover, 0, recover.length, res, res.length - recover.length);
             } else {
-                byte[] last128bit = sm4.decrypt(this.key.getEncoded(), input, inputOffset + inputLen - 16);
+                byte[] last128bit = sm4.decrypt(this.rk, input, inputOffset + inputLen - 16);
                 byte[] last128BitPlainTextWithPadding = sm4.xor(last128bit, 0, 16, input, inputLen + inputOffset - 32, 16);
                 byte[] lastNoPaddingPlainText = this.padding.recover(last128BitPlainTextWithPadding);
                 res = new byte[inputLen - 16 + lastNoPaddingPlainText.length + extra];
@@ -325,7 +325,7 @@ public class CBC extends StreamModeBaseCipher {
                 throw new ShortBufferException();
             }
             if (inputLen == 16) {
-                byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, inputOffset);
+                byte[] decrypt = sm4.decrypt(this.rk, input, inputOffset);
                 byte[] xor = null;
                 if (cipher == null) {
                     xor = sm4.xor(decrypt, counter);
@@ -334,14 +334,14 @@ public class CBC extends StreamModeBaseCipher {
                 }
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + need - 16);
             } else {
-                byte[] last128bit = sm4.decrypt(this.key.getEncoded(), input, inputOffset + inputLen - 16);
+                byte[] last128bit = sm4.decrypt(this.rk, input, inputOffset + inputLen - 16);
                 byte[] xor = sm4.xor(last128bit, 0, 16, input, inputLen + inputOffset - 32, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + need - 16);
             }
 
         } else {
             if (inputLen == 16) {
-                byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, inputOffset);
+                byte[] decrypt = sm4.decrypt(this.rk, input, inputOffset);
                 byte[] xor = null;
                 if (cipher == null) {
                     xor = sm4.xor(decrypt, counter);
@@ -352,7 +352,7 @@ public class CBC extends StreamModeBaseCipher {
                 need = recover.length + extra;
                 sm4.copyArray(recover, 0, recover.length, output, outputOffset + need - recover.length);
             } else {
-                byte[] last128bit = sm4.decrypt(this.key.getEncoded(), input, inputOffset + inputLen - 16);
+                byte[] last128bit = sm4.decrypt(this.rk, input, inputOffset + inputLen - 16);
                 byte[] last128BitPlainTextWithPadding = sm4.xor(last128bit, 0, 16, input, inputLen + inputOffset - 32, 16);
                 byte[] lastNoPaddingPlainText = this.padding.recover(last128BitPlainTextWithPadding);
                 need = inputLen - 16 + lastNoPaddingPlainText.length + extra;
@@ -378,7 +378,7 @@ public class CBC extends StreamModeBaseCipher {
      */
     private void decryptCBC(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
         for (int i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
-            byte[] decrypt = sm4.decrypt(key.getEncoded(), input, i);
+            byte[] decrypt = sm4.decrypt(this.rk, input, i);
             byte[] xor = sm4.xor(decrypt, counter);
             sm4.copyArray(input, i, 16, counter, 0);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
@@ -395,27 +395,29 @@ public class CBC extends StreamModeBaseCipher {
      * @param outputOffset
      */
     private void encrypt(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
+        int limitOffset = inputOffset + inputLen - 16;
+        int baseOffset = outputOffset - inputOffset;
         int i;
-        for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
+        for (i = inputOffset; i <= limitOffset; i += 16) {
             byte[] xor = sm4.xor(counter, 0, counter.length, input, i, 16);
-            byte[] encrypt = sm4.encrypt(this.key.getEncoded(), xor);
+            byte[] encrypt = sm4.encrypt(this.rk, xor);
             this.counter = encrypt;
-            sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + i - inputOffset);
+            sm4.copyArray(encrypt, 0, encrypt.length, output, baseOffset + i);
         }
         if (inputLen % 16 != 0) {
             byte[] fill = this.padding.fill(input, i, inputLen % 16);
             byte[] xor = sm4.xor(counter, fill);
-            byte[] encrypt = sm4.encrypt(key.getEncoded(), xor);
+            byte[] encrypt = sm4.encrypt(this.rk, xor);
             this.counter = encrypt;
-            sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + (i - inputOffset));
+            sm4.copyArray(encrypt, 0, encrypt.length, output, baseOffset + i);
         }
         if (inputLen % 16 == 0 && !this.padding.getPadding().toUpperCase().equals("NOPADDING")) {
             byte[] block = new byte[16];
             Arrays.fill(block, (byte) 16);
             byte[] xor = sm4.xor(counter, block);
-            byte[] encrypt = sm4.encrypt(this.key.getEncoded(), xor);
+            byte[] encrypt = sm4.encrypt(this.rk, xor);
             this.counter = encrypt;
-            sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + (i - inputOffset));
+            sm4.copyArray(encrypt, 0, encrypt.length, output, baseOffset + i);
         }
     }
 
@@ -429,12 +431,13 @@ public class CBC extends StreamModeBaseCipher {
      * @param outputOffset
      */
     private void encryptCBC(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
-        for (int i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
+        int limitOffset = inputOffset + inputLen - 16;
+        int baseOffset = outputOffset - inputOffset;
+        for (int i = inputOffset; i <= limitOffset; i += 16) {
             byte[] xor = sm4.xor(counter, 0, counter.length, input, i, 16);
-            byte[] encrypt = sm4.encrypt(this.key.getEncoded(), xor);
+            byte[] encrypt = sm4.encrypt(this.rk, xor);
             this.counter = encrypt;
-            sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + i - inputOffset);
+            sm4.copyArray(encrypt, 0, encrypt.length, output, baseOffset + i);
         }
-
     }
 }

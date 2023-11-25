@@ -185,7 +185,7 @@ public class OFB extends StreamModeBaseCipher {
      */
     private void processOFB(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
         for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-            counter = sm4.encrypt(key.getEncoded(), counter, 0);
+            counter = sm4.encrypt(this.rk, counter, 0);
             byte[] xor = sm4.xor(counter, 0, 16, input, i, 16);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
         }
@@ -203,13 +203,13 @@ public class OFB extends StreamModeBaseCipher {
     private void encrypt(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
         int i;
         for (i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-            counter = sm4.encrypt(key.getEncoded(), counter, 0);
+            counter = sm4.encrypt(this.rk, counter, 0);
             byte[] xor = sm4.xor(counter, 0, 16, input, i, 16);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
         }
         if (inputLen % 16 != 0) {
             byte[] fill = this.padding.fill(input, i, inputLen % 16);
-            counter = sm4.encrypt(key.getEncoded(), counter, 0);
+            counter = sm4.encrypt(this.rk, counter, 0);
             byte[] xor = sm4.xor(counter, fill);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
         }
@@ -217,7 +217,7 @@ public class OFB extends StreamModeBaseCipher {
         if (inputLen % 16 == 0 && !this.padding.getPadding().toUpperCase().equals("NOPADDING")) {
             byte[] block = new byte[16];
             Arrays.fill(block, (byte) 16);
-            counter = sm4.encrypt(key.getEncoded(), counter, 0);
+            counter = sm4.encrypt(this.rk, counter, 0);
             byte[] xor = sm4.xor(counter, block);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
         }

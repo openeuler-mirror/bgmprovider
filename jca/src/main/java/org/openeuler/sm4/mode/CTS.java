@@ -209,7 +209,7 @@ public class CTS extends StreamModeBaseCipher {
      */
     private void decryptCTS(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
         for (int i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
-            byte[] decrypt = sm4.decrypt(key.getEncoded(), input, i);
+            byte[] decrypt = sm4.decrypt(this.rk, input, i);
             byte[] xor = sm4.xor(decrypt, counter);
             sm4.copyArray(input, i, 16, counter, 0);
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
@@ -228,7 +228,7 @@ public class CTS extends StreamModeBaseCipher {
     private void encryptCTS(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
         for (int i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
             byte[] xor = sm4.xor(counter, 0, counter.length, input, i, 16);
-            byte[] encrypt = sm4.encrypt(this.key.getEncoded(), xor);
+            byte[] encrypt = sm4.encrypt(this.rk, xor);
             this.counter = encrypt;
             sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + i - inputOffset);
         }
@@ -251,7 +251,7 @@ public class CTS extends StreamModeBaseCipher {
                 for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
                     byte[] xor = null;
                     xor = sm4.xor(input, i, 16, this.counter, 0, 16);
-                    byte[] encrypt = sm4.encrypt(this.key.getEncoded(), xor, 0);
+                    byte[] encrypt = sm4.encrypt(this.rk, xor, 0);
                     this.counter = encrypt;
                     if (!(i + 32 > inputLen + inputOffset)) {
                         sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + i - inputOffset);
@@ -262,7 +262,7 @@ public class CTS extends StreamModeBaseCipher {
                 byte[] block = new byte[BLOCKSIZE];
                 sm4.copyArray(xor, 0, xor.length, block, 0);
                 sm4.copyArray(counter, counter.length - needLen, needLen, block, block.length - needLen);
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), block, 0);
+                byte[] encrypt = sm4.encrypt(this.rk, block, 0);
                 sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + i - inputOffset - 16);
                 sm4.copyArray(counter, 0, inputLen % 16, output, outputOffset + i - inputOffset);
 
@@ -270,7 +270,7 @@ public class CTS extends StreamModeBaseCipher {
                 for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
                     byte[] xor = null;
                     xor = sm4.xor(input, i, 16, this.counter, 0, 16);
-                    byte[] encrypt = sm4.encrypt(this.key.getEncoded(), xor, 0);
+                    byte[] encrypt = sm4.encrypt(this.rk, xor, 0);
                     this.counter = encrypt;
                     sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + i - inputOffset);
                 }
@@ -289,14 +289,14 @@ public class CTS extends StreamModeBaseCipher {
             int i;
             for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
                 byte[] xor = sm4.xor(counter, 0, counter.length, input, i, 16);
-                byte[] encrypt = sm4.encrypt(this.key.getEncoded(), xor);
+                byte[] encrypt = sm4.encrypt(this.rk, xor);
                 this.counter = encrypt;
                 sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + i - inputOffset);
             }
             if (inputLen % 16 != 0) {
                 byte[] fill = this.padding.fill(input, i, inputLen % 16);
                 byte[] xor = sm4.xor(counter, fill);
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), xor);
+                byte[] encrypt = sm4.encrypt(this.rk, xor);
                 this.counter = encrypt;
                 sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + (i - inputOffset));
             }
@@ -304,7 +304,7 @@ public class CTS extends StreamModeBaseCipher {
                 byte[] block = new byte[16];
                 Arrays.fill(block, (byte) 16);
                 byte[] xor = sm4.xor(counter, block);
-                byte[] encrypt = sm4.encrypt(this.key.getEncoded(), xor);
+                byte[] encrypt = sm4.encrypt(this.rk, xor);
                 this.counter = encrypt;
                 sm4.copyArray(encrypt, 0, encrypt.length, output, outputOffset + (i - inputOffset));
             }
@@ -328,7 +328,7 @@ public class CTS extends StreamModeBaseCipher {
                 int needLen = BLOCKSIZE - (inputLen % 16);
                 int i;
                 for (i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-                    byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, i);
+                    byte[] decrypt = sm4.decrypt(this.rk, input, i);
                     if (!(i + 32 > +inputOffset+inputLen)) {
                         byte[] xor = null;
                         xor = sm4.xor(decrypt, this.counter);
@@ -338,7 +338,7 @@ public class CTS extends StreamModeBaseCipher {
                         byte[] block = new byte[BLOCKSIZE];
                         sm4.copyArray(input, inputOffset + inputLen - (inputLen % 16), inputLen % 16, block, 0);
                         sm4.copyArray(decrypt, decrypt.length - needLen, needLen, block, block.length - needLen);
-                        byte[] decrypt1 = sm4.decrypt(key.getEncoded(), block, 0);
+                        byte[] decrypt1 = sm4.decrypt(this.rk, block, 0);
                         byte[] xor = sm4.xor(decrypt1, counter);
                         sm4.copyArray(xor, 0, xor.length, res, i - inputOffset);
                         this.counter = decrypt;
@@ -359,7 +359,7 @@ public class CTS extends StreamModeBaseCipher {
                     }
                 }
                 for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-                    byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, i);
+                    byte[] decrypt = sm4.decrypt(this.rk, input, i);
                     byte[] xor = null;
                     xor = sm4.xor(decrypt, this.counter);
                     sm4.copyArray(input, i, 16, counter, 0);
@@ -376,14 +376,14 @@ public class CTS extends StreamModeBaseCipher {
             }
         } else {
             if (inputLen == 16) {
-                byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, inputOffset);
+                byte[] decrypt = sm4.decrypt(this.rk, input, inputOffset);
                 byte[] xor = null;
                 xor = sm4.xor(decrypt, counter);
                 byte[] recover = this.padding.recover(xor);
                 res = new byte[recover.length];
                 sm4.copyArray(recover, 0, recover.length, res, res.length - recover.length);
             } else {
-                byte[] last128bit = sm4.decrypt(this.key.getEncoded(), input, inputOffset + inputLen - 16);
+                byte[] last128bit = sm4.decrypt(this.rk, input, inputOffset + inputLen - 16);
                 byte[] last128BitPlainTextWithPadding = sm4.xor(last128bit, 0, 16, input, inputLen + inputOffset - 32, 16);
                 byte[] lastNoPaddingPlainText = this.padding.recover(last128BitPlainTextWithPadding);
                 res = new byte[inputLen - 16 + lastNoPaddingPlainText.length];
@@ -417,7 +417,7 @@ public class CTS extends StreamModeBaseCipher {
                 int needLen = BLOCKSIZE - (inputLen % 16);
                 int i;
                 for (i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-                    byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, i);
+                    byte[] decrypt = sm4.decrypt(this.rk, input, i);
                     if (!(i + 32 > inputOffset+inputLen)) {
                         byte[] xor = null;
                         xor = sm4.xor(decrypt, this.counter);
@@ -427,7 +427,7 @@ public class CTS extends StreamModeBaseCipher {
                         byte[] block = new byte[BLOCKSIZE];
                         sm4.copyArray(input, inputOffset + inputLen - (inputLen % 16), inputLen % 16, block, 0);
                         sm4.copyArray(decrypt, decrypt.length - needLen, needLen, block, block.length - needLen);
-                        byte[] decrypt1 = sm4.decrypt(key.getEncoded(), block, 0);
+                        byte[] decrypt1 = sm4.decrypt(this.rk, block, 0);
                         byte[] xor = sm4.xor(decrypt1, counter);
                         sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
                         this.counter = decrypt;
@@ -448,7 +448,7 @@ public class CTS extends StreamModeBaseCipher {
                     }
                 }
                 for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-                    byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, i);
+                    byte[] decrypt = sm4.decrypt(this.rk, input, i);
                     byte[] xor = null;
                     xor = sm4.xor(decrypt, this.counter);
                     sm4.copyArray(input, i, 16, counter, 0);
@@ -466,7 +466,7 @@ public class CTS extends StreamModeBaseCipher {
             }
         } else {
             if (inputLen == 16) {
-                byte[] decrypt = sm4.decrypt(this.key.getEncoded(), input, inputOffset);
+                byte[] decrypt = sm4.decrypt(this.rk, input, inputOffset);
                 byte[] xor = null;
                 xor = sm4.xor(decrypt, counter);
                 byte[] recover = this.padding.recover(xor);
@@ -476,7 +476,7 @@ public class CTS extends StreamModeBaseCipher {
                 }
                 sm4.copyArray(recover, 0, recover.length, output, outputOffset + need - recover.length);
             } else {
-                byte[] last128bit = sm4.decrypt(this.key.getEncoded(), input, inputOffset + inputLen - 16);
+                byte[] last128bit = sm4.decrypt(this.rk, input, inputOffset + inputLen - 16);
                 byte[] last128BitPlainTextWithPadding = sm4.xor(last128bit, 0, 16, input, inputLen + inputOffset - 32, 16);
                 byte[] lastNoPaddingPlainText = this.padding.recover(last128BitPlainTextWithPadding);
                 need = inputLen - 16 + lastNoPaddingPlainText.length;

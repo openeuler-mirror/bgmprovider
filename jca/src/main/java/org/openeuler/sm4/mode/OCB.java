@@ -1,5 +1,6 @@
 package org.openeuler.sm4.mode;
 
+import org.openeuler.BGMJCEProvider;
 import org.openeuler.sm4.StreamModeBaseCipher;
 
 import javax.crypto.*;
@@ -32,18 +33,17 @@ public class OCB extends StreamModeBaseCipher {
 
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
+    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        init(opmode, key);
         if (params == null) {
             if (this.opmode == Cipher.ENCRYPT_MODE) {
                 //generate IV
-                if (this.random == null) {
-                    this.random = new SecureRandom();
+                if (random == null) {
+                    random = BGMJCEProvider.getRandom();
                 }
                 this.iv = new byte[defaultIvLen];
-                this.random.nextBytes(this.iv);
+                random.nextBytes(this.iv);
             } else if (this.opmode == Cipher.DECRYPT_MODE) {
                 throw new InvalidAlgorithmParameterException("need an IV");
             }
@@ -69,95 +69,41 @@ public class OCB extends StreamModeBaseCipher {
             }
 
         }
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
-        isInitialized = true;
-
-        H = sm4.encrypt(key.getEncoded(), new byte[BLOCKSIZE], 0);
+        H = sm4.encrypt(this.rk, new byte[BLOCKSIZE], 0);
         L_$ = double_(H);
         L_0 = double_(L_$);
         init();
+        isInitialized = true;
     }
 
     @Override
     public void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
+        try {
+            engineInit(opmode, key, (AlgorithmParameterSpec) null, random);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException(e.getMessage());
         }
-        if (this.opmode == Cipher.ENCRYPT_MODE) {
-            //generate iv
-            this.iv = new byte[defaultIvLen];
-            if (this.random == null) {
-                this.random = new SecureRandom();
-            }
-            random.nextBytes(this.iv);
-        } else if (this.opmode == Cipher.DECRYPT_MODE) {
-            throw new InvalidKeyException("need Ivparam");
-        }
-        this.key = (SecretKey) key;
-        this.opmode = opmode;
-        this.random = random;
-        isInitialized = true;
-        init();
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
-        if (params == null) {
-            if (this.opmode == Cipher.ENCRYPT_MODE) {
-                //generate IV
-                if (this.random == null) {
-                    this.random = new SecureRandom();
-                }
-                this.iv = new byte[defaultIvLen];
-                this.random.nextBytes(this.iv);
-            } else if (this.opmode == Cipher.DECRYPT_MODE) {
-                throw new InvalidAlgorithmParameterException("need an IV.");
-            }
-        } else {
-            IvParameterSpec parameterSpec = null;
-            GCMParameterSpec gcmParameterSpec = null;
+    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        AlgorithmParameterSpec spec = null;
+        String paramType = null;
+        if (params != null) {
             try {
-                gcmParameterSpec = params.getParameterSpec(GCMParameterSpec.class);
-            } catch (InvalidParameterSpecException invalidParameterSpecException) {
-
-            }
-            if (gcmParameterSpec == null) {
+                paramType = "GCM or IV";
+                spec = params.getParameterSpec(GCMParameterSpec.class);
+            } catch (InvalidParameterSpecException e) {
                 try {
-                    parameterSpec = params.getParameterSpec(IvParameterSpec.class);
-                } catch (InvalidParameterSpecException e) {
+                    spec = params.getParameterSpec(IvParameterSpec.class);
+                } catch (InvalidParameterSpecException ex) {
+                    throw new InvalidAlgorithmParameterException
+                            ("Wrong parameter type: " + paramType + " expected");
                 }
-                if (parameterSpec == null) {
-                    throw new InvalidAlgorithmParameterException();
-                } else {
-                    if (parameterSpec.getIV() == null || parameterSpec.getIV().length > 15) {
-                        throw new InvalidAlgorithmParameterException("IV no more than 15 bytes long.");
-                    }
-                    this.iv = parameterSpec.getIV();
-                }
-            } else {
-                if (gcmParameterSpec.getIV() == null || gcmParameterSpec.getIV().length > 15) {
-                    throw new InvalidAlgorithmParameterException("IV no more than 15 bytes long.");
-                }
-                checkTagLen(gcmParameterSpec);
-                this.tLen = gcmParameterSpec.getTLen();
-                this.iv = gcmParameterSpec.getIV();
             }
         }
-
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
-        isInitialized = true;
-
-        H = sm4.encrypt(key.getEncoded(), new byte[BLOCKSIZE], 0);
-        L_$ = double_(H);
-        L_0 = double_(L_$);
-        init();
+        engineInit(opmode, key, spec, random);
     }
 
     @Override
@@ -359,14 +305,14 @@ public class OCB extends StreamModeBaseCipher {
         if (this.opmode == Cipher.ENCRYPT_MODE) {
             for (int i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
                 offset = sm4.xor(offset, 0, 16, L[ntz((i - inputOffset) / 16 + 1)], 0, 16);
-                byte[] xor1 = sm4.xor(offset, 0, 16, sm4.encrypt(key.getEncoded(), sm4.xor(offset, 0, 16, input, i, 16), 0), 0, 16);
+                byte[] xor1 = sm4.xor(offset, 0, 16, sm4.encrypt(this.rk, sm4.xor(offset, 0, 16, input, i, 16), 0), 0, 16);
                 sm4.copyArray(xor1, 0, xor1.length, output, outputOffset + (i - inputOffset));
                 checkSum = sm4.xor(checkSum, 0, 16, input, i, 16);
             }
         } else if (this.opmode == Cipher.DECRYPT_MODE) {
             for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
                 offset = sm4.xor(offset, L[ntz((i - inputOffset) / 16 + 1)]);
-                byte[] xor1 = sm4.xor(offset, sm4.decrypt(key.getEncoded(), sm4.xor(offset, 0, 16, input, i, 16), 0));
+                byte[] xor1 = sm4.xor(offset, sm4.decrypt(this.rk, sm4.xor(offset, 0, 16, input, i, 16), 0));
                 sm4.copyArray(xor1, 0, xor1.length, output, outputOffset + i - inputOffset);
                 checkSum = sm4.xor(checkSum, xor1);
             }
@@ -395,7 +341,7 @@ public class OCB extends StreamModeBaseCipher {
         byte[] offset = new byte[BLOCKSIZE];
         for (int i = 0; i < m; i++) {
             offset = sm4.xor(offset, 0, 16, L[ntz(i + 1)], 0, 16);
-            sum = sm4.xor(sum, 0, 16, sm4.encrypt(key.getEncoded(), sm4.xor(Arrays.copyOfRange(aad, i * 16, (i + 1) * 16), 0, 16, offset, 0, 16), 0), 0, 16);
+            sum = sm4.xor(sum, 0, 16, sm4.encrypt(this.rk, sm4.xor(Arrays.copyOfRange(aad, i * 16, (i + 1) * 16), 0, 16, offset, 0, 16), 0), 0, 16);
         }
 
         if (aad.length % 16 != 0) {
@@ -404,7 +350,7 @@ public class OCB extends StreamModeBaseCipher {
             sm4.copyArray(aad, aad.length - (aad.length % 16), aad.length % 16, cipherInput, 0);
             cipherInput[aad.length % 16] = (byte) 0x80;
             cipherInput = sm4.xor(cipherInput, offset);
-            sum = sm4.xor(sum, sm4.encrypt(key.getEncoded(), cipherInput, 0));
+            sum = sm4.xor(sum, sm4.encrypt(this.rk, cipherInput, 0));
         }
 
         return sum;
@@ -496,7 +442,7 @@ public class OCB extends StreamModeBaseCipher {
 
         byte lastByteOfNonce = nonce[15];
         nonce[15] &= 0xc0;
-        ktop = sm4.encrypt(key.getEncoded(), nonce, 0);
+        ktop = sm4.encrypt(this.rk, nonce, 0);
         nonce[15] = lastByteOfNonce;
         stretch = new byte[BLOCKSIZE * 2];
         sm4.copyArray(ktop, 0, ktop.length, stretch, 0);
@@ -542,22 +488,22 @@ public class OCB extends StreamModeBaseCipher {
         }
         for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
             offset = sm4.xor(offset, 0, 16, L[ntz(len / 16 + (i - inputOffset) / 16 + 1)], 0, 16);
-            byte[] xor1 = sm4.xor(offset, 0, 16, sm4.encrypt(key.getEncoded(), sm4.xor(offset, 0, 16, input, i, 16), 0), 0, 16);
+            byte[] xor1 = sm4.xor(offset, 0, 16, sm4.encrypt(this.rk, sm4.xor(offset, 0, 16, input, i, 16), 0), 0, 16);
             sm4.copyArray(xor1, 0, xor1.length, output, outputOffset + (i - inputOffset));
             checkSum = sm4.xor(checkSum, 0, 16, input, i, 16);
         }
         if (inputLen % 16 != 0) {
             offset = sm4.xor16Byte(offset, H);
-            byte[] pad = sm4.encrypt(key.getEncoded(), offset, 0);
+            byte[] pad = sm4.encrypt(this.rk, offset, 0);
             byte[] xor1 = sm4.xor(input, inputOffset + inputLen - (inputLen % 16), inputLen % 16, pad, 0, 16);
             sm4.copyArray(xor1, 0, xor1.length, output, outputOffset + i - inputOffset);
             byte[] tem = new byte[BLOCKSIZE];
             sm4.copyArray(input, inputOffset + inputLen - (inputLen % 16), inputLen % 16, tem, 0);
             tem[inputLen % 16] = (byte) 0x80;
             checkSum = sm4.xor(checkSum, tem);
-            tag = sm4.xor(sm4.encrypt(key.getEncoded(), sm4.xor(L_$, sm4.xor(checkSum, offset)), 0), hash());
+            tag = sm4.xor(sm4.encrypt(this.rk, sm4.xor(L_$, sm4.xor(checkSum, offset)), 0), hash());
         } else {
-            tag = sm4.xor(sm4.encrypt(key.getEncoded(), sm4.xor(L_$, sm4.xor(checkSum, offset)), 0), hash());
+            tag = sm4.xor(sm4.encrypt(this.rk, sm4.xor(L_$, sm4.xor(checkSum, offset)), 0), hash());
         }
         sm4.copyArray(tag, 0, tLen / 8, output, outputOffset + inputLen);
     }
@@ -580,23 +526,23 @@ public class OCB extends StreamModeBaseCipher {
         int i;
         for (i = inputOffset; i + 16 <= inputOffset + inputLen - (tLen / 8); i += 16) {
             offset = sm4.xor(offset, L[ntz(len / 16 + (i - inputOffset) / 16 + 1)]);
-            byte[] xor1 = sm4.xor(offset, sm4.decrypt(key.getEncoded(), sm4.xor(offset, 0, 16, input, i, 16), 0));
+            byte[] xor1 = sm4.xor(offset, sm4.decrypt(this.rk, sm4.xor(offset, 0, 16, input, i, 16), 0));
             sm4.copyArray(xor1, 0, xor1.length, output, outputOffset + (i - inputOffset));
             checkSum = sm4.xor(checkSum, xor1);
         }
         byte[] tag = null;
         if ((inputLen - (tLen / 8)) % 16 != 0) {
             offset = sm4.xor16Byte(offset, H);
-            byte[] pad = sm4.encrypt(key.getEncoded(), offset, 0);
+            byte[] pad = sm4.encrypt(this.rk, offset, 0);
             byte[] xor1 = sm4.xor(input, inputOffset + inputLen - (tLen / 8) - ((inputLen - (tLen / 8)) % 16), (inputLen - (tLen / 8)) % 16, pad, 0, 16);
             sm4.copyArray(xor1, 0, xor1.length, output, outputOffset + i - inputOffset);
             byte[] tem = new byte[BLOCKSIZE];
             sm4.copyArray(xor1, 0, xor1.length, tem, 0);
             tem[xor1.length] = (byte) 0x80;
             checkSum = sm4.xor(checkSum, tem);
-            tag = sm4.xor(sm4.encrypt(key.getEncoded(), sm4.xor(L_$, sm4.xor(checkSum, offset)), 0), hash());
+            tag = sm4.xor(sm4.encrypt(this.rk, sm4.xor(L_$, sm4.xor(checkSum, offset)), 0), hash());
         } else {
-            tag = sm4.xor(sm4.encrypt(key.getEncoded(), sm4.xor(L_$, sm4.xor(checkSum, offset)), 0), hash());
+            tag = sm4.xor(sm4.encrypt(this.rk, sm4.xor(L_$, sm4.xor(checkSum, offset)), 0), hash());
         }
         checkMac(T, Arrays.copyOfRange(tag, 0, T.length));
     }

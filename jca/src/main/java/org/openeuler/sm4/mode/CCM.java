@@ -1,5 +1,6 @@
 package org.openeuler.sm4.mode;
 
+import org.openeuler.BGMJCEProvider;
 import org.openeuler.sm4.StreamModeBaseCipher;
 
 import javax.crypto.*;
@@ -25,42 +26,25 @@ public class CCM extends StreamModeBaseCipher {
 
     @Override
     public void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
+        try {
+            engineInit(opmode, key, (AlgorithmParameterSpec) null, random);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new InvalidKeyException(e.getMessage());
         }
-        if (this.opmode == Cipher.ENCRYPT_MODE) {
-            //generate iv
-            this.iv = new byte[defaultIvLen];
-            if (this.random == null) {
-                this.random = new SecureRandom();
-            }
-            random.nextBytes(this.iv);
-        } else if (this.opmode == Cipher.DECRYPT_MODE) {
-            throw new InvalidKeyException("need Ivparam");
-        }
-        this.key = (SecretKey) key;
-        L = 15 - iv.length;
-        this.opmode = opmode;
-        this.random = random;
-        this.isInitialized = true;
-        getCountero();
-        sm4.copyArray(counter0, 0, counter0.length, counter, 0);
-        incr();
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
+    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        init(opmode, key);
         if (params == null) {
             if (this.opmode == Cipher.ENCRYPT_MODE) {
                 //generate IV
-                if (this.random == null) {
-                    this.random = new SecureRandom();
+                if (random == null) {
+                    random = BGMJCEProvider.getRandom();
                 }
                 this.iv = new byte[defaultIvLen];
-                this.random.nextBytes(this.iv);
+                random.nextBytes(this.iv);
             } else if (this.opmode == Cipher.DECRYPT_MODE) {
                 throw new InvalidAlgorithmParameterException("need an IV");
             }
@@ -76,57 +60,27 @@ public class CCM extends StreamModeBaseCipher {
             }
         }
         L = 15 - iv.length;
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
-        this.isInitialized = true;
         getCountero();
         sm4.copyArray(counter0, 0, counter0.length, counter, 0);
         incr();
+        this.isInitialized = true;
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
-        if (params == null) {
-            if (this.opmode == Cipher.ENCRYPT_MODE) {
-                //generate IV
-                if (this.random == null) {
-                    this.random = new SecureRandom();
-                }
-                this.iv = new byte[defaultIvLen];
-                this.random.nextBytes(this.iv);
-            } else if (this.opmode == Cipher.DECRYPT_MODE) {
-                throw new InvalidAlgorithmParameterException("need an IV.");
-            }
-        } else {
-            IvParameterSpec parameterSpec = null;
+    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        AlgorithmParameterSpec spec = null;
+        String paramType = null;
+        if (params != null) {
             try {
-                parameterSpec = params.getParameterSpec(IvParameterSpec.class);
+                paramType = "IV";
+                spec = params.getParameterSpec(IvParameterSpec.class);
             } catch (InvalidParameterSpecException e) {
-                throw new InvalidAlgorithmParameterException();
-            }
-
-            if (parameterSpec == null) {
-                throw new InvalidAlgorithmParameterException();
-            }
-            if (parameterSpec != null) {
-                if (parameterSpec.getIV().length < 7 || parameterSpec.getIV().length > 13) {
-                    throw new InvalidAlgorithmParameterException("nonce must have length from 7 to 13 octets");
-                }
-                this.iv = parameterSpec.getIV();
+                throw new InvalidAlgorithmParameterException
+                        ("Wrong parameter type: " + paramType + " expected");
             }
         }
-        L = 15 - iv.length;
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
-        this.isInitialized = true;
-        getCountero();
-        sm4.copyArray(counter0, 0, counter0.length, counter, 0);
-        incr();
+        engineInit(opmode, key, spec, random);
     }
 
     @Override
@@ -339,13 +293,13 @@ public class CCM extends StreamModeBaseCipher {
         if (plainText != null) {
             int i;
             for (i = 0; i + 16 <= plainText.length; i += 16) {
-                byte[] encrypt = sm4.encrypt(key.getEncoded(), counter, 0);
+                byte[] encrypt = sm4.encrypt(this.rk, counter, 0);
                 incr();
                 byte[] xor = sm4.xor(encrypt, 0, 16, plainText, i, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i);
             }
             if (plainText.length % 16 != 0) {
-                byte[] encrrypt = sm4.encrypt(key.getEncoded(), counter, 0);
+                byte[] encrrypt = sm4.encrypt(this.rk, counter, 0);
                 incr();
                 byte[] xor = sm4.xor(plainText, i, plainText.length % 16, encrrypt, 0, 16);
                 sm4.copyArray(xor, 0, xor.length, output, outputOffset + i);
@@ -369,13 +323,13 @@ public class CCM extends StreamModeBaseCipher {
         int i;
         for (i = 0; i + 16 <= fill.length; i += 16) {
             byte[] curBlock = Arrays.copyOfRange(fill, i, i + 16);
-            byte[] encrypt = sm4.encrypt(key.getEncoded(), counter, 0);
+            byte[] encrypt = sm4.encrypt(this.rk, counter, 0);
             incr();
             byte[] xor = sm4.xor(encrypt, curBlock);
             sm4.copyArray(xor, 0, xor.length, res, i);
         }
         if (fill.length % 16 != 0) {
-            byte[] encrrypt = sm4.encrypt(key.getEncoded(), counter, 0);
+            byte[] encrrypt = sm4.encrypt(this.rk, counter, 0);
             incr();
             byte[] xor = sm4.xor(Arrays.copyOfRange(fill, i, fill.length), encrrypt);
             sm4.copyArray(xor, 0, xor.length, res, res.length - xor.length);
@@ -420,7 +374,7 @@ public class CCM extends StreamModeBaseCipher {
         B[0] |= tem;
         sm4.copyArray(iv, 0, iv.length, B, 1);
         readInt(B, plainText == null ? 0 : plainText.length, 16 - L);
-        B = sm4.encrypt(key.getEncoded(), sm4.xor(B, new byte[16]), 0);
+        B = sm4.encrypt(this.rk, sm4.xor(B, new byte[16]), 0);
 
         if (aad != null && aad.length != 0) {
             if (aad.length < 65280) {
@@ -430,7 +384,7 @@ public class CCM extends StreamModeBaseCipher {
                 lenA = new byte[6];
                 lenA[0] = (byte) 0xff;
                 lenA[1] = (byte) 0xfe;
-                sm4.readInt(lenA, aad.length, 2);
+                sm4.intToBigEndian(lenA, aad.length, 2);
             }
         }
         if (lenA != null) {
@@ -439,37 +393,37 @@ public class CCM extends StreamModeBaseCipher {
                 byte[] block = new byte[BLOCKSIZE];
                 sm4.copyArray(lenA, 0, lenA.length, block, 0);
                 sm4.copyArray(Arrays.copyOfRange(aad, 0, needLen), 0, needLen, block, lenA.length);
-                B = sm4.encrypt(key.getEncoded(), sm4.xor(B, block), 0);
+                B = sm4.encrypt(this.rk, sm4.xor(B, block), 0);
                 int i;
                 for (i = needLen; i + 16 <= aad.length; i += 16) {
-                    B = sm4.encrypt(key.getEncoded(), sm4.xor(B, Arrays.copyOfRange(aad, i, i + 16)), 0);
+                    B = sm4.encrypt(this.rk, sm4.xor(B, Arrays.copyOfRange(aad, i, i + 16)), 0);
                 }
                 if ((aad.length - needLen) % 16 != 0) {
                     block = new byte[BLOCKSIZE];
                     sm4.copyArray(aad, i, aad.length - i, block, 0);
-                    B = sm4.encrypt(key.getEncoded(), sm4.xor(B, block), 0);
+                    B = sm4.encrypt(this.rk, sm4.xor(B, block), 0);
                 }
             } else {
                 byte[] block = new byte[BLOCKSIZE];
                 sm4.copyArray(lenA, 0, lenA.length, block, 0);
                 sm4.copyArray(aad, 0, aad.length, block, lenA.length);
-                B = sm4.encrypt(key.getEncoded(), sm4.xor(B, block), 0);
+                B = sm4.encrypt(this.rk, sm4.xor(B, block), 0);
 
             }
         }
         if (plainText != null) {
             int i;
             for (i = 0; i + 16 <= plainText.length; i += 16) {
-                B = sm4.encrypt(key.getEncoded(), sm4.xor(B, Arrays.copyOfRange(plainText, i, i + 16)), 0);
+                B = sm4.encrypt(this.rk, sm4.xor(B, Arrays.copyOfRange(plainText, i, i + 16)), 0);
             }
             if (plainText.length % 16 != 0) {
                 byte[] block = new byte[BLOCKSIZE];
                 sm4.copyArray(plainText, i, plainText.length - i, block, 0);
-                B = sm4.encrypt(key.getEncoded(), sm4.xor(B, block), 0);
+                B = sm4.encrypt(this.rk, sm4.xor(B, block), 0);
             }
         }
 
-        byte[] encrypt = sm4.encrypt(key.getEncoded(), counter0, 0);
+        byte[] encrypt = sm4.encrypt(this.rk, counter0, 0);
         return Arrays.copyOfRange(sm4.xor(encrypt, B), 0, M);
     }
 
@@ -482,7 +436,7 @@ public class CCM extends StreamModeBaseCipher {
      */
     private void readInt(byte[] arr, int x, int start) {
         if (arr.length - start >= 4) {
-            sm4.readInt(arr, x, arr.length - 4);
+            sm4.intToBigEndian(arr, x, arr.length - 4);
         } else if (arr.length - start == 3) {
             arr[start] = (byte) ((x << 8) >>> 24);
             start++;

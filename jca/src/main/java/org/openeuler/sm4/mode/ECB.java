@@ -13,22 +13,25 @@ import java.util.Arrays;
 public class ECB extends SM4BaseCipher {
     @Override
     public void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
-        if ((key == null) || ((key != null) && (!(key instanceof SecretKey) || key.getEncoded().length != 16))) {
-            throw new InvalidKeyException();
-        }
-        this.opmode = opmode;
-        this.key = (SecretKey) key;
-        this.random = random;
+        init(opmode, key);
         isInitialized = true;
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        if (params != null) {
+            throw new InvalidAlgorithmParameterException("ECB mode cannot use an AlgorithmParameterSpec");
+        }
         engineInit(opmode, key, random);
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        if (params != null) {
+            throw new InvalidAlgorithmParameterException("ECB mode cannot use an AlgorithmParameters");
+        }
         engineInit(opmode, key, random);
     }
 
@@ -68,12 +71,12 @@ public class ECB extends SM4BaseCipher {
         res = new byte[len];
         if (opmode == Cipher.ENCRYPT_MODE) {
             for (int i = inputOffset; i + 16 <= len + inputOffset; i += 16) {
-                sm4.encrypt(key.getEncoded(), input, i, res, i - inputOffset);
+                sm4.encrypt(this.rk, input, i, res, i - inputOffset);
             }
 
         } else if (opmode == Cipher.DECRYPT_MODE) {
             for (int i = inputOffset; i + 16 <= len + inputOffset; i += 16) {
-                sm4.decrypt(key.getEncoded(), input, i, res, i - inputOffset);
+                sm4.decrypt(this.rk, input, i, res, i - inputOffset);
             }
         }
         return res;
@@ -109,12 +112,12 @@ public class ECB extends SM4BaseCipher {
         }
         if (opmode == Cipher.ENCRYPT_MODE) {
             for (int i = inputOffset; i + 16 <= len + inputOffset; i += 16) {
-                sm4.encrypt(key.getEncoded(), input, i, output, outputOffset + i - inputOffset);
+                sm4.encrypt(this.rk, input, i, output, outputOffset + i - inputOffset);
             }
 
         } else if (opmode == Cipher.DECRYPT_MODE) {
             for (int i = inputOffset; i + 16 <= len + inputOffset; i += 16) {
-                sm4.decrypt(key.getEncoded(), input, i, output, outputOffset + i - inputOffset);
+                sm4.decrypt(this.rk, input, i, output, outputOffset + i - inputOffset);
             }
         }
         return len;
@@ -142,7 +145,7 @@ public class ECB extends SM4BaseCipher {
                 encrypt(input, inputOffset, inputLen, res, 0);
             } else if (restLen == 16) {
                 //encrypt the remaining bytes
-                sm4.encrypt(key.getEncoded(), inputUpdate, inputOffsetUpdate + inputLenUpdate - 16, res, 0);
+                sm4.encrypt(this.rk, inputUpdate, inputOffsetUpdate + inputLenUpdate - 16, res, 0);
                 //encrypt input data
                 encrypt(input, inputOffset, inputLen, res, 16);
             } else {
@@ -153,7 +156,7 @@ public class ECB extends SM4BaseCipher {
                     sm4.copyArray(inputUpdate, inputOffsetUpdate + len, restLen, block, 0);
                     sm4.copyArray(input, inputOffset, inputLen, block, restLen);
                     byte[] fill = padding.fill(block);
-                    sm4.encrypt(key.getEncoded(), fill, 0, res, res.length - 16);
+                    sm4.encrypt(this.rk, fill, 0, res, res.length - 16);
                 } else {
                     //
                     byte[] block = new byte[16];
@@ -161,7 +164,7 @@ public class ECB extends SM4BaseCipher {
                     sm4.copyArray(inputUpdate, inputOffsetUpdate + len, restLen, block, 0);
                     sm4.copyArray(input, inputOffset, 16 - restLen, block, restLen);
                     //encrypt block
-                    sm4.encrypt(key.getEncoded(), block, 0, res, 0);
+                    sm4.encrypt(this.rk, block, 0, res, 0);
                     //encrypt remaining input data
                     encrypt(input, inputOffset + 16 - restLen, inputLen - 16 + restLen, res, 16);
                 }
@@ -230,7 +233,7 @@ public class ECB extends SM4BaseCipher {
             if (restLen == 0) {
                 encrypt(input, inputOffset, inputLen, output, outputOffset);
             } else if (restLen == 16) {
-                sm4.encrypt(key.getEncoded(), inputUpdate, inputOffsetUpdate + inputLenUpdate - 16, output, outputOffset);
+                sm4.encrypt(this.rk, inputUpdate, inputOffsetUpdate + inputLenUpdate - 16, output, outputOffset);
                 encrypt(input, inputOffset, inputLen, output, outputOffset + 16);
             } else {
                 if (16 - restLen > inputLen) {
@@ -238,12 +241,12 @@ public class ECB extends SM4BaseCipher {
                     sm4.copyArray(inputUpdate, inputOffsetUpdate + len, restLen, block, 0);
                     sm4.copyArray(input, inputOffset, inputLen, block, restLen);
                     byte[] fill = padding.fill(block);
-                    sm4.encrypt(key.getEncoded(), fill, 0, output, outputOffset + need - 16);
+                    sm4.encrypt(this.rk, fill, 0, output, outputOffset + need - 16);
                 } else {
                     byte[] block = new byte[16];
                     sm4.copyArray(inputUpdate, inputOffsetUpdate + len, restLen, block, 0);
                     sm4.copyArray(input, inputOffset, 16 - restLen, block, restLen);
-                    sm4.encrypt(key.getEncoded(), block, 0, output, outputOffset);
+                    sm4.encrypt(this.rk, block, 0, output, outputOffset);
                     encrypt(input, inputOffset + 16 - restLen, inputLen - 16 + restLen, output, outputOffset + 16);
                 }
             }
@@ -296,7 +299,7 @@ public class ECB extends SM4BaseCipher {
      */
     private void decrypt(byte[] input, int inputOffset, int inputLen, byte[] res, int offset) throws BadPaddingException {
         for (int i = inputOffset; i + 16 <= inputLen + inputOffset; i += 16) {
-            sm4.decrypt(key.getEncoded(), input, i, res, offset + i - inputOffset);
+            sm4.decrypt(this.rk, input, i, res, offset + i - inputOffset);
         }
     }
 
@@ -313,7 +316,7 @@ public class ECB extends SM4BaseCipher {
      */
     private byte[] decryptLastBlock(byte[] input, int inputOffset, int inputLen, int extra) throws BadPaddingException {
         byte[] res;
-        byte[] last = sm4.decrypt(key.getEncoded(), input, inputOffset + inputLen - 16);
+        byte[] last = sm4.decrypt(this.rk, input, inputOffset + inputLen - 16);
         if (!this.padding.getPadding().toUpperCase().equals("NOPADDING")) {
             byte[] recover = padding.recover(last);
             res = new byte[inputLen - 16 + recover.length + extra];
@@ -339,7 +342,7 @@ public class ECB extends SM4BaseCipher {
      * @throws ShortBufferException
      */
     private int decryptLastBlock(byte[] input, int inputOffset, int inputLen, int extra, byte[] output, int outputOffset) throws BadPaddingException, ShortBufferException {
-        byte[] last = sm4.decrypt(key.getEncoded(), input, inputOffset + inputLen - 16);
+        byte[] last = sm4.decrypt(this.rk, input, inputOffset + inputLen - 16);
         int need;
         if (!this.padding.getPadding().toUpperCase().equals("NOPADDING")) {
             byte[] recover = padding.recover(last);
@@ -370,16 +373,16 @@ public class ECB extends SM4BaseCipher {
     private void encrypt(byte[] input, int inputOffset, int inputLen, byte[] res, int offset) {
         int i;
         for (i = inputOffset; i + 16 <= inputOffset + inputLen; i += 16) {
-            sm4.encrypt(key.getEncoded(), input, i, res, offset + (i - inputOffset));
+            sm4.encrypt(this.rk, input, i, res, offset + (i - inputOffset));
         }
         if (inputLen % 16 != 0) {
             byte[] fill = padding.fill(input, i, inputLen % 16);
-            sm4.encrypt(key.getEncoded(), fill, 0, res, offset + (i - inputOffset));
+            sm4.encrypt(this.rk, fill, 0, res, offset + (i - inputOffset));
         }
         if (inputLen % 16 == 0 && !padding.getPadding().equals("NOPADDING")) {
             byte[] block = new byte[BLOCKSIZE];
             Arrays.fill(block, (byte) 16);
-            sm4.encrypt(key.getEncoded(), block, 0, res, offset + i - inputOffset);
+            sm4.encrypt(this.rk, block, 0, res, offset + i - inputOffset);
         }
     }
 

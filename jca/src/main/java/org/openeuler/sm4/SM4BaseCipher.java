@@ -9,13 +9,12 @@ public class SM4BaseCipher extends CipherSpi {
     protected final int BLOCKSIZE = 16;
     protected int opmode ;//default
     protected SM4Padding padding = new SM4Padding();//default
-    protected SecureRandom random;
-    protected SecretKey key;
     protected SM4Util sm4 = new SM4Util();
     protected  byte[] inputUpdate;//save the input parameter in the update method
     protected int inputLenUpdate;//save the inputLen parameter in the update method
     protected int inputOffsetUpdate;//save the inputoffSet parameter in the update method
     protected int len;//the actual size of the data processed in the update method
+    protected int[] rk;
 
     @Override
     protected void engineUpdateAAD(byte[] src, int offset, int len) {
@@ -40,7 +39,7 @@ public class SM4BaseCipher extends CipherSpi {
     @Override
     public int engineGetOutputSize(int inputLen) {
         if(this.opmode==Cipher.ENCRYPT_MODE){
-            if(!this.padding.getPadding().toUpperCase().equals("NOPADDING")){
+            if(!this.padding.getPadding().equalsIgnoreCase("NOPADDING")){
                     return inputLen+(16-inputLen%16);
             }else {
                 if(inputLen%16!=0){
@@ -72,17 +71,27 @@ public class SM4BaseCipher extends CipherSpi {
 
     @Override
     public void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
-
+        init(opmode, key);
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
-
+    public void engineInit(int opmode, Key key, AlgorithmParameterSpec params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        init(opmode, key);
     }
 
     @Override
-    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random) throws InvalidKeyException, InvalidAlgorithmParameterException {
+    public void engineInit(int opmode, Key key, AlgorithmParameters params, SecureRandom random)
+            throws InvalidKeyException, InvalidAlgorithmParameterException {
+        init(opmode, key);
+    }
 
+    protected void init(int opmode, Key key) throws InvalidKeyException {
+        if (!(key instanceof SecretKey) || key.getEncoded().length != 16) {
+            throw new InvalidKeyException();
+        }
+        this.opmode = opmode;
+        this.rk = sm4.expandKey(key.getEncoded());
     }
 
     @Override
@@ -91,17 +100,20 @@ public class SM4BaseCipher extends CipherSpi {
     }
 
     @Override
-    public int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) throws ShortBufferException {
+    public int engineUpdate(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset)
+            throws ShortBufferException {
         return 0;
     }
 
     @Override
-    public byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen) throws IllegalBlockSizeException, BadPaddingException {
+    public byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen)
+            throws IllegalBlockSizeException, BadPaddingException {
         return null;
     }
 
     @Override
-    public int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+    public int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset)
+            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         return 0;
     }
 
@@ -109,7 +121,6 @@ public class SM4BaseCipher extends CipherSpi {
      * reset some parameters after encryption
      */
     public void reset(){
-        this.random = null;
         inputUpdate=null;
         inputLenUpdate=0;
         len = 0;
