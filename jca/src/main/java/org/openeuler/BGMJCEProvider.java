@@ -84,6 +84,7 @@ public class BGMJCEProvider extends AbstractProvider {
     }
 
     static AbstractEntries createJCEEntries(Provider provider) {
-        return new BGMJCEEntries(provider);
+        return BGMJCEConfig.useLegacy() ? new BGMLegacyJCEEntries(provider)
+                : new BGMJCEEntries(provider);
     }
 }

@@ -40,8 +40,13 @@ public class ECDHKeyAgreementTest {
 
     @Test
     public void test() throws NoSuchAlgorithmException, InvalidKeyException {
-        KeyPair keyPair = KeyPairGenerator.getInstance("EC").generateKeyPair();
-        KeyPair peerKeyPair = KeyPairGenerator.getInstance("EC").generateKeyPair();
+        // JDK 17 only support 256,384,512
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC");
+        keyPairGenerator.initialize(256);
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        KeyPairGenerator peerKeyPairGenerator = KeyPairGenerator.getInstance("EC");
+        peerKeyPairGenerator.initialize(256);
+        KeyPair peerKeyPair = peerKeyPairGenerator.generateKeyPair();
 
         // local
         KeyAgreement keyAgreement = KeyAgreement.getInstance("ECDH");
