@@ -76,7 +76,7 @@ public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
     @Override
     public void initialize(AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidAlgorithmParameterException {
-        isGMCurve = GMUtil.isGMCurve(params);
+        isGMCurve = GMUtil.isSM2Curve(params);
         if (isGMCurve) {
             sm2Engine.initialize(params, random);
         } else {

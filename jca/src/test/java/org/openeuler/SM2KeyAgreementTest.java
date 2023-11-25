@@ -5,7 +5,7 @@ import java.security.interfaces.ECPublicKey;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openeuler.util.ECUtil;
+import sun.security.util.ECUtil;
 
 import javax.crypto.KeyAgreement;
 import java.math.BigInteger;

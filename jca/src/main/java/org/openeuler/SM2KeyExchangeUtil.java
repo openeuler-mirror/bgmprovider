@@ -24,7 +24,8 @@
 
 package org.openeuler;
 
-import org.openeuler.util.ECUtil;
+import org.openeuler.util.GMUtil;
+import sun.security.util.ECUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -74,9 +75,8 @@ public class SM2KeyExchangeUtil {
         BigInteger h = BigInteger.valueOf(localPublicKey.getParams().getCofactor());
         ECPoint PB = peerPublicKey.getW();
         EllipticCurve peerCurve = peerPublicKey.getParams().getCurve();
-        ECPoint V = ECUtil.multiply(ECUtil.add(PB,
-                                               ECUtil.multiply(RB, x2, peerCurve),
-                                               peerCurve),
+        ECPoint V = GMUtil.multiply(GMUtil.add(PB,
+                                    GMUtil.multiply(RB, x2, peerCurve)),
                                     h.multiply(tA),
                                     peerCurve);
 
@@ -111,7 +111,7 @@ public class SM2KeyExchangeUtil {
      */
     public static ECPoint generateR(ECPublicKey publicKey, BigInteger random) {
         ECPoint g = publicKey.getParams().getGenerator();
-        return ECUtil.multiply(g, random, publicKey.getParams().getCurve());
+        return GMUtil.multiply(g, random, publicKey.getParams().getCurve());
     }
 
     public static BigInteger generateRandom(ECPublicKey publicKey, SecureRandom secureRandom) {
@@ -290,7 +290,7 @@ public class SM2KeyExchangeUtil {
         // P = G * d
         BigInteger d = privateKey.getS();
         ECPoint G = parameters.getGenerator();
-        ECPoint P = ECUtil.multiply(G, d, parameters.getCurve());
+        ECPoint P = GMUtil.multiply(G, d, parameters.getCurve());
         ECPublicKeySpec ecPublicKeySpec = new ECPublicKeySpec(P, parameters);
 
         try {

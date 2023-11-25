@@ -53,7 +53,7 @@ public class CertificateFactoryTest {
 
     @BeforeClass
     public static void beforeClass() {
-      Security.insertProviderAt(new BGMJCEProvider(), 1);
+        Security.insertProviderAt(new BGMJCEProvider(), 1);
     }
 
     @Test

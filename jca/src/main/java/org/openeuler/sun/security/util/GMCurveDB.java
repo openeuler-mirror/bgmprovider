@@ -30,6 +30,7 @@ import java.security.spec.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import org.openeuler.SM2Point;
 import sun.security.util.ECUtil;
 
 
@@ -127,7 +128,12 @@ public class  GMCurveDB {
         }
 
         EllipticCurve curve = new EllipticCurve(field, bi(a), bi(b));
-        ECPoint g = new ECPoint(bi(x), bi(y));
+        ECPoint g;
+        if ("sm2p256v1".equalsIgnoreCase(name)) {
+            g = new SM2Point(bi(x), bi(y));
+        } else {
+            g = new ECPoint(bi(x), bi(y));
+        }
 
         ECNamedCurve params = new ECNamedCurve(name, soid, curve, g, bi(n), h);
         if (oidMap.put(soid, params) != null) {
@@ -179,15 +185,6 @@ public class  GMCurveDB {
                 "32C4AE2C1F1981195F9904466A39C9948FE30BBFF2660BE1715A4589334C74C7",
                 "BC3736A2F4F6779C59BDCEE36B692153D0A9877CC62A474002DF32E52139F0A0",
                 "FFFFFFFEFFFFFFFFFFFFFFFFFFFFFFFF7203DF6B21C6052B53BBF40939D54123",
-                1, nameSplitPattern);
-
-        add("wapip192v1", "1.2.156.10197.1.301.101", P,
-                "BDB6F4FE3E8B1D9E0DA8C0D46F4C318CEFE4AFE3B6B8551F",
-                "BB8E5E8FBC115E139FE6A814FE48AAA6F0ADA1AA5DF91985",
-                "1854BEBDC31B21B7AEFC80AB0ECD10D5B1B3308E6DBF11C1",
-                "4AD5F7048DE709AD51236DE65E4D4B482C836DC6E4106640",
-                "02BB3A02D4AAADACAE24817A4CA3A1B014B5270432DB27D2",
-                "BDB6F4FE3E8B1D9E0DA8C0D40FC962195DFAE76F56564677",
                 1, nameSplitPattern);
 
         /* SEC2 prime curves */

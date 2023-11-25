@@ -35,10 +35,10 @@ import java.util.Map;
 
 import org.openeuler.sun.security.ec.BGECPrivateKey;
 import org.openeuler.sun.security.ec.BGECPublicKey;
-import org.openeuler.util.ECUtil;
 import org.openeuler.util.GMUtil;
 import org.openeuler.util.Util;
 import sun.security.jca.JCAUtil;
+import sun.security.util.ECUtil;
 
 /**
  * SM2 keypair generator.
@@ -54,9 +54,6 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
     // sm2p256v1 key size
     private static final int SM2P256V1_KEY_SIZE = 256;
 
-    // wapip192v1 key size
-    private static final int WAPIP192V1_KEY_SIZE = 192;
-
     // ECGenParameterSpec map
     private static Map<Integer, ECGenParameterSpec> ecGenParameterSpecMap;
 
@@ -69,7 +66,6 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
     private static void initECGenParameterSpecMap() {
         ecGenParameterSpecMap = new HashMap<>();
         ecGenParameterSpecMap.put(SM2P256V1_KEY_SIZE, new ECGenParameterSpec("sm2p256v1"));
-        ecGenParameterSpecMap.put(WAPIP192V1_KEY_SIZE, new ECGenParameterSpec("wapip192v1"));
     }
 
     /**
@@ -98,7 +94,7 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
     public void initialize(AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidAlgorithmParameterException {
 
-        if (!GMUtil.isGMCurve(params)) {
+        if (!GMUtil.isSM2Curve(params)) {
             throw new InvalidAlgorithmParameterException(
                     "Not a GM curve : " +
                             ((params instanceof ECGenParameterSpec) ?
@@ -147,14 +143,14 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
             BigInteger n = ((ECParameterSpec) params).getOrder();
             int nBitLength = n.bitLength();
 
+            // d in [1, n-2]
+            BigInteger limit = n.subtract(BigInteger.ONE);
             BigInteger d;
             do {
                 d = Util.createRandomBigInteger(nBitLength, random);
             }
-            while (d.compareTo(BigInteger.ONE) < 0 || (d.compareTo(n) >= 0));
-
-            ECPoint genPoint = ecParams.getGenerator();
-            ECPoint w = ECUtil.multiply(genPoint, d, ecParams.getCurve());
+            while (d.compareTo(BigInteger.ONE) < 0 || (d.compareTo(limit) >= 0));
+            ECPoint w = GMUtil.multiply(ecParams.getGenerator(), d, ecParams.getCurve());
 
             PrivateKey privateKey = new BGECPrivateKey(d, ecParams);
             PublicKey publicKey = new BGECPublicKey(w, ecParams);

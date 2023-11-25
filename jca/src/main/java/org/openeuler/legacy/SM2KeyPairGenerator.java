@@ -50,9 +50,6 @@ public class SM2KeyPairGenerator extends java.security.KeyPairGeneratorSpi {
     // sm2p256v1 key size
     private static final int SM2P256V1_KEY_SIZE = 256;
 
-    // wapip192v1 key size
-    private static final int WAPIP192V1_KEY_SIZE = 192;
-
     // ECGenParameterSpec map
     private static Map<Integer, ECGenParameterSpec> ecGenParameterSpecMap;
 
@@ -67,7 +64,6 @@ public class SM2KeyPairGenerator extends java.security.KeyPairGeneratorSpi {
     private static void initECGenParameterSpecMap() {
         ecGenParameterSpecMap = new HashMap<>();
         ecGenParameterSpecMap.put(SM2P256V1_KEY_SIZE, new ECGenParameterSpec("sm2p256v1"));
-        ecGenParameterSpecMap.put(WAPIP192V1_KEY_SIZE, new ECGenParameterSpec("wapip192v1"));
     }
 
     public SM2KeyPairGenerator() {

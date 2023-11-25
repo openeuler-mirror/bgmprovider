@@ -26,11 +26,12 @@ package org.openeuler;
 
 import org.openeuler.sun.security.ec.BGECPrivateKey;
 import org.openeuler.sun.security.ec.BGECPublicKey;
-import org.openeuler.util.ECUtil;
+import org.openeuler.util.GMUtil;
 import org.openeuler.util.Util;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
+import sun.security.util.ECUtil;
 
 import javax.crypto.*;
 import java.io.ByteArrayOutputStream;
@@ -579,7 +580,7 @@ public class SM2Cipher extends CipherSpi {
         EllipticCurve curve = ecParameterSpec.getCurve();
         ECPoint Pb = ((ECPublicKey) this.ecKey).getW();
 
-        ECPoint s = ECUtil.multiply(Pb, ecParameterSpec.getCofactor(), curve);
+        ECPoint s = GMUtil.multiply(Pb, ecParameterSpec.getCofactor(), curve);
         if (s.equals(ECPoint.POINT_INFINITY)) {
             throw new InvalidKeyException("[h]Pb at infinity");
         }
@@ -595,10 +596,10 @@ public class SM2Cipher extends CipherSpi {
             }
             while (k.compareTo(BigInteger.ONE) < 0 || k.compareTo(n) >= 0);
 
-            c1Point = ECUtil.multiply(ecParameterSpec.getGenerator(), k, curve);
+            c1Point = GMUtil.multiply(ecParameterSpec.getGenerator(), k, curve);
             c1 = ECUtil.encodePoint(c1Point, curve);
 
-            kPb = ECUtil.multiply(Pb, k, curve);
+            kPb = GMUtil.multiply(Pb, k, curve);
 
             x2 = Util.asUnsignedByteArray(curveLength, kPb.getAffineX());
             y2 = Util.asUnsignedByteArray(curveLength, kPb.getAffineY());
@@ -663,7 +664,7 @@ public class SM2Cipher extends CipherSpi {
 
         BigInteger x = values[0].getPositiveBigInteger();
         BigInteger y = values[1].getPositiveBigInteger();
-        ECPoint c1Point = new ECPoint(x, y);
+        ECPoint c1Point = new SM2Point(x, y);
 
         ECParameterSpec ecParameterSpec = ((ECPrivateKey) this.ecKey).getParams();
         EllipticCurve curve = ecParameterSpec.getCurve();
@@ -678,17 +679,17 @@ public class SM2Cipher extends CipherSpi {
             c3 = values[3].getOctetString();
         }
 
-        if (!ECUtil.checkECPoint(c1Point, curve)) {
+        if (!GMUtil.checkECPoint(c1Point, curve)) {
             throw new InvalidKeyException("C1 does not satisfy the curve equation");
         }
 
-        ECPoint s = ECUtil.multiply(c1Point, ecParameterSpec.getCofactor(), curve);
+        ECPoint s = GMUtil.multiply(c1Point, ecParameterSpec.getCofactor(), curve);
         if (s.equals(ECPoint.POINT_INFINITY)) {
             throw new InvalidKeyException("[h]C1 at infinity");
         }
 
         // temp = (x2, y2) = [dB]C1
-        ECPoint temp = ECUtil.multiply(c1Point, ((ECPrivateKey) this.ecKey).getS(), curve);
+        ECPoint temp = GMUtil.multiply(c1Point, ((ECPrivateKey) this.ecKey).getS(), curve);
 
         byte[] x2 = Util.asUnsignedByteArray(curveLength, temp.getAffineX());
         byte[] y2 = Util.asUnsignedByteArray(curveLength, temp.getAffineY());
