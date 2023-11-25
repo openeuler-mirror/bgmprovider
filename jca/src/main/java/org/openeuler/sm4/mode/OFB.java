@@ -222,4 +222,12 @@ public class OFB extends StreamModeBaseCipher {
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
         }
     }
+
+    @Override
+    public void reset() {
+        inputUpdate = null;
+        inputLenUpdate = 0;
+        len = 0;
+        sm4.copyArray(iv, 0, iv.length, counter, 0);
+    }
 }

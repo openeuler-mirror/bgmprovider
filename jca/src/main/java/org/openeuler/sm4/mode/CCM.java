@@ -343,14 +343,11 @@ public class CCM extends StreamModeBaseCipher {
     public void reset() {
         super.reset();
         aad = null;
-        isInitialized = false;
-        for (int i = 0; i < B.length; i++) {
-            B[i] = 0;
-        }
-        for (int i = 0; i < counter0.length; i++) {
-            counter0[i] = 0;
-        }
-        L = 0;
+        Arrays.fill(B, (byte) 0);
+        L = 15 - iv.length;
+        getCountero();
+        sm4.copyArray(counter0, 0, counter0.length, counter, 0);
+        incr();
         lenA = null;
 
     }
