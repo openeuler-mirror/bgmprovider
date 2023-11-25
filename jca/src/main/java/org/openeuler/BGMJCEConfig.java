@@ -24,16 +24,28 @@
 
 package org.openeuler;
 
-import java.security.Provider;
-
-public class BGMProvider extends AbstractProvider {
-
-    public BGMProvider() {
-       super("BGMProvider", 1.8d, "BGMProvider");
+class BGMJCEConfig {
+    static boolean enableSM2() {
+        return Config.enable("jce.sm2");
     }
 
-    @Override
-    protected AbstractEntries createEntries(Provider provider) {
-        return new BGMEntries(provider);
+    static boolean enableEC() {
+        return Config.enable("jce.ec");
+    }
+
+    static boolean enableSM3() {
+        return Config.enable("jce.sm3");
+    }
+
+    static boolean enableSM4() {
+        return Config.enable("jce.sm3");
+    }
+
+    static boolean enableSM3withSM2() {
+        return Config.enable("jce.signatureSM3withSM2");
+    }
+
+    static boolean enablePBES2() {
+        return Config.enable("jce.pbes2");
     }
 }

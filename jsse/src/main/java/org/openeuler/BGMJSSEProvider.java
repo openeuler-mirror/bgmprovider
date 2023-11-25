@@ -24,100 +24,19 @@
 
 package org.openeuler;
 
-import java.io.*;
 import java.security.Provider;
-import java.util.Map;
-import java.util.Properties;
 
-public class BGMJSSEProvider extends Provider {
+public class BGMJSSEProvider extends AbstractProvider {
     public BGMJSSEProvider() {
         super("BGMJSSEProvider", 1.8d, "BGMJSSEProvider");
-
-        putEntries(this);
-        CompatibleOracleJdkHandler.skipJarVerify(this);
     }
 
-    private static Properties getProp() {
-        Properties props = new Properties();
-        String bgmproviderConf = System.getProperty("bgmprovider.conf");
-        if (bgmproviderConf == null) {
-            return props;
-        }
-
-        File propFile = new File(bgmproviderConf);
-        if (propFile.exists()) {
-            try (InputStream is = new BufferedInputStream(new FileInputStream(propFile))) {
-                props.load(is);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        return props;
+    @Override
+    protected AbstractEntries createEntries(Provider provider) {
+        return createJSSEEntries(provider);
     }
 
-    static void putEntries(Map<Object, Object> map) {
-        Properties props = getProp();
-        if (!"false".equalsIgnoreCase(props.getProperty("jsse.keyManagerFactory"))) {
-            putKeyManagerFactory(map);
-        }
-        if (!"false".equalsIgnoreCase(props.getProperty("jsse.trustManagerFactory"))) {
-            putTrustManagerFactory(map);
-        }
-        if (!"false".equalsIgnoreCase(props.getProperty("jsse.keyGenerator"))) {
-            putKeyGenerator(map);
-        }
-        if (!"false".equalsIgnoreCase(props.getProperty("jsse.sslContext"))) {
-            putSSLContext(map);
-        }
-        if (!"false".equalsIgnoreCase(props.getProperty("jsse.keystore"))) {
-            putKeyStore(map);
-        }
+    static AbstractEntries createJSSEEntries(Provider provider) {
+        return new BGMJSSEEntries(provider);
     }
-
-    private static void putKeyManagerFactory(Map<Object, Object> map) {
-        map.put("KeyManagerFactory.SunX509", "org.openeuler.sun.security.ssl.KeyManagerFactoryImpl$SunX509");
-        map.put("KeyManagerFactory.NewSunX509", "org.openeuler.sun.security.ssl.KeyManagerFactoryImpl$X509");
-        map.put("Alg.Alias.KeyManagerFactory.PKIX", "NewSunX509");
-    }
-
-    private static void putTrustManagerFactory(Map<Object, Object> map) {
-        map.put("TrustManagerFactory.SunX509", "org.openeuler.sun.security.ssl.TrustManagerFactoryImpl$SimpleFactory");
-        map.put("TrustManagerFactory.PKIX", "org.openeuler.sun.security.ssl.TrustManagerFactoryImpl$PKIXFactory");
-        map.put("Alg.Alias.TrustManagerFactory.SunPKIX", "PKIX");
-        map.put("Alg.Alias.TrustManagerFactory.X509", "PKIX");
-        map.put("Alg.Alias.TrustManagerFactory.X.509", "PKIX");
-    }
-
-    private static void putKeyGenerator(Map<Object, Object> map) {
-        map.put("KeyGenerator.SunTlsPrf", "org.openeuler.com.sun.crypto.provider.TlsPrfGenerator$V10");
-        map.put("KeyGenerator.SunTls12Prf", "org.openeuler.com.sun.crypto.provider.TlsPrfGenerator$V12");
-
-        map.put("KeyGenerator.SunTlsMasterSecret", "org.openeuler.com.sun.crypto.provider.TlsMasterSecretGenerator");
-        map.put("Alg.Alias.KeyGenerator.SunTls12MasterSecret", "SunTlsMasterSecret");
-        map.put("Alg.Alias.KeyGenerator.SunTlsExtendedMasterSecret", "SunTlsMasterSecret");
-
-        map.put("KeyGenerator.GMTlsPrf", "org.openeuler.gm.GMTlsPrfGenerator");
-        map.put("KeyGenerator.GMTlsMasterSecret", "org.openeuler.gm.GMTlsMasterSecretGenerator");
-        map.put("KeyGenerator.GMTlsKeyMaterial", "org.openeuler.gm.GMTlsKeyMaterialGenerator");
-
-        map.put("KeyGenerator.SunTlsKeyMaterial", "org.openeuler.com.sun.crypto.provider.TlsKeyMaterialGenerator");
-        map.put("Alg.Alias.KeyGenerator.SunTls12KeyMaterial", "SunTlsKeyMaterial");
-    }
-
-    private static void putSSLContext(Map<Object, Object> map) {
-        map.put("SSLContext.GMTLS", "org.openeuler.sun.security.ssl.SSLContextImpl$GMTLSContext");
-        map.put("SSLContext.TLSv1.1", "org.openeuler.sun.security.ssl.SSLContextImpl$TLS11Context");
-        map.put("SSLContext.TLSv1.2", "org.openeuler.sun.security.ssl.SSLContextImpl$TLS12Context");
-        map.put("SSLContext.TLSv1.3", "org.openeuler.sun.security.ssl.SSLContextImpl$TLS13Context");
-        map.put("SSLContext.TLS", "org.openeuler.sun.security.ssl.SSLContextImpl$TLSContext");
-        map.put("SSLContext.Default", "org.openeuler.sun.security.ssl.SSLContextImpl$DefaultSSLContext");
-        map.put("Alg.Alias.SSLContext.SSLv3", "TLSv1");
-        map.put("Alg.Alias.SSLContext.SSL", "TLS");
-    }
-
-    private static void putKeyStore(Map<Object, Object> map) {
-        map.put("KeyStore.PKCS12", "org.openeuler.gm.KeyStoreResolver$DualFormatPKCS12");
-        map.put("KeyStore.JKS", "org.openeuler.gm.KeyStoreResolver$DualFormatJKS");
-    }
-
 }

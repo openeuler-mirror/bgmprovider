@@ -24,16 +24,35 @@
 
 package org.openeuler;
 
+import org.junit.Assert;
+import org.junit.Test;
+import org.openeuler.BGMJCEProvider;
+import org.openeuler.BGMJSSEProvider;
+import org.openeuler.BGMProvider;
+
 import java.security.Provider;
+import java.util.Set;
+import java.util.TreeSet;
 
-public class BGMProvider extends AbstractProvider {
+public class ProviderTest {
 
-    public BGMProvider() {
-       super("BGMProvider", 1.8d, "BGMProvider");
+    @Test
+    public void testServices() {
+        Set<String> actualServices = new TreeSet<>();
+        buildServiceItems(new BGMJCEProvider(), actualServices);
+        buildServiceItems(new BGMJSSEProvider(), actualServices);
+
+        Set<String> expectedServices = new TreeSet<>();
+        buildServiceItems(new BGMProvider(), expectedServices);
+
+        Assert.assertEquals("Registered services are not equal", expectedServices, actualServices);
     }
 
-    @Override
-    protected AbstractEntries createEntries(Provider provider) {
-        return new BGMEntries(provider);
+    private static void buildServiceItems(Provider provider, Set<String> set) {
+        Set<Provider.Service> jceServices = provider.getServices();
+        for (Provider.Service service : jceServices) {
+            String serviceItem = service.toString().substring(service.getProvider().getName().length() + 1);
+            set.add(serviceItem);
+        }
     }
 }
