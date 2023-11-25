@@ -486,5 +486,11 @@ public class CTS extends StreamModeBaseCipher {
         }
         return need;
     }
+
+    @Override
+    public void reset() {
+        super.reset();
+        sm4.copyArray(iv, 0, iv.length, counter, 0);
+    }
 }
 

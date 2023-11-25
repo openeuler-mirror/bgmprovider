@@ -52,6 +52,9 @@ public class GCM extends StreamModeBaseCipher {
     private int aLen;//aad's length
     private int cLen;//cipherText's length
     private byte[] updateData;//save the data operated by calling update method
+    private boolean requireReinit;
+    private byte[] lastEncIv;
+    private byte[] lastEncKey;
 
     @Override
     public void engineInit(int opmode, Key key, SecureRandom random) throws InvalidKeyException {
@@ -97,19 +100,31 @@ public class GCM extends StreamModeBaseCipher {
                 if (gcmParam.getIV() == null || gcmParam.getIV().length < 1) {
                     throw new InvalidAlgorithmParameterException("IV at least 1 byte long.");
                 }
-                if (Arrays.equals(this.iv, gcmParam.getIV()) && opmode == Cipher.ENCRYPT_MODE) {
-                    throw new InvalidAlgorithmParameterException("cannot reuse nonce for GCM encryption");
-                }
                 this.tLen = gcmParam.getTLen();
                 this.iv = gcmParam.getIV();
             }
-
         }
+
+        if (this.opmode == Cipher.ENCRYPT_MODE) {
+            // check key+iv for encryption in GCM mode
+            byte[] keyBytes = key.getEncoded();
+            this.requireReinit =
+                    Arrays.equals(iv, lastEncIv) &&
+                            MessageDigest.isEqual(keyBytes, lastEncKey);
+            if (this.requireReinit) {
+                throw new InvalidAlgorithmParameterException
+                        ("Cannot reuse iv for GCM encryption");
+            }
+            this.lastEncIv = iv;
+            this.lastEncKey = keyBytes;
+        }
+
         H = sm4.encrypt(this.rk, new byte[16], 0);
         counter0 = GMacUtil.getCounter0(iv, H);
         sm4.copyArray(counter0, 0, counter0.length, counter, 0);
         inc32();
         this.isInitialized = true;
+        this.requireReinit = false;
     }
 
     @Override
@@ -174,6 +189,7 @@ public class GCM extends StreamModeBaseCipher {
         if(!isInitialized){
             throw new IllegalStateException("cipher uninitialized");
         }
+        checkReinit();
         if (input == null || inputLen == 0) {
             return null;
         }
@@ -209,6 +225,7 @@ public class GCM extends StreamModeBaseCipher {
         if(!isInitialized){
             throw new IllegalStateException("cipher uninitialized");
         }
+        checkReinit();
         byte[] res = engineUpdate(input, inputOffset, inputLen);
         if (res == null) {
             return 0;
@@ -221,10 +238,12 @@ public class GCM extends StreamModeBaseCipher {
     }
 
     @Override
-    public int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+    public int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset)
+            throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
         if(!isInitialized){
             throw new IllegalStateException("cipher uninitialized");
         }
+        checkReinit();
         int need = 0;
         int restLen = inputLenUpdate - len;
         if (this.opmode == Cipher.ENCRYPT_MODE) {
@@ -303,6 +322,9 @@ public class GCM extends StreamModeBaseCipher {
             }
         }
         this.reset();
+        if (this.opmode == Cipher.ENCRYPT_MODE) {
+            this.requireReinit = true;
+        }
         return need;
     }
 
@@ -312,6 +334,7 @@ public class GCM extends StreamModeBaseCipher {
         if(!isInitialized){
             throw new IllegalStateException("cipher uninitialized");
         }
+        checkReinit();
         int restLen = inputLenUpdate - len;
         byte[] res = null;
 
@@ -382,6 +405,9 @@ public class GCM extends StreamModeBaseCipher {
             }
         }
         this.reset();
+        if (this.opmode == Cipher.ENCRYPT_MODE) {
+            this.requireReinit = true;
+        }
         return res;
     }
 
@@ -722,9 +748,20 @@ public class GCM extends StreamModeBaseCipher {
         aad = null;
         cLen = 0;
         aLen = 0;
-        isInitialized = false;
         g = null;
-        H = null;
         updateData = null;
+        if (this.opmode == Cipher.DECRYPT_MODE) {
+            H = sm4.encrypt(this.rk, new byte[16], 0);
+            counter0 = GMacUtil.getCounter0(iv, H);
+            sm4.copyArray(counter0, 0, counter0.length, counter, 0);
+            inc32();
+        }
+    }
+
+    private void checkReinit() {
+        if (requireReinit) {
+            throw new IllegalStateException
+                    ("Must use either different key or iv for GCM encryption");
+        }
     }
 }

@@ -403,4 +403,15 @@ public class CTR extends StreamModeBaseCipher {
             sm4.copyArray(xor, 0, xor.length, output, outputOffset + i - inputOffset);
         }
     }
+
+    @Override
+    public void reset() {
+        inputUpdate = null;
+        inputLenUpdate = 0;
+        len = 0;
+        System.arraycopy(iv, 0, counter, 0, iv.length);
+        for (int i = iv.length; i < counter.length; i++) {
+            counter[i] = (byte) 0;
+        }
+    }
 }

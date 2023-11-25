@@ -636,17 +636,17 @@ public class OCB extends StreamModeBaseCipher {
     public void reset() {
         checkSum = null;
         aad = null;
-        H = null;
-        L_$ = null;
         L = null;
-        L_0 = null;
         nonce = null;
         offset = null;
         ktop = null;
         stretch = null;
         tag = null;
         tLen = 128;
-        isInitialized = false;
+        H = sm4.encrypt(this.rk, new byte[BLOCKSIZE], 0);
+        L_$ = double_(H);
+        L_0 = double_(L_$);
+        init();
         super.reset();
     }
 }

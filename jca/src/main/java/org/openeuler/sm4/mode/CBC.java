@@ -440,4 +440,10 @@ public class CBC extends StreamModeBaseCipher {
             sm4.copyArray(encrypt, 0, encrypt.length, output, baseOffset + i);
         }
     }
+
+    @Override
+    public void reset() {
+        super.reset();
+        sm4.copyArray(iv, 0, iv.length, counter, 0);
+    }
 }

@@ -107,8 +107,5 @@ public class StreamModeBaseCipher extends SM4BaseCipher {
     @Override
     public void reset() {
         super.reset();
-        for (int i = 0; i < this.counter.length; i++) {
-            counter[i]=0;
-        }
     }
 }

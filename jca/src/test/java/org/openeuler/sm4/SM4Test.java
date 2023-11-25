@@ -52,6 +52,205 @@ public class SM4Test {
     }
 
     @Test
+    public void testIvLengthAll() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+
+        // no iv ECB
+
+        // iv.length = 16 (CBC/CFB/CTS/OFB)
+        String[] transformations = new String[]{
+                "SM4/CBC/NoPadding",
+                "SM4/CFB/NoPadding",
+                "SM4/CTS/NoPadding",
+                "SM4/OFB/NoPadding"
+        };
+        int[] validIvLengths = new int[]{16};
+        int[] invalidIvLengths = new int[]{0,7,15,17,32};
+        for (String transformation : transformations) {
+            testIvLength(transformation, key, validIvLengths, invalidIvLengths);
+        }
+
+        // iv.length = [8,16] CTR
+        validIvLengths = new int[9];
+        for (int i = 0; i < validIvLengths.length; i++) {
+            validIvLengths[i] = i + 8;
+        }
+        invalidIvLengths = new int[]{0,1,5,7,17,32};
+        testIvLength("SM4/CTR/NoPadding", key, validIvLengths, invalidIvLengths);
+
+        // iv.length >=1 GCM
+        validIvLengths = new int[32];
+        for (int i = 0; i < validIvLengths.length; i++) {
+            validIvLengths[i] = i + 1;
+        }
+        invalidIvLengths = new int[]{0};
+        testIvLength("SM4/GCM/NoPadding", key, validIvLengths, invalidIvLengths);
+
+        // iv.length = [0,15] OCB  RFC 7253 4.2. Nonce is a string of no more than 120 bits
+        validIvLengths = new int[16];
+        for (int i = 0; i < validIvLengths.length; i++) {
+            validIvLengths[i] = i;
+        }
+        invalidIvLengths = new int[]{16,17,30};
+        testIvLength("SM4/OCB/NoPadding", key, validIvLengths, invalidIvLengths);
+
+        // iv.length = [7,13] CCM
+        validIvLengths = new int[7];
+        for (int i = 0; i < validIvLengths.length; i++) {
+            validIvLengths[i] = i + 7;
+        }
+        testIvLength("SM4/CCM/NoPadding", key, validIvLengths, invalidIvLengths);
+    }
+
+    private void testIvLength(String transformation, Key key, int[] validIvLengths, int[] invalidIvLengths) throws Exception {
+        Cipher cipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+
+        // valid iv
+        for (int validIvLength : validIvLengths) {
+            byte[] iv = new byte[validIvLength];
+            cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+        }
+
+        byte[] iv;
+        for (int invalidIvLength : invalidIvLengths) {
+            Throwable ex = null;
+            try {
+                iv = new byte[invalidIvLength];
+                cipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+            } catch (Exception e) {
+                ex = e;
+            }
+            Assert.assertTrue(transformation + " testIvLength " + invalidIvLength + " failed",
+                    ex instanceof InvalidAlgorithmParameterException
+                            || (ex != null && ex.getCause() != null &&
+                            ex.getCause() instanceof ArrayIndexOutOfBoundsException));
+        }
+    }
+
+    @Test
+    public void testReDoFinalAll() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+
+        int[] noPaddingPlainTextLens = new int[]{16, 32};
+        String[] noPaddingTransformations = new String[]{
+                "SM4/CBC/NoPadding",
+                "SM4/CFB/NoPadding",
+                "SM4/CTS/NoPadding",
+                "SM4/CTR/NoPadding",
+                "SM4/OFB/NoPadding"
+        };
+
+        int[] pkcs5PaddingPlainTextLens = new int[]{15, 16, 31, 32};
+        String[] pkcs5PaddingTransformations = new String[]{
+                "SM4/CBC/PKCS5Padding",
+                "SM4/CFB/PKCS5Padding",
+                "SM4/CTS/PKCS5Padding",
+                "SM4/CTR/PKCS5Padding",
+                "SM4/OFB/PKCS5Padding"
+        };
+
+        // no iv ECB
+        for (int plainTextLen : noPaddingPlainTextLens) {
+            testReDoFinal("SM4/ECB/NoPadding", key, 0, plainTextLen);
+        }
+
+        for (int plainTextLen : pkcs5PaddingPlainTextLens) {
+            testReDoFinal("SM4/ECB/PKCS5Padding", key, 0, plainTextLen);
+        }
+
+        // iv.length = 16 (CBC/CFB/CTS/CTR/OFB)
+        for (String transformation : noPaddingTransformations) {
+            for (int plainTextLen : noPaddingPlainTextLens) {
+                testReDoFinal(transformation, key, 16, plainTextLen);
+            }
+        }
+        for (String transformation : pkcs5PaddingTransformations) {
+            for (int plainTextLen : pkcs5PaddingPlainTextLens) {
+                testReDoFinal(transformation, key, 16, plainTextLen);
+            }
+        }
+
+        // iv.length = [8,16] CTR
+        for (int i = 8; i <= 16; i++) {
+            for (int plainTextLen : noPaddingPlainTextLens) {
+                testReDoFinal("SM4/CTR/NoPadding", key, i, plainTextLen);
+            }
+
+            for (int plainTextLen : pkcs5PaddingPlainTextLens) {
+                testReDoFinal("SM4/CTR/PKCS5Padding", key, i, plainTextLen);
+            }
+        }
+
+        // iv.length = [0,15]  OCB
+        for (int i = 0; i <= 15; i++) {
+            testReDoFinal("SM4/OCB/NoPadding", key, i, 16 * i);
+        }
+
+        // iv.length = [7,13]  CCM
+        for (int i = 7; i <= 13; i++) {
+            testReDoFinal("SM4/CCM/NoPadding", key, i, 16 * i);
+        }
+
+        // iv.length >=1 GCM
+        for (int i = 1; i < 32; i++) {
+            testReDoFinal("SM4/GCM/NoPadding", key, i, 16 * i);
+        }
+    }
+
+
+    public void testReDoFinal(String transformation, Key key, int ivLen, int plainTextLen) throws Exception {
+        SecureRandom random = new SecureRandom();
+
+        // data
+        byte[] data = new byte[plainTextLen];
+        random.nextBytes(data);
+
+        Cipher cipher = Cipher.getInstance(transformation , "BGMJCEProvider");
+        IvParameterSpec ivParameterSpec = null;
+        if (!transformation.contains("ECB")) {
+            // iv
+            byte[] iv = new byte[ivLen];
+            random.nextBytes(iv);
+            ivParameterSpec = new IvParameterSpec(iv);
+
+            cipher.init(Cipher.ENCRYPT_MODE, key, ivParameterSpec);
+        } else {
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+        }
+
+        byte[] encryptedBytes = cipher.doFinal(data);
+
+        Throwable ex = null;
+        byte[] encryptedBytesAgain = null;
+        try {
+            encryptedBytesAgain = cipher.doFinal(data);
+        } catch (Exception e) {
+            ex = e;
+        }
+        if (transformation.contains("GCM")) {
+            Assert.assertTrue(transformation + " testReDoFinal encrypt failed",
+                    ex instanceof IllegalStateException);
+        } else {
+            Assert.assertArrayEquals(transformation + " testReDoFinal encrypt failed",
+                    encryptedBytes, encryptedBytesAgain);
+        }
+
+        if (!transformation.contains("ECB")) {
+            cipher.init(Cipher.DECRYPT_MODE, key, ivParameterSpec);
+        } else {
+            cipher.init(Cipher.DECRYPT_MODE, key);
+        }
+        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+        byte[] decryptedBytesAgain = cipher.doFinal(encryptedBytes);
+        Assert.assertArrayEquals(transformation + " testReDoFinal decrypt failed",
+                decryptedBytes, decryptedBytesAgain);
+    }
+
+    @Test
     public void test() throws Exception {
         if (Security.getProvider("BC") == null) {
             System.out.println("Skip test, BouncyCastleProvider does not exist");
