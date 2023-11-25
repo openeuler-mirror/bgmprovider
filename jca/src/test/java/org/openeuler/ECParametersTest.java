@@ -27,7 +27,7 @@ package org.openeuler;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openeuler.sun.security.util.ECNamedCurve;
+
 import sun.security.util.ECKeySizeParameterSpec;
 import sun.security.util.NamedCurve;
 
@@ -39,7 +39,7 @@ import java.security.spec.ECParameterSpec;
 public class ECParametersTest {
     private static NamedCurve nameCurve;
 
-    private static ECNamedCurve ecNamedCurve;
+    private static ECParameterSpec ecNamedCurve;
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -57,7 +57,7 @@ public class ECParametersTest {
         keyPair = keyPairGenerator.generateKeyPair();
         Assert.assertTrue(keyPair.getPublic() instanceof ECPublicKey);
         ecPublicKey = (ECPublicKey) keyPair.getPublic();
-        ecNamedCurve = (ECNamedCurve) ecPublicKey.getParams();
+        ecNamedCurve = ecPublicKey.getParams();
     }
 
     @Test
@@ -66,7 +66,9 @@ public class ECParametersTest {
         algorithmParameters.init(new ECGenParameterSpec("sm2p256v1"));
         algorithmParameters.getParameterSpec(ECGenParameterSpec.class);
         algorithmParameters.getParameterSpec(ECParameterSpec.class);
-        algorithmParameters.getParameterSpec(ECKeySizeParameterSpec.class);
+        if (!BGMJCEConfig.useLegacy()) {
+            algorithmParameters.getParameterSpec(ECKeySizeParameterSpec.class);
+        }
     }
 
     @Test
@@ -76,24 +78,31 @@ public class ECParametersTest {
                 ecNamedCurve.getOrder(), ecNamedCurve.getCofactor()));
         algorithmParameters.getParameterSpec(ECGenParameterSpec.class);
         algorithmParameters.getParameterSpec(ECParameterSpec.class);
-        algorithmParameters.getParameterSpec(ECKeySizeParameterSpec.class);
+        if (!BGMJCEConfig.useLegacy()) {
+            algorithmParameters.getParameterSpec(ECKeySizeParameterSpec.class);
+        }
     }
 
     @Test
     public void initECNameCurve() throws Exception {
         AlgorithmParameters algorithmParameters = AlgorithmParameters.getInstance("EC");
         algorithmParameters.init(ecNamedCurve);
-        ECGenParameterSpec parameterSpec = algorithmParameters.getParameterSpec(ECGenParameterSpec.class);
-        System.out.println(parameterSpec.getName());
+        algorithmParameters.getParameterSpec(ECGenParameterSpec.class);
         algorithmParameters.getParameterSpec(ECParameterSpec.class);
-        algorithmParameters.getParameterSpec(ECKeySizeParameterSpec.class);
+        if (!BGMJCEConfig.useLegacy()) {
+            algorithmParameters.getParameterSpec(ECKeySizeParameterSpec.class);
+        }
     }
 
     @Test
     public void initJDKNameCurve() throws Exception {
         AlgorithmParameters algorithmParameters = AlgorithmParameters.getInstance("EC");
         algorithmParameters.init(nameCurve);
+        algorithmParameters.getParameterSpec(ECGenParameterSpec.class);
         algorithmParameters.getParameterSpec(ECParameterSpec.class);
-        algorithmParameters.getParameterSpec(ECKeySizeParameterSpec.class);
+        if (!BGMJCEConfig.useLegacy()) {
+            algorithmParameters.getParameterSpec(ECKeySizeParameterSpec.class);
+        }
+
     }
 }

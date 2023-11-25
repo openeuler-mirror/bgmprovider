@@ -72,6 +72,10 @@ public class ECKeyPairGeneratorTest {
             generateKeyPair(new ECGenParameterSpec(nameCurve), "SM2");
         }
 
+        if (BGMJCEConfig.useLegacy()) {
+            return;
+        }
+
         boolean success = true;
         for (String nameCurve : N_GM_NAMED_CURVES) {
             System.out.println("test non-GM: " + nameCurve);

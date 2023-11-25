@@ -24,7 +24,10 @@
 
 package org.openeuler;
 
-class BGMJCEConfig {
+import sun.security.util.Debug;
+
+public class BGMJCEConfig {
+    private static final Debug debug = Debug.getInstance("provider");
     static boolean enableSM2() {
         return Config.enable("jce.sm2");
     }
@@ -47,5 +50,13 @@ class BGMJCEConfig {
 
     static boolean enablePBES2() {
         return Config.enable("jce.pbes2");
+    }
+
+    public static boolean useLegacy() {
+        boolean useLegacy = Config.enable("jce.useLegacy", "false");
+        if (debug != null) {
+            debug.println("useLegacy=" + useLegacy);
+        }
+        return useLegacy;
     }
 }

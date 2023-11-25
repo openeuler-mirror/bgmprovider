@@ -69,14 +69,18 @@ public class ECKeyFactoryTest {
 
     @Test
     public void generatePrivate() throws Exception {
-        generatePrivate(PRIVATE_KEY_PKCS8_OPENSSL3);
+        if (!BGMJCEConfig.useLegacy()) {
+            generatePrivate(PRIVATE_KEY_PKCS8_OPENSSL3);
+        }
         generatePrivate(PRIVATE_KEY_PKCS8_OPENSSL1);
     }
 
 
     @Test
     public void generatePublic() throws Exception {
-        generatePublic(PUBLIC_KEY_X509_OPENSSL3);
+        if (!BGMJCEConfig.useLegacy()) {
+            generatePublic(PUBLIC_KEY_X509_OPENSSL3);
+        }
         generatePublic(PUBLIC_KEY_X509_OPENSSL1);
     }
 
