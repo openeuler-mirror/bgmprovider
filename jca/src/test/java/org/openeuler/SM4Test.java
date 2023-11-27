@@ -27,7 +27,6 @@ package org.openeuler;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openeuler.BGMJCEProvider;
 
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidParameterException;

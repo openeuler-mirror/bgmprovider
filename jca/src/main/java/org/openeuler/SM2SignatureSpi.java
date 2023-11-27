@@ -26,7 +26,7 @@ package org.openeuler;
 
 import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 import org.openeuler.sun.security.ec.ECKeyFactory;
-import org.openeuler.util.ECUtil;
+import org.openeuler.util.GMUtil;
 import org.openeuler.util.Util;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
@@ -115,7 +115,7 @@ public class SM2SignatureSpi extends SignatureSpi {
         entLen[0] = (byte) (((ID.length * 8) >> 8) & 0xFF);
         entLen[1] = (byte) ((ID.length * 8) & 0xFF);
 
-        pubPoint = ECUtil.multiply(ecParams.getGenerator(),this.privateKey.getS(), ecParams.getCurve());
+        pubPoint = GMUtil.multiply(ecParams.getGenerator(), this.privateKey.getS(), ecParams.getCurve());
 
         z = getZ(entLen, ID);
         byteBuf.reset();
@@ -211,7 +211,7 @@ public class SM2SignatureSpi extends SignatureSpi {
                     while (k.compareTo(BigInteger.ONE) < 0 || k.compareTo(n) >= 0);
 
                     // (x1, y1) = [k]G
-                    BigInteger x1 = ECUtil.multiply(ecParams.getGenerator(), k, ecParams.getCurve()).getAffineX();
+                    BigInteger x1 = GMUtil.multiply(ecParams.getGenerator(), k, ecParams.getCurve()).getAffineX();
 
                     // r = (e + x1) mod n
                     r = e.add(x1).mod(n);
@@ -278,8 +278,8 @@ public class SM2SignatureSpi extends SignatureSpi {
             }
 
             // (x1, y1) = [s]G + [t]P
-            ECPoint x1y1 = ECUtil.add(ECUtil.multiply(ecParams.getGenerator(), s, ecParams.getCurve()),
-                    ECUtil.multiply(pubPoint, t, ecParams.getCurve()), ecParams.getCurve());
+            ECPoint x1y1 = GMUtil.add(GMUtil.multiply(ecParams.getGenerator(), s, ecParams.getCurve()),
+                    GMUtil.multiply(pubPoint, t, ecParams.getCurve()));
             if (x1y1.equals(ECPoint.POINT_INFINITY)) {
                 return false;
             }

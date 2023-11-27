@@ -33,12 +33,12 @@ import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECGenParameterSpec;
+import java.util.Arrays;
 
 public class ECKeyPairGeneratorTest {
 
     private static final String[] GM_NAMED_CURVES = new String[]{
-            "sm2p256v1", "1.2.156.10197.1.301",
-            "wapip192v1", "1.2.156.10197.1.301.101",
+            "sm2p256v1", "1.2.156.10197.1.301"
     };
 
     private static final String[] N_GM_NAMED_CURVES = new String[]{

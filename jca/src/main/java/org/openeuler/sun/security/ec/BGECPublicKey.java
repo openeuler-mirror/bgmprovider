@@ -31,8 +31,10 @@ import java.security.*;
 import java.security.interfaces.*;
 import java.security.spec.*;
 
+import org.openeuler.SM2Point;
 import org.openeuler.sun.security.util.ECParameters;
 
+import org.openeuler.util.GMUtil;
 import sun.security.util.ECUtil;
 import sun.security.x509.*;
 
@@ -106,7 +108,12 @@ public final class BGECPublicKey extends X509Key implements ECPublicKey {
 
         try {
             params = algParams.getParameterSpec(ECParameterSpec.class);
-            w = ECUtil.decodePoint(key, params.getCurve());
+            ECPoint pubPoint = ECUtil.decodePoint(key, params.getCurve());
+            if (GMUtil.isSM2Curve(params.getCurve())) {
+                w = new SM2Point(pubPoint);
+            } else {
+                w = pubPoint;
+            }
         } catch (IOException e) {
             throw new InvalidKeyException("Invalid EC key", e);
         } catch (InvalidParameterSpecException e) {
