@@ -61,8 +61,6 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
         initECGenParameterSpecMap();
     }
 
-    private boolean isInitialized;
-
     private static void initECGenParameterSpecMap() {
         ecGenParameterSpecMap = new HashMap<>();
         ecGenParameterSpecMap.put(SM2P256V1_KEY_SIZE, new ECGenParameterSpec("sm2p256v1"));
@@ -124,16 +122,10 @@ public final class SM2KeyPairGenerator extends KeyPairGeneratorSpi {
 
         this.params = ecSpec;
         this.random = random;
-
-        isInitialized = true;
     }
 
     @Override
     public KeyPair generateKeyPair() {
-        if (!isInitialized) {
-            initialize(SM2P256V1_KEY_SIZE, new SecureRandom());
-        }
-
         if (random == null) {
             random = JCAUtil.getSecureRandom();
         }

@@ -27,7 +27,7 @@ package org.openeuler;
 import org.openeuler.sun.security.ec.BGECPrivateKey;
 import org.openeuler.sun.security.ec.BGECPublicKey;
 import org.openeuler.util.GMUtil;
-import sun.security.ec.ECKeyPairGenerator;
+import sun.security.util.ECKeySizeParameterSpec;
 
 import java.security.*;
 import java.security.interfaces.ECPrivateKey;
@@ -35,24 +35,14 @@ import java.security.interfaces.ECPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 
-public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
-
-    // used to seed the keypair generator
-    private SecureRandom random;
-
-    // parameters specified via init, if any
-    private AlgorithmParameterSpec params = null;
-
-    private KeyPairGeneratorSpi engine = new ECKeyPairGenerator();
-
-    private KeyPairGeneratorSpi sm2Engine = new SM2KeyPairGenerator();
+public class ECCKeyPairGenerator extends KeyPairGeneratorSpi {
+    private KeyPairGenerator keyPairGenerator;
 
     private boolean isInitialized = false;
 
     private boolean isGMCurve = false;
 
     public ECCKeyPairGenerator() {
-        initialize(256, null);
     }
 
     /**
@@ -68,20 +58,34 @@ public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
      */
     @Override
     public void initialize(int keysize, SecureRandom random) {
-        engine.initialize(keysize, random);
-        isInitialized = true;
+        try {
+            initialize(new ECKeySizeParameterSpec(keysize), random);
+        } catch (InvalidAlgorithmParameterException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     // second initialize method. See JCA doc
     @Override
     public void initialize(AlgorithmParameterSpec params, SecureRandom random)
             throws InvalidAlgorithmParameterException {
-        isGMCurve = GMUtil.isSM2Curve(params);
-        if (isGMCurve) {
-            sm2Engine.initialize(params, random);
-        } else {
-            engine.initialize(params, random);
+        this.isGMCurve = GMUtil.isSM2Curve(params);
+        String algorithm = "EC";
+        String provider = "SunEC";
+        if (this.isGMCurve) {
+            algorithm = "SM2";
+            provider = null;
         }
+        try {
+            if (provider == null) {
+                this.keyPairGenerator = KeyPairGenerator.getInstance(algorithm);
+            } else {
+                this.keyPairGenerator = KeyPairGenerator.getInstance(algorithm, provider);
+            }
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            throw new InvalidAlgorithmParameterException(e);
+        }
+        this.keyPairGenerator.initialize(params, random);
         isInitialized = true;
     }
 
@@ -100,9 +104,9 @@ public class ECCKeyPairGenerator extends java.security.KeyPairGeneratorSpi {
             initialize(256, new SecureRandom());
         }
         if (isGMCurve) {
-            return sm2Engine.generateKeyPair();
+            return keyPairGenerator.generateKeyPair();
         }
-        KeyPair keyPair = engine.generateKeyPair();
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
         ECPrivateKey privateKey = (ECPrivateKey) keyPair.getPrivate();
         ECPublicKey publicKey = (ECPublicKey) keyPair.getPublic();
