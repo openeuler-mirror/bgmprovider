@@ -43,6 +43,9 @@ public class JavaVersion {
                 return new JavaVersion(8, 302);
             }
 
+            // Adapt to the java.version format of 1.8.x-internal, 11.0.x-internal, 17.0.x-internal
+            versionStr = versionStr.split("-")[0];
+
             // Use 4 bytes to store the version number
             int[] newVersions = new int[4];
             String ch = "_";
