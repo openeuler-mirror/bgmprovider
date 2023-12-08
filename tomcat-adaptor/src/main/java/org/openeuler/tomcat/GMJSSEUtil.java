@@ -111,22 +111,35 @@ public class GMJSSEUtil extends JSSEUtil {
     }
 
     private static Method getStoreMethod() {
-        Method method;
+        Method method = null;
         try {
             method = SSLUtilBase.class.getDeclaredMethod("getStore",
-                    String.class, String.class, String.class, String.class);
+                    String.class, String.class, String.class, String.class, String.class);
         } catch (NoSuchMethodException e) {
-            log.warn("SSLUtilBase class does not define getStore method , " +
+            log.warn("SSLUtilBase class does not define getStore(String,String,String,String,String) method , " +
                     "try to call the JSSEUtil getStore method.");
+        }
+
+        if (method == null) {
+            try {
+                method = SSLUtilBase.class.getDeclaredMethod("getStore",
+                        String.class, String.class, String.class, String.class);
+            } catch (NoSuchMethodException e) {
+                log.warn("SSLUtilBase class does not define getStore(String,String,String,String) method , " +
+                        "try to call the JSSEUtil getStore method.");
+            }
+        }
+
+        if (method == null) {
             try {
                 method = JSSEUtil.class.getDeclaredMethod("getStore",
                         String.class, String.class, String.class, String.class);
-                log.info("Call JSSEUtil getStore method success");
-            } catch (NoSuchMethodException noSuchMethodException) {
+            } catch (NoSuchMethodException e) {
                 log.error("JSSEUtil class does not define getStore method.");
-                throw new InternalError(noSuchMethodException);
+                throw new InternalError(e);
             }
         }
+
         method.setAccessible(true);
         return method;
     }
@@ -493,8 +506,20 @@ public class GMJSSEUtil extends JSSEUtil {
                 "\tprovider : %s \n" +
                 "\tpath : %s \n" +
                 "}", type, provider, path));
+
+        // build args
+        Object[] args;
+        int parameterCount = getStoreMethod.getParameterCount();
+        if (parameterCount == 4) {
+            args = new Object[]{type, provider, path, pass};
+        } else if (parameterCount == 5) {
+            args = new Object[]{type, provider, path, pass, null};
+        } else {
+            throw new IllegalArgumentException("Not expected parameter count");
+        }
+
         try {
-            return (KeyStore) getStoreMethod.invoke(this, type, provider, path, pass);
+            return (KeyStore) getStoreMethod.invoke(this, args);
         } catch (InvocationTargetException | IllegalAccessException e) {
             throw new IOException(e);
         }
