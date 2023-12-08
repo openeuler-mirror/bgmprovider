@@ -26,9 +26,32 @@
 # 8.5.x   8.5.2 and above
 # 9.0.x   9.0.0.M3 and above
 # 10.0.x  all
+# 10.1.x  all
+# 11.0.x  not test, need jdk 21
 
 # Tomcat 8.5.x
 tomcat_8_5_x=(
+"8.5.96"
+"8.5.95"
+"8.5.94"
+"8.5.93"
+"8.5.92"
+"8.5.91"
+"8.5.90"
+"8.5.89"
+"8.5.88"
+"8.5.87"
+"8.5.86"
+"8.5.85"
+"8.5.84"
+"8.5.83"
+"8.5.82"
+"8.5.81"
+"8.5.79"
+"8.5.78"
+"8.5.77"
+"8.5.76"
+"8.5.75"
 "8.5.73"
 "8.5.72"
 "8.5.71"
@@ -92,6 +115,29 @@ tomcat_8_5_x=(
 
 # Tomcat 9.0.x
 tomcat_9_0_x=(
+"9.0.83"
+"9.0.82"
+"9.0.81"
+"9.0.80"
+"9.0.79"
+"9.0.78"
+"9.0.76"
+"9.0.75"
+"9.0.74"
+"9.0.73"
+"9.0.72"
+"9.0.71"
+"9.0.70"
+"9.0.69"
+"9.0.68"
+"9.0.67"
+"9.0.65"
+"9.0.64"
+"9.0.63"
+"9.0.62"
+"9.0.60"
+"9.0.59"
+"9.0.58"
 "9.0.56"
 "9.0.55"
 "9.0.54"
@@ -158,6 +204,15 @@ tomcat_9_0_x=(
 
 # Tomcat 10.0.x
 tomcat_10_0_x=(
+"10.0.27"
+"10.0.26"
+"10.0.23"
+"10.0.22"
+"10.0.21"
+"10.0.20"
+"10.0.18"
+"10.0.17"
+"10.0.16"
 "10.0.14"
 "10.0.13"
 "10.0.12"
@@ -180,8 +235,59 @@ tomcat_10_0_x=(
 "10.0.0-M3"
 "10.0.0-M1"
 )
+
+# Tomcat 10.1.x
+tomcat_10_1_x=(
+"10.1.16"
+"10.1.15"
+"10.1.14"
+"10.1.13"
+"10.1.12"
+"10.1.11"
+"10.1.10"
+"10.1.9"
+"10.1.8"
+"10.1.7"
+"10.1.6"
+"10.1.5"
+"10.1.4"
+"10.1.2"
+"10.1.1"
+"10.1.0"
+"10.1.0-M17"
+"10.1.0-M16"
+"10.1.0-M15"
+"10.1.0-M14"
+"10.1.0-M12"
+"10.1.0-M11"
+"10.1.0-M10"
+"10.1.0-M8"
+"10.1.0-M7"
+"10.1.0-M6"
+"10.1.0-M5"
+"10.1.0-M4"
+"10.1.0-M2"
+"10.1.0-M1"
+)
+
+# Tomcat 11.0.x
+tomcat_11_0_x=(
+"11.0.0-M14"
+"11.0.0-M13"
+"11.0.0-M12"
+"11.0.0-M11"
+"11.0.0-M10"
+"11.0.0-M9"
+"11.0.0-M7"
+"11.0.0-M6"
+"11.0.0-M5"
+"11.0.0-M4"
+"11.0.0-M3"
+"11.0.0-M1"
+)
+
 # All tomcat version
-tomcat_versions=(${tomcat_8_5_x[@]} ${tomcat_9_0_x[@]} ${tomcat_10_0_x[@]})
+tomcat_versions=( ${tomcat_10_1_x[@]} ${tomcat_10_0_x[@]} ${tomcat_9_0_x[@]} ${tomcat_8_5_x[@]} )
 
 if [ ! -d "$PWD/logs" ]; then
     mkdir "$PWD/logs"
@@ -200,21 +306,26 @@ else
   JAVA_CMD="$JAVA_HOME/bin/java"
 fi
 $JAVA_CMD -version >> $result_log 2>&1
-java_version=`$JAVA_CMD -version 2>&1 | sed '1!d' | sed -e 's/"//g' | awk '{print $3}'`
-exclude_versions=()
-if [[ "$java_version" =~ ^11.* ]]; then
+java_version=`$JAVA_CMD -XshowSettings 2>&1  | grep java.specification.version | awk '{print $3}'`
+exclude_versions=(
+"8.5.24" # NullPointerException
+"9.0.2"
+"9.0.1"
+"9.0.0.M27"
+"9.0.0.M26"
+"9.0.0.M25"
+"9.0.0.M22"
+"9.0.0.M21"
+"9.0.0.M20"
+"9.0.0.M19"
+"9.0.0.M18"
+"10.1.2" # ClassNotFoundException: org.apache.tomcat.jakartaee.EESpecProfile
+)
+if [ "$java_version" == "1.8" ]; then
     exclude_versions=(
-      "8.5.24"
-      "9.0.2"
-      "9.0.1"
-      "9.0.0.M27"
-      "9.0.0.M26"
-      "9.0.0.M25"
-      "9.0.0.M22"
-      "9.0.0.M21"
-      "9.0.0.M20"
-      "9.0.0.M19"
-      "9.0.0.M18"
+      ${exclude_versions[@]}
+      ${tomcat_10_1_x[@]}
+      ${tomcat_11_0_x[@]}
     )
 fi
 
@@ -228,20 +339,20 @@ do
         echo "===============================" >> $result_log 2>&1
         continue;
     fi
-    
+
     detail_log=$PWD/logs/$ele.log
     if [ -f "$detail_log" ]; then
         rm $detail_log
     fi
 
     mvn -Dtomcat.version=$ele $TEST_JAVA_OPTS clean test > $detail_log 2>&1
-    
+
     if [ $? -ne 0 ]; then
         echo "Test tomcat $ele failed!" >> $result_log 2>&1
     else
         echo "Test tomcat $ele success!" >> $result_log 2>&1
     fi
-    
+
     echo "End test tomcat $ele" >> $result_log 2>&1
     echo "===============================" >> $result_log 2>&1
 done
