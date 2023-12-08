@@ -31,6 +31,7 @@ import org.openeuler.util.Util;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
+import sun.security.util.ECUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -54,10 +55,8 @@ public class SM2SignatureSpi extends SignatureSpi {
     // public key, if initialized for verifying
     private ECPublicKey publicKey;
 
-    private ECParameterSpec ecParams;
-
     // signature parameters
-    private SM2ParameterSpec sm2Params;
+    private SM2ParameterSpec sigParams;
 
     private ECPoint pubPoint;
 
@@ -83,7 +82,9 @@ public class SM2SignatureSpi extends SignatureSpi {
     @Override
     protected void engineInitVerify(PublicKey publicKey) throws InvalidKeyException {
         this.publicKey = (ECPublicKey) ECKeyFactory.toECKey(publicKey);
-        ecParams = this.publicKey.getParams();
+        if (!isCompatible(this.sigParams, this.publicKey.getParams())) {
+            throw new InvalidKeyException("Key params does not match signature params");
+        }
         byte[] ID = getID();
         byte[] entLen = new byte[2];
 
@@ -93,7 +94,8 @@ public class SM2SignatureSpi extends SignatureSpi {
 
         pubPoint = ((ECPublicKey) publicKey).getW();
 
-        z = getZ(entLen, ID);
+        ECParameterSpec ecParams = this.publicKey.getParams();
+        z = getZ(ecParams, entLen, ID);
         byteBuf.reset();
     }
 
@@ -107,7 +109,9 @@ public class SM2SignatureSpi extends SignatureSpi {
     @Override
     protected void engineInitSign(PrivateKey privateKey) throws InvalidKeyException {
         this.privateKey = (ECPrivateKey) ECKeyFactory.toECKey(privateKey);
-        ecParams = this.privateKey.getParams();
+        if (!isCompatible(this.sigParams, this.privateKey.getParams())) {
+            throw new InvalidKeyException("Key params does not match signature params");
+        }
         byte[] ID = getID();
         byte[] entLen = new byte[2];
 
@@ -115,9 +119,9 @@ public class SM2SignatureSpi extends SignatureSpi {
         entLen[0] = (byte) (((ID.length * 8) >> 8) & 0xFF);
         entLen[1] = (byte) ((ID.length * 8) & 0xFF);
 
+        ECParameterSpec ecParams = this.privateKey.getParams();
         pubPoint = GMUtil.multiply(ecParams.getGenerator(), this.privateKey.getS(), ecParams.getCurve());
-
-        z = getZ(entLen, ID);
+        z = getZ(ecParams, entLen, ID);
         byteBuf.reset();
     }
 
@@ -133,11 +137,11 @@ public class SM2SignatureSpi extends SignatureSpi {
             this.appRandom = new SecureRandom();
         }
 
-        if (sm2Params == null || sm2Params.getID() == null) {
+        if (sigParams == null || sigParams.getId() == null) {
             // default value
             ID = "1234567812345678".getBytes(StandardCharsets.UTF_8);
         } else {
-            ID = sm2Params.getID();
+            ID = sigParams.getId();
             if (ID.length >= 8192) {
                 throw new IllegalArgumentException("SM2 user ID must be less than 2^16 bits long");
             }
@@ -196,6 +200,7 @@ public class SM2SignatureSpi extends SignatureSpi {
             //  e = H(Z || M)
             BigInteger e = new BigInteger(1, eHash);
 
+            ECParameterSpec ecParams = this.privateKey.getParams();
             BigInteger n = ecParams.getOrder();
             BigInteger d = privateKey.getS();
 
@@ -246,6 +251,7 @@ public class SM2SignatureSpi extends SignatureSpi {
     @Override
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
         try {
+            ECParameterSpec ecParams = this.publicKey.getParams();
             BigInteger n = ecParams.getOrder();
             BigInteger[] rs = decodeSignature(n, sigBytes);
 
@@ -308,7 +314,7 @@ public class SM2SignatureSpi extends SignatureSpi {
             throw new InvalidAlgorithmParameterException("only SM2ParameterSpec supported");
         }
 
-        sm2Params = (SM2ParameterSpec) params;
+        sigParams = (SM2ParameterSpec) params;
     }
 
     // get parameter, not supported. See JCA doc
@@ -321,12 +327,12 @@ public class SM2SignatureSpi extends SignatureSpi {
 
     @Override
     protected AlgorithmParameters engineGetParameters() {
-        if (ecParams == null) {
+        if (sigParams == null || sigParams.getParams() == null) {
             return null;
         }
         try {
             AlgorithmParameters ap = AlgorithmParameters.getInstance("EC");
-            ap.init(ecParams);
+            ap.init(sigParams.getParams());
             return ap;
         } catch (Exception e) {
             // should never happen
@@ -334,7 +340,7 @@ public class SM2SignatureSpi extends SignatureSpi {
         }
     }
 
-    private byte[] getZ(byte[] entLen, byte[] ID) {
+    private byte[] getZ(ECParameterSpec ecParams, byte[] entLen, byte[] ID) {
         digest.reset();
 
         int curveLen = (ecParams.getCurve().getField().getFieldSize() + 7) / 8;
@@ -390,6 +396,15 @@ public class SM2SignatureSpi extends SignatureSpi {
         } catch (Exception e) {
             throw new SignatureException("Invalid encoding for signature", e);
         }
+    }
+
+    private static boolean isCompatible(SM2ParameterSpec sigParams,
+                                        ECParameterSpec keyParams) {
+        if (sigParams == null || sigParams.getParams() == null) {
+            // no restriction on key param
+            return true;
+        }
+        return ECUtil.equals(sigParams.getParams(), keyParams);
     }
 
     static public class sm3WithSM2

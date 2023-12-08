@@ -24,10 +24,15 @@
 
 package org.openeuler;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openeuler.org.bouncycastle.SM2ParameterSpec;
+import sun.security.x509.AlgorithmId;
 
 import java.security.*;
+import java.security.interfaces.ECPrivateKey;
+import java.security.spec.ECParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
@@ -111,5 +116,19 @@ public class SM3withSM2Test {
         signature.initVerify(publicKey);
         signature.update(INFO);
         return signature.verify(signBytes);
+    }
+
+    @Test
+    public void getParameters() throws Exception{
+        Signature signature = Signature.getInstance("SM3withSM2");
+        signature.initSign(privateKey);
+        Assert.assertNull(signature.getParameters());
+
+        signature.setParameter(new SM2ParameterSpec("1234567812345678".getBytes()));
+        Assert.assertNull(signature.getParameters());
+
+        ECParameterSpec parameterSpec = ((ECPrivateKey) privateKey).getParams();
+        signature.setParameter(new SM2ParameterSpec("1234567812345678".getBytes(), parameterSpec));
+        Assert.assertNotNull(signature.getParameters());
     }
 }
