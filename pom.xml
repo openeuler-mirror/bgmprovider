@@ -13,6 +13,7 @@
         <module>jsse</module>
         <module>bgmprovider</module>
         <module>tomcat-adaptor</module>
+        <module>thirdparty-testing</module>
     </modules>
 
     <name>gmssl</name>
