@@ -24,6 +24,7 @@
 
 package org.openeuler.gm;
 
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -31,8 +32,10 @@ import org.junit.Test;
  */
 public class SSLSocketTest extends SSLSocketTestBase {
 
-    static {
+    @BeforeClass
+    public static void beforeClass() {
         System.setProperty("jdk.tls.client.protocols", "TLSv1.3,TLSv1.2,GMTLS");
+        insertProviders();
     }
 
     @Test
@@ -115,7 +118,6 @@ public class SSLSocketTest extends SSLSocketTestBase {
 
     @Test
     public void testServerRenegotiate() {
-        System.setProperty("javax.net.debug", "all");
         test("TLS", null, null,
                 "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
                 Status.SERVER_RENEGOTIATE);
@@ -186,7 +188,6 @@ public class SSLSocketTest extends SSLSocketTestBase {
      */
     @Test
     public void testTLS12SkipGMCipher() {
-        System.setProperty("javax.net.debug", "all");
         // Test TLSv1.2 protocol support for GM cipher suites is not enabled.
         test("TLS", new String[]{"GMTLS", "TLSv1.3", "TLSv1.2"},
                 new String[]{"ECC_SM4_CBC_SM3", "TLS_AES_128_GCM_SHA256", "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"},

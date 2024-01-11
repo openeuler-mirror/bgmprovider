@@ -65,6 +65,12 @@ class BGMLegacyJCEEntries extends AbstractEntries {
         add(provider, "AlgorithmParameters", "EC",
                 "org.bouncycastle.jcajce.provider.asymmetric.ec.AlgorithmParametersSpi",
                 createAliasesWithOid("1.2.840.10045.2.1"));
+
+        if (BGMJCEConfig.enableRFC8998()) {
+            add(provider, "KeyAgreement", "ECDH",
+                    "org.bouncycastle.jcajce.provider.asymmetric.ec.KeyAgreementSpi$DH");
+        }
+
     }
 
     private void putSM3(Provider provider) {

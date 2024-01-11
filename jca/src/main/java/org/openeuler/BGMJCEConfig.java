@@ -33,6 +33,9 @@ public class BGMJCEConfig {
     private static boolean enablePBES2 = true;
     private static boolean useLegacy = false;
 
+    // Support RFC 8998 : ShangMi (SM) Cipher Suites for TLS 1.3
+    private static boolean enableRFC8998 = false;
+
     static {
         initConfig();
     }
@@ -45,6 +48,7 @@ public class BGMJCEConfig {
         enableSM3withSM2 = Config.enable("jce.signatureSM3withSM2");
         enablePBES2 = Config.enable("jce.pbes2");
         useLegacy = Config.enable("jce.useLegacy", "false");
+        enableRFC8998 = Config.enable("bgmprovider.tls.enableRFC8998", "false");
     }
 
     private BGMJCEConfig() {
@@ -77,5 +81,9 @@ public class BGMJCEConfig {
 
     public static boolean useLegacy() {
         return useLegacy;
+    }
+
+    static boolean enableRFC8998() {
+        return enableRFC8998;
     }
 }

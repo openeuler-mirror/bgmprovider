@@ -73,6 +73,7 @@
                                 --add-opens=java.base/javax.crypto=ALL-UNNAMED
                                 --add-opens=java.base/sun.security.x509=ALL-UNNAMED
                                 --add-opens=java.base/sun.security.pkcs12=ALL-UNNAMED
+                                --add-exports=java.base/sun.security.jca=ALL-UNNAMED
                             </argLine>
                         </configuration>
                     </plugin>

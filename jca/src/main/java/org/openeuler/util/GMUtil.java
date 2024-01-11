@@ -24,8 +24,11 @@
 
 package org.openeuler.util;
 
+import org.openeuler.BGMJCEConfig;
 import org.openeuler.SM2P256V1Point;
 import org.openeuler.SM2PreComputeInfo;
+import org.openeuler.legacy.LegacyGMUtil;
+import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 
 import java.math.BigInteger;
 import java.security.spec.AlgorithmParameterSpec;
@@ -65,6 +68,34 @@ public class GMUtil {
         return SM2_CURVE.equals(curve);
     }
 
+    public static AlgorithmParameterSpec createSM2ParameterSpec(byte[] idBytes) {
+        return BGMJCEConfig.useLegacy() ?
+                LegacyGMUtil.createSM2ParameterSpec(idBytes) :
+                new SM2ParameterSpec(idBytes);
+
+    }
+
+    /**
+     * Convert a BigInteger to a byte array, ensuring it is exactly size long.
+     *
+     * @param bi  the BigInteger to be converted.
+     * @param size the size
+     * @return the resulting byte array.
+     */
+    public static byte[] bigIntegerToBytes(BigInteger bi, int size) {
+        byte[] bytes = bi.toByteArray();
+        if (bytes.length == size) {
+            return bytes;
+        }
+        byte[] newArray = new byte[size];
+        if (size < bytes.length) {
+            System.arraycopy(bytes, bytes.length - newArray.length, newArray, 0, newArray.length);
+        } else {
+            System.arraycopy(bytes, 0, newArray, newArray.length - bytes.length, bytes.length);
+        }
+        return newArray;
+    }
+
     /**
      * Check if elliptic curve point is on target elliptic curve
      *
@@ -91,7 +122,7 @@ public class GMUtil {
     }
 
 
-    public static ECPoint multiply(ECPoint ecPoint, int k , EllipticCurve curve) {
+    public static ECPoint multiply(ECPoint ecPoint, int k, EllipticCurve curve) {
         return multiply(ecPoint, BigInteger.valueOf(k), curve);
     }
 
@@ -294,10 +325,10 @@ public class GMUtil {
      * M = X1 + (Z1)^2
      * M = M * t1 = (X1)^2 - (Z1)^4
      * M = M + M + M = 3 * (X1)^2 - 3 *(Z1)^4 <==> Is it equivalent?  (3 *(X1^2) + a * (Z1)^4)  = lambda1
-     *
+     * <p>
      * S = (X1 *(Y1)^2 )<< 2 = 4 * X1 * (Y1)^2 = lambda2
      * t1 = T << 3 = 8 * T = 8 * (Y1)^4 = lambda3
-     *
+     * <p>
      * X3 = M^2 - 2 * S = (lambda1)^2 - 2 * lambda2
      * Y3 = (S - X3) * M - t1 = (lambda2 - X3) * lambda1 - lambda3 = lambda1 * (lambda2 - X3) - lambda3
      * Z3 = 2 * Y1 * Z1

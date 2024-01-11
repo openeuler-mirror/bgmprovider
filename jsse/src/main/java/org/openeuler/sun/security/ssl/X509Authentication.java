@@ -36,6 +36,8 @@ import java.util.Map;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedKeyManager;
+
+import org.openeuler.gm.GMConstants;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 
@@ -62,7 +64,11 @@ enum X509Authentication implements SSLAuthentication {
 
     // Require EC public key
     EC          ("EC",          new X509PossessionGenerator(
-                                    new String[] {"EC"}));
+                                    new String[] {"EC"})),
+
+    // Require SM2 public key
+    SM2         ("SM2",         new X509PossessionGenerator(
+                                    new String[] {"SM2"}));
 
     final String keyType;
     final SSLPossessionGenerator possessionGenerator;
@@ -236,8 +242,8 @@ enum X509Authentication implements SSLAuthentication {
             }
 
             PublicKey clientPublicKey = clientCerts[0].getPublicKey();
-            if ((!clientPrivateKey.getAlgorithm().equals(keyType))
-                    || (!clientPublicKey.getAlgorithm().equals(keyType))) {
+            if ((!GMConstants.SM2.equals(keyType)) && ((!clientPrivateKey.getAlgorithm().equals(keyType))
+                    || (!clientPublicKey.getAlgorithm().equals(keyType)))) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
                     SSLLogger.fine(
                             clientAlias + " private or public key is not of " +
@@ -291,8 +297,8 @@ enum X509Authentication implements SSLAuthentication {
             }
 
             PublicKey serverPublicKey = serverCerts[0].getPublicKey();
-            if ((!serverPrivateKey.getAlgorithm().equals(keyType))
-                    || (!serverPublicKey.getAlgorithm().equals(keyType))) {
+            if ((!GMConstants.SM2.equals(keyType)) && ((!serverPrivateKey.getAlgorithm().equals(keyType))
+                    || (!serverPublicKey.getAlgorithm().equals(keyType)))) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
                     SSLLogger.fine(
                             serverAlias + " private or public key is not of " +

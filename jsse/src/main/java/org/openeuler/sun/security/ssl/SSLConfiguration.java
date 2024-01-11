@@ -42,6 +42,8 @@ import javax.net.ssl.SNIServerName;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
+
+import org.openeuler.BGMJSSEConfig;
 import sun.security.action.GetIntegerAction;
 import sun.security.action.GetPropertyAction;
 import org.openeuler.sun.security.ssl.SSLExtension.ClientExtensions;
@@ -110,6 +112,9 @@ final class SSLConfiguration implements Cloneable {
     // Set the max certificate chain length to 10
     static final int maxCertificateChainLength = AccessController.doPrivileged(
             new GetIntegerAction("jdk.tls.maxCertificateChainLength", 10)).intValue();
+
+    // Support RFC 8998 : ShangMi (SM) Cipher Suites for TLS 1.3
+    static final boolean enableRFC8998 = BGMJSSEConfig.enableRFC8998();
 
     // Is the extended_master_secret extension supported?
     static {

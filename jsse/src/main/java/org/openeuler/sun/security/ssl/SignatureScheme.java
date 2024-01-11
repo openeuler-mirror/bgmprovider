@@ -40,10 +40,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.openeuler.gm.GMConstants;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroupType;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Possession;
+import org.openeuler.util.GMUtil;
 import sun.security.util.KeyUtil;
 import sun.security.util.SignatureUtil;
 
@@ -72,6 +75,13 @@ enum SignatureScheme {
                                     "EC",
                                     NamedGroup.SECP521_R1,
                                     ProtocolVersion.PROTOCOLS_TO_13),
+
+    // RFC 8998
+    SM2SIG_SM3               (0x0708, "sm2sig_sm3",
+                                    "SM3withSM2",
+                                    "SM2",
+                                    NamedGroup.curveSM2,
+                                    ProtocolVersion.PROTOCOLS_OF_RFC8998),
 
     // RSASSA-PSS algorithms with public key OID rsaEncryption
     //
@@ -181,7 +191,7 @@ enum SignatureScheme {
 
     private static final String[] hashAlgorithms = new String[] {
             "none",         "md5",      "sha1",     "sha224",
-            "sha256",       "sha384",   "sha512"
+            "sha256",       "sha384",   "sha512",   "sm3"
         };
 
     private static final String[] signatureAlgorithms = new String[] {
@@ -462,6 +472,16 @@ enum SignatureScheme {
             ProtocolVersion version) {
 
         PrivateKey signingKey = x509Possession.popPrivateKey;
+        ECParameterSpec ecParameterSpec = x509Possession.getECParameterSpec();
+        NamedGroup namedGroup = ecParameterSpec != null
+                ? NamedGroup.valueOf(ecParameterSpec) : null;
+        if (version.useTLS13PlusSpec() &&
+                namedGroup != null && NamedGroup.curveSM2.oid.equals(namedGroup.oid)) {
+            Signature signer = SignatureScheme.SM2SIG_SM3.getSigner(signingKey,
+                    GMUtil.createSM2ParameterSpec(GMConstants.TLS13_GM_ID));
+            return new SimpleImmutableEntry<>(SignatureScheme.SM2SIG_SM3, signer);
+        }
+
         String keyAlgorithm = signingKey.getAlgorithm();
         int keySize;
         // Only need to check RSA algorithm at present.
@@ -552,29 +572,42 @@ enum SignatureScheme {
     // is bubbled up.  If the public key does not support this signature
     // scheme, it normally means the TLS handshaking cannot continue and
     // the connection should be terminated.
-    Signature getVerifier(PublicKey publicKey) throws NoSuchAlgorithmException,
+    Signature getVerifier(PublicKey publicKey, AlgorithmParameterSpec parameterSpec)
+            throws NoSuchAlgorithmException,
             InvalidAlgorithmParameterException, InvalidKeyException {
         if (!isAvailable) {
             return null;
         }
 
         Signature verifier = Signature.getInstance(algorithm);
+        if (parameterSpec != null) {
+            verifier.setParameter(parameterSpec);
+        }
         SignatureUtil.initVerifyWithParam(verifier, publicKey, signAlgParameter);
 
         return verifier;
+    }
+
+    Signature getVerifier(PublicKey publicKey)
+            throws InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException, InvalidKeyException {
+        return getVerifier(publicKey, null);
     }
 
     // This method is also used to choose preferable signature scheme for the
     // specific private key.  If the private key does not support the signature
     // scheme, {@code null} is returned, and the caller may fail back to next
     // available signature scheme.
-    private Signature getSigner(PrivateKey privateKey) {
+    private Signature getSigner(PrivateKey privateKey, AlgorithmParameterSpec parameterSpec) {
         if (!isAvailable) {
             return null;
         }
 
         try {
             Signature signer = Signature.getInstance(algorithm);
+            if (parameterSpec != null) {
+                signer.setParameter(parameterSpec);
+            }
             SignatureUtil.initSignWithParam(signer, privateKey,
                 signAlgParameter,
                 null);
@@ -590,5 +623,9 @@ enum SignatureScheme {
         }
 
         return null;
+    }
+
+    private Signature getSigner(PrivateKey privateKey) {
+        return getSigner(privateKey, null);
     }
 }

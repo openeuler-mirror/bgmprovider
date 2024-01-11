@@ -49,6 +49,7 @@
                     --add-exports=java.base/sun.security.pkcs=ALL-UNNAMED
                     --add-exports=java.base/sun.security.jca=ALL-UNNAMED
                     --add-exports=jdk.crypto.ec/sun.security.ec=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.jca=ALL-UNNAMED
                 </argLine>
             </properties>
         </profile>

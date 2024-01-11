@@ -172,6 +172,12 @@ final class JsseJce {
     static final String CIPHER_SM4_GCM = "SM4/GCM/NoPadding";
 
     /**
+     * JCE transformation string for SM4 in CCM mode
+     * without padding.
+     */
+    static final String CIPHER_SM4_CCM = "SM4/CCM/NoPadding";
+
+    /**
      * JCA identifier string for DSA, i.e. a DSA with SHA-1.
      */
     static final String SIGNATURE_DSA = "DSA";
