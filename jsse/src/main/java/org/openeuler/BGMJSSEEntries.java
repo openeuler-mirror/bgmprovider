@@ -35,7 +35,7 @@ class BGMJSSEEntries extends AbstractEntries {
     @Override
     protected void putServices(Provider provider) {
         // KeyManagerFactory
-        if (BGMJSSEConfig.enableTrustManagerFactory()) {
+        if (BGMJSSEConfig.enableKeyManagerFactory()) {
             putKeyManagerFactory(provider);
         }
 

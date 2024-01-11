@@ -27,8 +27,13 @@ package org.openeuler;
 import java.security.Provider;
 
 public class BGMJSSEProvider extends AbstractProvider {
+    private static final String NAME = "BGMJSSEProvider";
+    private static final double VERSION = 1.8d;
+    private static final String INFO = "BiSheng GuoMi JSSE Provider " +
+            "(support GMTLS/SSLv3/TLSv1/TLSv1.1/TLSv1.2/TLSv1.3)";
+
     public BGMJSSEProvider() {
-        super("BGMJSSEProvider", 1.8d, "BGMJSSEProvider");
+        super(NAME, VERSION, INFO);
     }
 
     @Override

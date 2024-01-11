@@ -27,9 +27,13 @@ package org.openeuler;
 import java.security.Provider;
 
 public class BGMProvider extends AbstractProvider {
+    private static final String NAME = "BGMProvider";
+    private static final double VERSION = 1.8d;
+
+    private static final String INFO = "BiSheng GuoMi Provider (support BiSheng JCE and JSSE Provider)";
 
     public BGMProvider() {
-       super("BGMProvider", 1.8d, "BGMProvider");
+       super(NAME, VERSION, INFO);
     }
 
     @Override

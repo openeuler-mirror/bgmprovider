@@ -36,13 +36,16 @@ import java.security.PrivilegedAction;
 import java.util.Properties;
 
 class Config {
-
     private static final Debug debug = Debug.getInstance("provider");
 
     private static final Properties config = new Properties();
 
     static {
         initConfig();
+    }
+
+    private Config() {
+
     }
 
     private static void initConfig() {
@@ -88,10 +91,21 @@ class Config {
     }
 
     static boolean enable(String key, String defaultValue) {
-        String value = System.getProperty(key);
-        if (value != null) {
-            return Boolean.getBoolean(key);
+        String value = AccessController.doPrivileged(new PrivilegedAction<String>() {
+            @Override
+            public String run() {
+                return System.getProperty(key);
+            }
+        });
+        if (debug != null) {
+            debug.println("System.getProperty(\"" + key + "\")=" + value);
         }
-        return Boolean.parseBoolean((String) config.getOrDefault(key,defaultValue));
+        if (value == null) {
+            value = (String) config.getOrDefault(key, defaultValue);
+            if (debug != null) {
+                debug.println("config.getOrDefault(\"" + key + "\",\"" + defaultValue + "\")=" + value);
+            }
+        }
+        return Boolean.parseBoolean(value);
     }
 }

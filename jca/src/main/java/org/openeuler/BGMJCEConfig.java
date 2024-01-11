@@ -24,39 +24,58 @@
 
 package org.openeuler;
 
-import sun.security.util.Debug;
-
 public class BGMJCEConfig {
-    private static final Debug debug = Debug.getInstance("provider");
+    private static boolean enableSM2 = true;
+    private static boolean enableEC = true;
+    private static boolean enableSM3 = true;
+    private static boolean enableSM4 = true;
+    private static boolean enableSM3withSM2 = true;
+    private static boolean enablePBES2 = true;
+    private static boolean useLegacy = false;
+
+    static {
+        initConfig();
+    }
+
+    private static void initConfig() {
+        enableSM2 = Config.enable("jce.sm2");
+        enableEC = Config.enable("jce.ec");
+        enableSM3 = Config.enable("jce.sm3");
+        enableSM4 = Config.enable("jce.sm4");
+        enableSM3withSM2 = Config.enable("jce.signatureSM3withSM2");
+        enablePBES2 = Config.enable("jce.pbes2");
+        useLegacy = Config.enable("jce.useLegacy", "false");
+    }
+
+    private BGMJCEConfig() {
+
+    }
+
     static boolean enableSM2() {
-        return Config.enable("jce.sm2");
+        return enableSM2;
     }
 
     static boolean enableEC() {
-        return Config.enable("jce.ec");
+        return enableEC;
     }
 
     static boolean enableSM3() {
-        return Config.enable("jce.sm3");
+        return enableSM3;
     }
 
     static boolean enableSM4() {
-        return Config.enable("jce.sm3");
+        return enableSM4;
     }
 
     static boolean enableSM3withSM2() {
-        return Config.enable("jce.signatureSM3withSM2");
+        return enableSM3withSM2;
     }
 
     static boolean enablePBES2() {
-        return Config.enable("jce.pbes2");
+        return enablePBES2;
     }
 
     public static boolean useLegacy() {
-        boolean useLegacy = Config.enable("jce.useLegacy", "false");
-        if (debug != null) {
-            debug.println("useLegacy=" + useLegacy);
-        }
         return useLegacy;
     }
 }
