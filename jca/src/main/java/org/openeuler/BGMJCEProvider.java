@@ -38,6 +38,10 @@ import java.util.Map;
 import static org.openeuler.ObjectIdentifierHandler.newObjectIdentifier;
 
 public class BGMJCEProvider extends AbstractProvider {
+    private static final String NAME = "BGMJCEProvider";
+    private static final double VERSION = 1.8d;
+    private static final String INFO = "BiSheng GuoMi JCE provider" +
+            ("implements SM2, SM3, SM3withSM2, SM4");
     private static final Debug debug = Debug.getInstance("Provider");
 
     static {
@@ -75,7 +79,7 @@ public class BGMJCEProvider extends AbstractProvider {
     }
 
     public BGMJCEProvider() {
-        super("BGMJCEProvider", 1.8d, "BGMJCEProvider");
+        super(NAME, VERSION, INFO);
     }
 
     @Override

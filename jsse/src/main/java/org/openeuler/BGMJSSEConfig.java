@@ -25,28 +25,45 @@
 package org.openeuler;
 
 class BGMJSSEConfig {
+    private static boolean enableKeyManagerFactory = true;
+    private static boolean enableTrustManagerFactory = true;
+    private static boolean enableKeyGenerator = true;
+    private static boolean enableSSLContext = true;
+    private static boolean enableKeyStore = true;
+
+    static {
+        initConfig();
+    }
+
+    private static void initConfig() {
+        enableKeyManagerFactory = Config.enable("jsse.keyManagerFactory");
+        enableTrustManagerFactory = Config.enable("jsse.trustManagerFactory");
+        enableKeyGenerator = Config.enable("jsse.keyGenerator");
+        enableSSLContext = Config.enable("jsse.sslContext");
+        enableKeyStore = Config.enable("jsse.keystore");
+    }
+
+    private BGMJSSEConfig() {
+
+    }
 
     static boolean enableKeyManagerFactory() {
-        return Config.enable("jsse.keyManagerFactory");
+        return enableKeyManagerFactory;
     }
 
     static boolean enableTrustManagerFactory() {
-        return Config.enable("jsse.trustManagerFactory");
+        return enableTrustManagerFactory;
     }
 
     static boolean enableKeyGenerator() {
-        return Config.enable("jsse.keyGenerator");
+        return enableKeyGenerator;
     }
 
     static boolean enableSSLContext() {
-        return Config.enable("jsse.sslContext");
-    }
-
-    static boolean enableCertificateFactory() {
-        return Config.enable("jsse.certificateFactory");
+        return enableSSLContext;
     }
 
     static boolean enableKeyStore() {
-        return Config.enable("jsse.keystore");
+        return enableKeyStore;
     }
 }
