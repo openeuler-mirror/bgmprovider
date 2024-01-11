@@ -1,9 +1,34 @@
+/*
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Huawei designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Huawei in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
+ * information or have any questions.
+ */
+
 package org.openeuler.sm4.mode;
 
 import org.openeuler.BGMJCEProvider;
 import org.openeuler.sm4.StreamModeBaseCipher;
 
 import javax.crypto.*;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import java.security.*;
 import java.security.spec.AlgorithmParameterSpec;
@@ -16,7 +41,7 @@ import java.util.Arrays;
  */
 public class CCM extends StreamModeBaseCipher {
 
-    private final int M = 8; //number of octets in authentication field
+    private int M = 8; //number of octets in authentication field
     private int L;//number of octets in length field
     private final int defaultIvLen = 12;
     private byte[] B = new byte[BLOCKSIZE];
@@ -49,14 +74,24 @@ public class CCM extends StreamModeBaseCipher {
                 throw new InvalidAlgorithmParameterException("need an IV");
             }
         } else {
-            if (!(params instanceof IvParameterSpec)) {
-                throw new InvalidAlgorithmParameterException();
-            } else {
+            if (params instanceof IvParameterSpec) {
                 IvParameterSpec param = (IvParameterSpec) params;
-                if (param.getIV().length < 7 || param.getIV().length > 13) {
-                    throw new InvalidAlgorithmParameterException("nonce must have length from 7 to 13 octets");
-                }
                 this.iv = param.getIV();
+            } else if (params instanceof GCMParameterSpec) {
+                GCMParameterSpec param = (GCMParameterSpec) params;
+                int tagLen = param.getTLen();
+                if (tagLen < 32 || tagLen > 128 || ((tagLen & 0x0F) != 0)) {
+                    throw new InvalidAlgorithmParameterException
+                            ("Unsupported TLen value; must be one of " +
+                                    "{128, 112, 96, 80, 64, 48, 32}");
+                }
+                this.M = tagLen >> 3;
+                this.iv = param.getIV();
+            } else {
+                throw new InvalidAlgorithmParameterException("Unsupported parameter: " + params);
+            }
+            if (this.iv.length < 7 || this.iv.length > 13) {
+                throw new InvalidAlgorithmParameterException("nonce must have length from 7 to 13 octets");
             }
         }
         L = 15 - iv.length;
