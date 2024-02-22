@@ -224,7 +224,7 @@ enum SSLExtension implements SSLStringizer {
     // extension defined in RFC 7301 (ALPN)
     CH_ALPN                 (0x0010, "application_layer_protocol_negotiation",
                                 SSLHandshake.CLIENT_HELLO,
-                                ProtocolVersion.PROTOCOLS_TO_13,
+                                ProtocolVersion.PROTOCOLS_TO_13_AND_GMTLS,
                                 AlpnExtension.chNetworkProducer,
                                 AlpnExtension.chOnLoadConsumer,
                                 AlpnExtension.chOnLoadAbsence,
@@ -233,7 +233,7 @@ enum SSLExtension implements SSLStringizer {
                                 AlpnExtension.alpnStringizer),
     SH_ALPN                 (0x0010, "application_layer_protocol_negotiation",
                                 SSLHandshake.SERVER_HELLO,
-                                ProtocolVersion.PROTOCOLS_TO_12,
+                                ProtocolVersion.PROTOCOLS_TO_12_AND_GMTLS,
                                 AlpnExtension.shNetworkProducer,
                                 AlpnExtension.shOnLoadConsumer,
                                 AlpnExtension.shOnLoadAbsence,
