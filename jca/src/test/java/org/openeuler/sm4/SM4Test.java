@@ -29,10 +29,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
 
-import javax.crypto.*;
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.Key;
+import java.security.Provider;
+import java.security.SecureRandom;
+import java.security.Security;
+import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 
 /**
@@ -49,6 +56,81 @@ public class SM4Test {
         } catch (Exception e) {
             System.err.println("BouncyCastleProvider does not exist");
         }
+    }
+
+    @Test
+    public void testUpdateAndDoFinalZeroParameter() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+        // SM4/GCM/NoPadding
+        // SM4/CCM/NoPadding
+        int[] lengthArray = {0, 3, 15, 16, 17, 32, 105};
+        for (int len : lengthArray) {
+            testUpdateAndDoFinalZeroParameter("SM4/GCM/NoPadding", key, 12, len);
+            testUpdateAndDoFinalZeroParameter("SM4/CTR/NoPadding", key, 12, len);
+            testUpdateAndDoFinalZeroParameter("SM4/CCM/NoPadding", key, 12, len);
+        }
+
+        // SM4/CTS/NoPadding
+        lengthArray = new int[]{16, 17, 32, 105};
+        for (int len : lengthArray) {
+            testUpdateAndDoFinalZeroParameter("SM4/CTS/NoPadding", key, 16, len);
+        }
+
+        // SM4/ECB/NoPadding
+        // SM4/CBC/NoPadding
+        // SM4/CFB/NoPadding
+        // SM4/OFB/NoPadding
+        // SM4/OCB/NoPadding
+        lengthArray = new int[]{0, 16, 32, 64};
+        for (int len : lengthArray) {
+            testUpdateAndDoFinalZeroParameter("SM4/ECB/NoPadding", key, 16, len);
+            testUpdateAndDoFinalZeroParameter("SM4/CBC/NoPadding", key, 16, len);
+            testUpdateAndDoFinalZeroParameter("SM4/CFB/NoPadding", key, 16, len);
+            testUpdateAndDoFinalZeroParameter("SM4/OFB/NoPadding", key, 16, len);
+            testUpdateAndDoFinalZeroParameter("SM4/OCB/NoPadding", key, 12, len);
+        }
+    }
+
+    private void testUpdateAndDoFinalZeroParameter(String transformation, Key key, int ivLen, int plainTextLen)
+            throws Exception {
+        SecureRandom random = new SecureRandom();
+
+        byte[] plainTextBytes = new byte[plainTextLen];
+        random.nextBytes(plainTextBytes);
+        byte[] ivBytes = new byte[ivLen];
+        random.nextBytes(ivBytes);
+        AlgorithmParameterSpec params = null;
+        byte[] aadBytes = null;
+
+        if (transformation.contains("GCM")) {
+            int tagSize = 16;
+            params = new GCMParameterSpec(tagSize * 8, ivBytes);
+            aadBytes = new byte[12];
+            random.nextBytes(aadBytes);
+        } else if (!transformation.contains("ECB")) {
+            params = new IvParameterSpec(ivBytes);
+        }
+
+        Cipher bcCipher = Cipher.getInstance(transformation, "BC");
+        bcCipher.init(Cipher.ENCRYPT_MODE, key, params, random);
+        Cipher bgmCipher = Cipher.getInstance(transformation);
+        bgmCipher.init(Cipher.ENCRYPT_MODE, key, params, random);
+
+        if (aadBytes != null) {
+            bcCipher.updateAAD(aadBytes);
+            bgmCipher.updateAAD(aadBytes);
+        }
+
+        byte[] bcUpdateBytes = bcCipher.update(plainTextBytes);
+        byte[] bgmUpdateBytes = bgmCipher.update(plainTextBytes);
+        Assert.assertArrayEquals(bcUpdateBytes, bgmUpdateBytes);
+
+        byte[] bcEncryptedBytes = bcCipher.doFinal();
+        byte[] bgmEncryptedBytes = bgmCipher.doFinal();
+
+        Assert.assertArrayEquals(bcEncryptedBytes, bgmEncryptedBytes);
     }
 
     @Test

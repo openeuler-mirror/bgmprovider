@@ -105,11 +105,17 @@ public class SM4Cipher extends CipherSpi {
 
     @Override
     protected byte[] engineDoFinal(byte[] input, int inputOffset, int inputLen) throws IllegalBlockSizeException, BadPaddingException {
+        if (input == null) {
+            input = new byte[0];
+        }
         return cipher.engineDoFinal(input, inputOffset, inputLen);
     }
 
     @Override
     protected int engineDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+        if (input == null) {
+            input = new byte[0];
+        }
         return cipher.engineDoFinal(input, inputOffset, inputLen, output, outputOffset);
     }
 
