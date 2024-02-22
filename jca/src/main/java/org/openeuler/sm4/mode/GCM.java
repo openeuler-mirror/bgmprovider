@@ -581,7 +581,9 @@ public class GCM extends StreamModeBaseCipher {
             byte[] cipher = Arrays.copyOfRange(input, inputOffset, inputOffset + inputLen - (tLen / 8));
             byte[] _T = Arrays.copyOfRange(input, inputOffset + inputLen - (tLen / 8), inputOffset + inputLen);
 
-            processG(cipher, first);
+            if (cipher.length > 0) {
+                processG(cipher, first);
+            }
 
             byte[] AC = new byte[16];
             aLen = (aLen * 8);
