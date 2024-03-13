@@ -34,6 +34,21 @@ public class GMConstants {
     public static final String SM3_WITH_SM2_OID = "1.2.156.10197.1.501";
     public static final String EC = "EC";
 
+    /**
+     * The SM2 signature algorithm requests an identifier value when generating or verifying a signature.
+     * In all uses except when a client of a server needs to verify a peer's SM2 certificate in the
+     * Certificate message, an implementation of this document MUST use the following ASCII string value
+     * as the SM2 identifier when doing a TLS 1.3 key exchange:
+     * <p>
+     * TLSv1.3+GM+Cipher+Suite
+     * </p>
+     */
+    public static final byte[] TLS13_GM_ID = {
+            0x54, 0x4c, 0x53, 0x76, 0x31, 0x2e, 0x33, 0x2b,
+            0x47, 0x4d, 0x2b, 0x43, 0x69, 0x70, 0x68, 0x65,
+            0x72, 0x2b, 0x53, 0x75, 0x69, 0x74, 0x65
+    };
+
     static {
         initGMAlgorithmMap();
     }

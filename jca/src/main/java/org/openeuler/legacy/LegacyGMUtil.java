@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,28 +22,14 @@
  * information or have any questions.
  */
 
-package org.openeuler.gm;
+package org.openeuler.legacy;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.bouncycastle.jcajce.spec.SM2ParameterSpec;
 
-import java.security.Security;
+import java.security.spec.AlgorithmParameterSpec;
 
-public class SSLSocketDifferentProviderTest extends SSLSocketTestBase {
-
-    @BeforeClass
-    public static void beforeClass() {
-        System.setProperty("jdk.tls.client.protocols", "TLSv1.3,TLSv1.2");
-        insertProviders();
-    }
-
-    @Test
-    public void testDifferentProvider() {
-        test(Security.getProvider("SunJSSE"), null, "TLS", null, null,
-                "TLS", null, null,
-                "TLSv1.3", "TLS_AES_256_GCM_SHA384");
-        test(Security.getProvider("SunJSSE"), null, "TLS", null, null,
-                "GMTLS", null, null,
-                "TLSv1.3", "TLS_AES_256_GCM_SHA384");
+public class LegacyGMUtil {
+    public static AlgorithmParameterSpec createSM2ParameterSpec(byte[] idBytes) {
+        return new SM2ParameterSpec(idBytes);
     }
 }

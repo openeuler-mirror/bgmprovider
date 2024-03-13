@@ -25,6 +25,8 @@
 package org.openeuler.gm;
 
 import org.junit.Assert;
+import org.openeuler.BGMJCEProvider;
+import org.openeuler.BGMJSSEProvider;
 
 import javax.net.ServerSocketFactory;
 import javax.net.SocketFactory;
@@ -38,11 +40,8 @@ import java.util.concurrent.Future;
 
 import static org.openeuler.gm.TestUtils.getPath;
 
-public class SSLSocketTestBase extends BaseTest {
+public class SSLSocketTestBase {
     private static final int TIMEOUT = 30000;
-    static {
-        init();
-    }
 
     private static final String HOST = "localhost";
 
@@ -89,25 +88,6 @@ public class SSLSocketTestBase extends BaseTest {
     private static final KeyStoreParameters CLIENT_TS_PARAM = new KeyStoreParameters(
             KEYSTORE_TYPE, CLIENT_TRUSTSTORE_PATH, DEFAULT_PASSWORD);
 
-    private static void init() {
-        if (debug) {
-            System.setProperty("javax.net.debug", "all");
-        }
-    }
-
-    /**
-     * KeyStore algorithm
-     */
-    enum KeyStoreAlgo {
-        SUNX509("SunX509"),
-        PKIX("PKIX");
-        private final String name;
-
-        KeyStoreAlgo(String name) {
-            this.name = name;
-        }
-    }
-
     static final class KeyStoreParameters {
         private final String type;
         private final String path;
@@ -153,6 +133,11 @@ public class SSLSocketTestBase extends BaseTest {
         public String getAlgorithm() {
             return algorithm;
         }
+    }
+
+    protected static void insertProviders() {
+        Security.insertProviderAt(new BGMJSSEProvider(), 1);
+        Security.insertProviderAt(new BGMJCEProvider(), 1);
     }
 
     private static KeyStore createKeyStore(KeyStoreParameters keyStoreParameters)
@@ -264,6 +249,10 @@ public class SSLSocketTestBase extends BaseTest {
 
         protected SSLContext sslContext;
 
+        protected KeyStoreParameters keyStoreParameters;
+
+        protected KeyStoreParameters trustStoreParameters;
+
         public int getServerPort() {
             return serverPort;
         }
@@ -316,6 +305,14 @@ public class SSLSocketTestBase extends BaseTest {
             return sslContext;
         }
 
+        public KeyStoreParameters getKeyStoreParameters() {
+            return keyStoreParameters;
+        }
+
+        public KeyStoreParameters getTrustStoreParameters() {
+            return trustStoreParameters;
+        }
+
         ReqParameters(Builder builder) {
             this.contextProtocol = builder.contextProtocol;
             this.enableProtocols = builder.enableProtocols;
@@ -330,13 +327,15 @@ public class SSLSocketTestBase extends BaseTest {
             this.expectedCiphersuite = builder.expectedCiphersuite;
             this.sslContext = builder.sslContext;
             this.serverPort = builder.serverPort;
+            this.keyStoreParameters = builder.keyStoreParameters;
+            this.trustStoreParameters = builder.trustStoreParameters;
         }
 
         static class Builder {
             // server port
             private int serverPort;
             // SSLContext protocol
-            private String contextProtocol;
+            private String contextProtocol = "TLS";
 
             // enable protocols
             private String[] enableProtocols;
@@ -370,6 +369,12 @@ public class SSLSocketTestBase extends BaseTest {
 
             //sslContext for session resumption
             private SSLContext sslContext;
+
+            // keystore parameters
+            protected KeyStoreParameters keyStoreParameters;
+
+            // truststore parameters
+            protected KeyStoreParameters trustStoreParameters;
 
             Builder serverPort(int serverPort) {
                 this.serverPort = serverPort;
@@ -437,6 +442,16 @@ public class SSLSocketTestBase extends BaseTest {
 
             Builder expectedCiphersuite(String expectedCiphersuite) {
                 this.expectedCiphersuite = expectedCiphersuite;
+                return this;
+            }
+
+            Builder keyStoreParameters(KeyStoreParameters keyStoreParameters) {
+                this.keyStoreParameters = keyStoreParameters;
+                return this;
+            }
+
+            Builder trustStoreParameters(KeyStoreParameters trustStoreParameters) {
+                this.trustStoreParameters = trustStoreParameters;
                 return this;
             }
 
@@ -525,13 +540,20 @@ public class SSLSocketTestBase extends BaseTest {
             String[] enableProtocols = reqParameters.getEnableProtocols();
             Status status = reqParameters.getStatus();
             boolean clientAuthType = reqParameters.getClientAuthType();
+            KeyStoreParameters keyStoreParameters = reqParameters.getKeyStoreParameters();
+            KeyStoreParameters trustStoreParameters = reqParameters.getTrustStoreParameters();
             SSLContext sslContext;
             byte[] resumptionSessionId = null;
             try {
-                KeyStoreParameters keyStoreParameters = new KeyStoreParameters(SERVER_KS_PARAM,
-                        reqParameters.getKmfAlgorithm());
-                KeyStoreParameters trustStoreParameters = new KeyStoreParameters(SERVER_TS_PARAM,
-                        reqParameters.getTmfAlgorithm());
+                if (keyStoreParameters == null) {
+                    keyStoreParameters = new KeyStoreParameters(SERVER_KS_PARAM,
+                            reqParameters.getKmfAlgorithm());
+                }
+
+                if (trustStoreParameters == null) {
+                    trustStoreParameters = new KeyStoreParameters(SERVER_TS_PARAM,
+                            reqParameters.getTmfAlgorithm());
+                }
                 sslContext = createSSLContext(reqParameters.getServerProvider(), contextProtocol, keyStoreParameters, trustStoreParameters, new SecureRandom());
             } catch (Throwable e) {
                 setReady(true);
@@ -598,14 +620,18 @@ public class SSLSocketTestBase extends BaseTest {
                     sslSocket = (SSLSocket) serverSocket.accept();
                     sslSocket.setNeedClientAuth(clientAuthType);
 
-                    byte[] sessionId = sslSocket.getSession().getId();
-                    Assert.assertArrayEquals(sessionId, resumptionSessionId);
+                    // When using TLSv1.3, the server will copy and create a new handshake Session
+                    // when creating NewSessionTicket, and the SessionId is also new.
+                    if (!"TLSv1.3".equals(sslSocket.getSession().getProtocol())) {
+                        byte[] sessionId = sslSocket.getSession().getId();
+                        Assert.assertArrayEquals(sessionId, resumptionSessionId);
+                    }
 
                     DataInputStream dataInputStream = new DataInputStream(sslSocket.getInputStream());
                     DataOutputStream dataOutputStream = new DataOutputStream(sslSocket.getOutputStream());
                     handleMessage(dataOutputStream, dataInputStream);
 
-                } catch (IOException e) {
+                } catch (Throwable e) {
                     setReady(true);
                     System.err.println("handleServer : " + e.getMessage());
                     throw new RuntimeException(e);
@@ -679,15 +705,21 @@ public class SSLSocketTestBase extends BaseTest {
             String[] enableCipherSuites = reqParameters.getEnableCipherSuites();
             String[] enableProtocols = reqParameters.getEnableProtocols();
             Status status = reqParameters.getStatus();
+            KeyStoreParameters keyStoreParameters = reqParameters.getKeyStoreParameters();
+            KeyStoreParameters trustStoreParameters = reqParameters.getTrustStoreParameters();
             SSLContext sslContext;
             try {
                 if (Status.SESSION_RESUMPTION_REUSE.equals(status)) {
                     sslContext = reqParameters.getSslContext();
                 } else {
-                    KeyStoreParameters keyStoreParameters = new KeyStoreParameters(CLIENT_KS_PARAM,
-                            reqParameters.getKmfAlgorithm());
-                    KeyStoreParameters trustStoreParameters = new KeyStoreParameters(CLIENT_TS_PARAM,
-                            reqParameters.getTmfAlgorithm());
+                    if (keyStoreParameters == null) {
+                        keyStoreParameters = new KeyStoreParameters(CLIENT_KS_PARAM,
+                                reqParameters.getKmfAlgorithm());
+                    }
+                    if (trustStoreParameters == null) {
+                        trustStoreParameters = new KeyStoreParameters(CLIENT_TS_PARAM,
+                                reqParameters.getTmfAlgorithm());
+                    }
                     sslContext = createSSLContext(reqParameters.getClientProvider(), contextProtocol, keyStoreParameters, trustStoreParameters, new SecureRandom());
                     if (Status.SESSION_RESUMPTION_START.equals(status)) {
                         resumpotionContext = sslContext;
@@ -744,7 +776,7 @@ public class SSLSocketTestBase extends BaseTest {
         }
     }
 
-    private void test(ReqParameters serverParams, ReqParameters clientParams) {
+    protected void test(ReqParameters serverParams, ReqParameters clientParams) {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         ServerThread serverThread = null;
         ClientThread clientThread = null;

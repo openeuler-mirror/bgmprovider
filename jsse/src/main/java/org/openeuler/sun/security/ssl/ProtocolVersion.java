@@ -163,6 +163,9 @@ public enum ProtocolVersion {
     // Empty ProtocolVersion array
     static final ProtocolVersion[] PROTOCOLS_EMPTY = new ProtocolVersion[0];
 
+    static final ProtocolVersion[] PROTOCOLS_OF_RFC8998 = SSLConfiguration.enableRFC8998 ?
+            PROTOCOLS_OF_13 : PROTOCOLS_EMPTY;
+
     private ProtocolVersion(int id, String name) {
         this.id = id;
         this.name = name;

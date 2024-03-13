@@ -69,6 +69,14 @@ enum CipherSuite {
             0x1301, true, "TLS_AES_128_GCM_SHA256",
             ProtocolVersion.PROTOCOLS_OF_13, B_AES_128_GCM_IV, H_SHA256),
 
+    // cipher suites defined by RFC 8998
+    TLS_SM4_GCM_SM3(
+            0x00C6,true,"TLS_SM4_GCM_SM3",
+            ProtocolVersion.PROTOCOLS_OF_RFC8998, B_SM4_GCM_IV, H_SM3),
+    TLS_SM4_CCM_SM3(
+            0x00C7,true,"TLS_SM4_CCM_SM3",
+            ProtocolVersion.PROTOCOLS_OF_RFC8998, B_SM4_CCM_IV, H_SM3),
+
     // Suite B compliant cipher suites, see RFC 6460.
     //
     // Note that, at present this provider is not Suite B compliant. The

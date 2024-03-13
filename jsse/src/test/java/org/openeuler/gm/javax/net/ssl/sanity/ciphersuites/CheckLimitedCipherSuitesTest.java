@@ -37,6 +37,7 @@ public class CheckLimitedCipherSuitesTest {
 
     @Test
     public void testLimitedCheckCipherSuites() throws Exception {
+        System.setProperty("bgmprovider.tls.enableRFC8998", "true");
         System.setProperty("jdk.tls.client.protocols", "GMTLS, TLSv1.3,TLSv1.2,TLSv1.1,TLSv1,SSLv3");
         CheckCipherSuites.main(new String[]{"limited"});
     }

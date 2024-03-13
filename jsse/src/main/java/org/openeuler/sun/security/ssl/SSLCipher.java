@@ -47,6 +47,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+
 import org.openeuler.sun.security.ssl.Authenticator.MAC;
 import static org.openeuler.sun.security.ssl.CipherType.*;
 import static org.openeuler.sun.security.ssl.JsseJce.*;
@@ -360,7 +361,28 @@ enum SSLCipher {
             new GMTlsGcmWriteCipherGenerator(),
             ProtocolVersion.PROTOCOLS_OF_GMTLS
         )
-    }));
+    })),
+
+    B_SM4_GCM_IV(CIPHER_SM4_GCM, AEAD_CIPHER, 16, 16, 12, 0, true, false,
+       new Map.Entry[] {
+           new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
+               new T13GcmReadCipherGenerator(),
+               ProtocolVersion.PROTOCOLS_OF_13)},
+       new Map.Entry[] {
+           new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
+               new T13GcmWriteCipherGenerator(),
+               ProtocolVersion.PROTOCOLS_OF_13)}),
+
+    B_SM4_CCM_IV(CIPHER_SM4_CCM, AEAD_CIPHER, 16, 16, 12, 0, true, false,
+            new Map.Entry[] {
+                    new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
+                            new T13CcmReadCipherGenerator(),
+                            ProtocolVersion.PROTOCOLS_OF_13)},
+            new Map.Entry[] {
+                    new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
+                            new T13CcmWriteCipherGenerator(),
+                            ProtocolVersion.PROTOCOLS_OF_13)});
+
     // descriptive name including key size, e.g. AES/128
     final String description;
 
@@ -2611,6 +2633,301 @@ enum SSLCipher {
                     throw new RuntimeException(
                             "Cipher buffering error in JCE provider " +
                             cipher.getProvider().getName());
+                }
+
+                if (keyLimitEnabled) {
+                    keyLimitCountdown -= len;
+                }
+                return len;
+            }
+
+            @Override
+            void dispose() {
+                if (cipher != null) {
+                    try {
+                        cipher.doFinal();
+                    } catch (Exception e) {
+                        // swallow all types of exceptions.
+                    }
+                }
+            }
+
+            @Override
+            int getExplicitNonceSize() {
+                return 0;
+            }
+
+            @Override
+            int calculateFragmentSize(int packetLimit, int headerSize) {
+                return packetLimit - headerSize - tagSize;
+            }
+
+            @Override
+            int calculatePacketSize(int fragmentSize, int headerSize) {
+                return fragmentSize + headerSize + tagSize;
+            }
+        }
+    }
+
+    private static final
+            class T13CcmReadCipherGenerator implements ReadCipherGenerator {
+
+        @Override
+        public SSLReadCipher createCipher(SSLCipher sslCipher,
+                Authenticator authenticator, ProtocolVersion protocolVersion,
+                String algorithm, Key key, AlgorithmParameterSpec params,
+                SecureRandom random) throws GeneralSecurityException {
+            return new CcmReadCipher(authenticator, protocolVersion, sslCipher,
+                    algorithm, key, params, random);
+        }
+
+        static final class CcmReadCipher extends SSLReadCipher {
+
+            private final Cipher cipher;
+            private final int tagSize;
+            private final Key key;
+            private final byte[] iv;
+            private final SecureRandom random;
+
+            CcmReadCipher(Authenticator authenticator,
+                          ProtocolVersion protocolVersion,
+                          SSLCipher sslCipher, String algorithm,
+                          Key key, AlgorithmParameterSpec params,
+                          SecureRandom random) throws GeneralSecurityException{
+                super(authenticator, protocolVersion);
+                this.cipher = JsseJce.getCipher(algorithm);
+                this.tagSize = sslCipher.tagSize;
+                this.key = key;
+                this.iv = ((IvParameterSpec)params).getIV();
+                this.random = random;
+
+                keyLimitCountdown = cipherLimits.getOrDefault(
+                        algorithm.toUpperCase() + ":" + tag[0], 0L);
+                if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
+                    SSLLogger.fine("KeyLimit read side: algorithm = " +
+                            algorithm.toUpperCase() + ":" + tag[0] +
+                            "\ncountdown value = " + keyLimitCountdown);
+                }
+                if (keyLimitCountdown > 0) {
+                    keyLimitEnabled = true;
+                }
+            }
+
+            @Override
+            public Plaintext decrypt(byte contentType, ByteBuffer bb, byte[] sequence)
+                    throws GeneralSecurityException {
+                // An implementation may receive an unencrypted record of type
+                // change_cipher_spec consisting of the single byte value 0x01
+                // at any time after the first ClientHello message has been
+                // sent or received and before the peer's Finished message has
+                // been received and MUST simply drop it without further
+                // processing.
+                if (contentType == ContentType.CHANGE_CIPHER_SPEC.id) {
+                    return new Plaintext(contentType,
+                            ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
+                            -1, -1L, bb.slice());
+                }
+
+                if (bb.remaining() <= tagSize) {
+                    throw new BadPaddingException(
+                            "Insufficient buffer remaining for AEAD cipher " +
+                                    "fragment (" + bb.remaining() + "). Needs to be " +
+                                    "more than tag size (" + tagSize + ")");
+                }
+
+                byte[] sn = sequence;
+                if (sn == null) {
+                    sn = authenticator.sequenceNumber();
+                }
+                byte[] nonce = iv.clone();
+                int offset = nonce.length - sn.length;
+                for (int i = 0; i < sn.length; i++) {
+                    nonce[offset + i] ^= sn[i];
+                }
+
+                // initialize the AEAD cipher for the unique IV
+                GCMParameterSpec spec =
+                        new GCMParameterSpec(tagSize * 8, nonce);
+                try {
+                    cipher.init(Cipher.DECRYPT_MODE, key, spec, random);
+                } catch (InvalidKeyException |
+                         InvalidAlgorithmParameterException ikae) {
+                    // unlikely to happen
+                    throw new RuntimeException(
+                            "invalid key or spec in GCM mode", ikae);
+                }
+
+                // Update the additional authentication data, using the
+                // implicit sequence number of the authenticator.
+                byte[] aad = authenticator.acquireAuthenticationBytes(
+                        contentType, bb.remaining(), sn);
+                cipher.updateAAD(aad);
+
+                int len, pos = bb.position();
+                ByteBuffer dup = bb.duplicate();
+                try {
+                    len = cipher.doFinal(dup, bb);
+                } catch (IllegalBlockSizeException ibse) {
+                    // unlikely to happen
+                    throw new RuntimeException(
+                            "Cipher error in AEAD mode \"" + ibse.getMessage() +
+                                    " \"in JCE provider " + cipher.getProvider().getName());
+                } catch (ShortBufferException sbe) {
+                    // catch BouncyCastle buffering error
+                    throw new RuntimeException("Cipher buffering error in " +
+                            "JCE provider " + cipher.getProvider().getName(), sbe);
+                }
+                // reset the limit to the end of the decrypted data
+                bb.position(pos);
+                bb.limit(pos + len);
+
+                // remove inner plaintext padding
+                int i = bb.limit() - 1;
+                for (; i > 0 && bb.get(i) == 0; i--) {
+                    // blank
+                }
+                if (i < (pos + 1)) {
+                    throw new BadPaddingException(
+                            "Incorrect inner plaintext: no content type");
+                }
+                contentType = bb.get(i);
+                bb.limit(i);
+
+                if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
+                    SSLLogger.fine(
+                            "Plaintext after DECRYPTION", bb.duplicate());
+                }
+                if (keyLimitEnabled) {
+                    keyLimitCountdown -= len;
+                }
+
+                return new Plaintext(contentType,
+                        ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
+                        -1, -1L, bb.slice());
+            }
+
+            @Override
+            void dispose() {
+                if (cipher != null) {
+                    try {
+                        cipher.doFinal();
+                    } catch (Exception e) {
+                        // swallow all types of exceptions.
+                    }
+                }
+            }
+
+            @Override
+            int estimateFragmentSize(int packetSize, int headerSize) {
+                return 0;
+            }
+        }
+    }
+
+    private static final
+            class T13CcmWriteCipherGenerator implements WriteCipherGenerator {
+        @Override
+        public SSLWriteCipher createCipher(SSLCipher sslCipher,
+                                           Authenticator authenticator, ProtocolVersion protocolVersion,
+                                           String algorithm, Key key, AlgorithmParameterSpec params,
+                                           SecureRandom random) throws GeneralSecurityException {
+            return new CcmWriteCipher(authenticator, protocolVersion, sslCipher,
+                    algorithm, key, params, random);
+        }
+
+        private static final class CcmWriteCipher extends SSLWriteCipher {
+            private final Cipher cipher;
+            private final int tagSize;
+            private final Key key;
+            private final byte[] iv;
+            private final SecureRandom random;
+
+            CcmWriteCipher(Authenticator authenticator,
+                           ProtocolVersion protocolVersion,
+                           SSLCipher sslCipher, String algorithm,
+                           Key key, AlgorithmParameterSpec params,
+                           SecureRandom random) throws GeneralSecurityException {
+                super(authenticator, protocolVersion);
+                this.cipher = JsseJce.getCipher(algorithm);
+                this.tagSize = sslCipher.tagSize;
+                this.key = key;
+                this.iv = ((IvParameterSpec)params).getIV();
+                this.random = random;
+
+                keyLimitCountdown = cipherLimits.getOrDefault(
+                        algorithm.toUpperCase() + ":" + tag[0], 0L);
+                if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
+                    SSLLogger.fine("KeyLimit write side: algorithm = "
+                            + algorithm.toUpperCase() + ":" + tag[0] +
+                            "\ncountdown value = " + keyLimitCountdown);
+                }
+                if (keyLimitCountdown > 0) {
+                    keyLimitEnabled = true;
+                }
+
+                // DON'T initialize the cipher for AEAD!
+            }
+
+            @Override
+            public int encrypt(byte contentType,
+                               ByteBuffer bb) {
+                byte[] sn = authenticator.sequenceNumber();
+                byte[] nonce = iv.clone();
+                int offset = nonce.length - sn.length;
+                for (int i = 0; i < sn.length; i++) {
+                    nonce[offset + i] ^= sn[i];
+                }
+
+                // initialize the AEAD cipher for the unique IV
+                GCMParameterSpec spec =
+                        new GCMParameterSpec(tagSize * 8, nonce);
+                try {
+                    cipher.init(Cipher.ENCRYPT_MODE, key, spec, random);
+                } catch (InvalidKeyException |
+                         InvalidAlgorithmParameterException ikae) {
+                    // unlikely to happen
+                    throw new RuntimeException(
+                            "invalid key or spec in GCM mode", ikae);
+                }
+
+                // Update the additional authentication data, using the
+                // implicit sequence number of the authenticator.
+                int outputSize = cipher.getOutputSize(bb.remaining());
+                byte[] aad = authenticator.acquireAuthenticationBytes(
+                        contentType, outputSize, sn);
+                cipher.updateAAD(aad);
+
+                int len, pos = bb.position();
+                if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
+                     SSLLogger.fine(
+                            "Plaintext before ENCRYPTION",
+                            bb.duplicate());
+                }
+
+                ByteBuffer dup = bb.duplicate();
+                if (outputSize > bb.remaining()) {
+                    // Need to expand the limit of the output buffer for
+                    // the authentication tag.
+                    //
+                    // DON'T worry about the buffer's capacity, we have
+                    // reserved space for the authentication tag.
+                    bb.limit(pos + outputSize);
+                }
+
+                try {
+                    len = cipher.doFinal(dup, bb);
+                } catch (IllegalBlockSizeException |
+                         BadPaddingException | ShortBufferException ibse) {
+                    // unlikely to happen
+                    throw new RuntimeException(
+                            "Cipher error in AEAD mode in JCE provider " +
+                                    cipher.getProvider().getName(), ibse);
+                }
+
+                if (len != outputSize) {
+                    throw new RuntimeException(
+                            "Cipher buffering error in JCE provider " +
+                                    cipher.getProvider().getName());
                 }
 
                 if (keyLimitEnabled) {

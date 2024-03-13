@@ -28,18 +28,22 @@ package org.openeuler.sun.security.ssl;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.*;
+import java.security.spec.AlgorithmParameterSpec;
 import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
+
+import org.openeuler.gm.GMConstants;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Credentials;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Possession;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Possession;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import org.openeuler.sun.misc.HexDumpEncoder;
+import org.openeuler.util.GMUtil;
 
-/**
+ /**
  * Pack of the CertificateVerify handshake message.
  */
 final class CertificateVerify {
@@ -1329,9 +1333,14 @@ final class CertificateVerify {
                         clientSignHead.length, hashValue.length);
             }
 
+            AlgorithmParameterSpec parameterSpec = null;
+            if (this.signatureScheme == SignatureScheme.SM2SIG_SM3) {
+                parameterSpec = GMUtil.createSM2ParameterSpec(GMConstants.TLS13_GM_ID);
+            }
+
             try {
                 Signature signer =
-                    signatureScheme.getVerifier(x509Credentials.popPublicKey);
+                    signatureScheme.getVerifier(x509Credentials.popPublicKey, parameterSpec);
                 signer.update(contentCovered);
                 if (!signer.verify(signature)) {
                     throw context.conContext.fatal(Alert.HANDSHAKE_FAILURE,

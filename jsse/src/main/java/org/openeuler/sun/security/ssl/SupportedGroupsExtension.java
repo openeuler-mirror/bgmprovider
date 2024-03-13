@@ -286,7 +286,11 @@ final class SupportedGroupsExtension {
 
         // sm2p256v1
         SM2P256V1   (0x00F9, "sm2p256v1", "1.2.156.10197.1.301", false,
-                              ProtocolVersion.PROTOCOLS_OF_GMTLS_AND_12);
+                              ProtocolVersion.PROTOCOLS_OF_GMTLS_AND_12),
+
+        // RFC 8998
+        curveSM2   (0x0029, "curvesm2", "1.2.156.10197.1.301", false,
+                ProtocolVersion.PROTOCOLS_OF_RFC8998);
 
         final int id;               // hash + signature
         final NamedGroupType type;  // group type
@@ -549,6 +553,9 @@ final class SupportedGroupsExtension {
                         NamedGroup.SECP384_R1,
                         NamedGroup.SECP521_R1,
 
+                        // RFC 8998
+                        NamedGroup.curveSM2,
+
                         // FFDHE 2048
                         NamedGroup.FFDHE_2048,
                         NamedGroup.FFDHE_3072,
@@ -557,7 +564,7 @@ final class SupportedGroupsExtension {
                         NamedGroup.FFDHE_8192,
 
                         // SM2 curves
-                        NamedGroup.SM2P256V1,
+                        NamedGroup.SM2P256V1
                     };
                 }
 

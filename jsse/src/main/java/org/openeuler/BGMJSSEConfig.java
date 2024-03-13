@@ -24,12 +24,15 @@
 
 package org.openeuler;
 
-class BGMJSSEConfig {
+public class BGMJSSEConfig {
     private static boolean enableKeyManagerFactory = true;
     private static boolean enableTrustManagerFactory = true;
     private static boolean enableKeyGenerator = true;
     private static boolean enableSSLContext = true;
     private static boolean enableKeyStore = true;
+
+    // Support RFC 8998 : ShangMi (SM) Cipher Suites for TLS 1.3
+    private static boolean enableRFC8998 = false;
 
     static {
         initConfig();
@@ -41,6 +44,7 @@ class BGMJSSEConfig {
         enableKeyGenerator = Config.enable("jsse.keyGenerator");
         enableSSLContext = Config.enable("jsse.sslContext");
         enableKeyStore = Config.enable("jsse.keystore");
+        enableRFC8998 = Config.enable("bgmprovider.tls.enableRFC8998", "false");
     }
 
     private BGMJSSEConfig() {
@@ -65,5 +69,9 @@ class BGMJSSEConfig {
 
     static boolean enableKeyStore() {
         return enableKeyStore;
+    }
+
+    public static boolean enableRFC8998() {
+        return enableRFC8998;
     }
 }
