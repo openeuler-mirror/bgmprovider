@@ -39,6 +39,33 @@ public class SM4Cipher extends CipherSpi {
 
     private final int BLOCK_SIZE = 16;
 
+    abstract static class OidImpl extends SM4Cipher {
+        protected OidImpl(String mode, String padding) {
+            try {
+                engineSetMode(mode);
+                engineSetPadding(padding);
+            } catch (GeneralSecurityException gse) {
+                // internal error; re-throw as provider exception
+                ProviderException pe =new ProviderException("Internal Error");
+                pe.initCause(gse);
+                throw pe;
+            }
+        }
+    }
+
+    public static final class SM4_OCB_NoPadding extends OidImpl {
+        public SM4_OCB_NoPadding() {
+            super("OCB","NoPadding");
+        }
+    }
+
+
+    public static final class SM4_CCM_NoPadding extends OidImpl {
+        public SM4_CCM_NoPadding() {
+            super("CCM","NoPadding");
+        }
+    }
+
     @Override
     protected void engineSetMode(String mode) throws NoSuchAlgorithmException {
         String upperMode = mode.toUpperCase();

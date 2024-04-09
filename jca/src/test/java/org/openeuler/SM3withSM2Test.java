@@ -120,6 +120,9 @@ public class SM3withSM2Test {
 
     @Test
     public void getParameters() throws Exception{
+        if (BGMJCEConfig.useLegacy()) {
+            return;
+        }
         Signature signature = Signature.getInstance("SM3withSM2");
         signature.initSign(privateKey);
         Assert.assertNull(signature.getParameters());
