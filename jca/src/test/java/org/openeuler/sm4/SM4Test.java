@@ -470,7 +470,7 @@ public class SM4Test {
                 "SM4/CFB/PKCS5Padding",
                 "SM4/OFB/PKCS5Padding",
                 "SM4/CTR/PKCS5Padding",
-                "SM4/CTS/PKCS5Padding",
+//                "SM4/CTS/PKCS5Padding",
 
                 "SM4/ECB/NoPadding",
                 "SM4/CBC/NoPadding",
@@ -635,7 +635,7 @@ public class SM4Test {
 //        test("SM4/CTS/PKCS5Padding", key, 16, 32);
         testUpdateAndDofinal("SM4/CTS/NoPadding", key, 16, 16, 7);
         testUpdateAndDofinal("SM4/CTS/NoPadding", key, 16, 32, 32);
-        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 15, 6);
+//        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 15, 6);
 //        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 31, 31);
 //        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 16, 16);
 //        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 32, 18);

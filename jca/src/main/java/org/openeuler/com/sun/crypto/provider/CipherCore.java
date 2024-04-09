@@ -286,15 +286,20 @@ final class CipherCore {
             throw new NoSuchPaddingException("Padding: " + paddingScheme
                                              + " not implemented");
         }
-        if ((padding != null) && (cipherMode == GCM_MODE || cipherMode == CCM_MODE)) {
+        if ((padding != null) &&
+            ((cipherMode == CCM_MODE) || (cipherMode == CTS_MODE)
+             || (cipherMode == GCM_MODE))) {
             padding = null;
             String modeStr = null;
             switch (cipherMode) {
-            case GCM_MODE:
-                modeStr = "GCM";
-                break;
             case CCM_MODE:
                 modeStr = "CCM";
+                break;
+            case CTS_MODE:
+                modeStr = "CTS";
+                break;
+            case GCM_MODE:
+                modeStr = "GCM";
                 break;
             default:
                 // should never happen
