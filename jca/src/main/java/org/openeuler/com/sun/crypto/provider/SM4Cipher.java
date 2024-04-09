@@ -335,6 +335,12 @@ abstract class SM4Cipher extends CipherSpi {
                            outputOffset);
     }
 
+    @Override
+    protected int engineUpdate(ByteBuffer input, ByteBuffer output)
+            throws ShortBufferException {
+        return core.update(input, output);
+    }
+
     /**
      * Encrypts or decrypts data in a single-part operation,
      * or finishes a multiple-part operation.
@@ -416,6 +422,12 @@ abstract class SM4Cipher extends CipherSpi {
                                   outputOffset);
         updateCalled = false;
         return outLen;
+    }
+
+    @Override
+    protected int engineDoFinal(ByteBuffer input, ByteBuffer output)
+        throws ShortBufferException, IllegalBlockSizeException, BadPaddingException {
+        return core.doFinal(input, output);
     }
 
     /**
