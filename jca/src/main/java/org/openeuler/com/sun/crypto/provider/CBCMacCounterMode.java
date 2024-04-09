@@ -88,7 +88,9 @@ final class CBCMacCounterMode extends FeedbackCipher {
 
     @Override
     void restore() {
+        aadBuffer.reset();
         aadBuffer.write(aadBufferSave,0, aadBufferSave.length);
+        dataBuffer.reset();
         dataBuffer.write(dataBufferSave,0,dataBufferSave.length);
     }
 

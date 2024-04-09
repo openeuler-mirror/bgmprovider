@@ -32,8 +32,10 @@ import org.openeuler.BGMJCEProvider;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Key;
@@ -57,6 +59,64 @@ public class SM4Test {
         } catch (Exception e) {
             System.err.println("BouncyCastleProvider does not exist");
         }
+    }
+
+    @Test
+    public void testSaveAndRestore() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+        key = new SecretKeySpec(new byte[16], "SM4");
+
+        testSaveAndRestore("SM4/CBC/NoPadding", key, 16, 48);
+        testSaveAndRestore("SM4/CFB/NoPadding", key, 16, 52);
+        testSaveAndRestore("SM4/OFB/NoPadding", key, 16, 53);
+        testSaveAndRestore("SM4/CTS/NoPadding", key, 16, 54);
+        testSaveAndRestore("SM4/CTR/NoPadding", key, 16, 55);
+        testSaveAndRestore("SM4/GCM/NoPadding", key, 12, 56);
+        testSaveAndRestore("SM4/OCB/NoPadding", key, 12, 57);
+        testSaveAndRestore("SM4/CCM/NoPadding", key, 12, 58);
+
+        testSaveAndRestore("SM4/CBC/PKCS5Padding", key, 16, 48);
+        testSaveAndRestore("SM4/CFB/PKCS5Padding", key, 16, 52);
+        testSaveAndRestore("SM4/OFB/PKCS5Padding", key, 16, 53);
+        testSaveAndRestore("SM4/CTR/PKCS5Padding", key, 16, 54);
+    }
+
+    private void testSaveAndRestore(String transformation, Key key, int ivLen, int plainTextLen) throws Exception {
+        // compute expect encrypted bytes
+        byte[] iv = new byte[ivLen];
+        AlgorithmParameterSpec parameterSpec = new IvParameterSpec(iv);
+        byte[] plainText = new byte[plainTextLen];
+        Arrays.fill(plainText, (byte) 1);
+        Cipher cipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+        cipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        byte[] encryptedBytes = cipher.doFinal(plainText);
+
+        // compute actual encrypted bytes
+        // decrypt update
+        cipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+        cipher.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        int updateLen = encryptedBytes.length / 2;
+        byte[] updatedDecryptedBytes = cipher.update(encryptedBytes, 0, updateLen);
+        if (updatedDecryptedBytes == null) {
+            updatedDecryptedBytes = new byte[0];
+        }
+        byte[] actualDecryptedBytes = Arrays.copyOf(updatedDecryptedBytes, updatedDecryptedBytes.length);
+
+        // decrypt doFinal
+        int doFinalLen = encryptedBytes.length - updateLen;
+        int outputSize = cipher.getOutputSize(doFinalLen);
+        byte[] output = new byte[outputSize];
+        try {
+            cipher.doFinal(encryptedBytes, updateLen, doFinalLen, output, 17);
+        } catch (ShortBufferException e) {
+            int decryptedFinalLen = cipher.doFinal(encryptedBytes, updateLen, doFinalLen, output, 0);
+            actualDecryptedBytes = Arrays.copyOf(actualDecryptedBytes,
+                    actualDecryptedBytes.length + decryptedFinalLen);
+            System.arraycopy(output, 0, actualDecryptedBytes, updatedDecryptedBytes.length, decryptedFinalLen);
+        }
+        Assert.assertArrayEquals(plainText, actualDecryptedBytes);
     }
 
     @Test

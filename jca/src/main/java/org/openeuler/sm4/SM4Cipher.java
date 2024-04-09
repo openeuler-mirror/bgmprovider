@@ -53,12 +53,6 @@ public class SM4Cipher extends CipherSpi {
         }
     }
 
-    public static final class SM4_OCB_NoPadding extends OidImpl {
-        public SM4_OCB_NoPadding() {
-            super("OCB","NoPadding");
-        }
-    }
-
     @Override
     protected void engineSetMode(String mode) throws NoSuchAlgorithmException {
         String upperMode = mode.toUpperCase();

@@ -26,21 +26,23 @@
 
 package org.openeuler.com.sun.crypto.provider;
 
+import sun.misc.HexDumpEncoder;
+import sun.security.util.DerOutputStream;
+import sun.security.util.DerValue;
+
+import javax.crypto.spec.GCMParameterSpec;
 import java.io.IOException;
 import java.security.AlgorithmParametersSpi;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
-import javax.crypto.spec.GCMParameterSpec;
-import sun.misc.HexDumpEncoder;
-import sun.security.util.*;
 
-public final class CCMParameters extends AlgorithmParametersSpi {
+public final class OCBParameters extends AlgorithmParametersSpi {
     // the iv
     private byte[] iv;
     // the tag length in bytes
     private int tLen;
 
-    public CCMParameters() {}
+    public OCBParameters() {}
 
     protected void engineInit(AlgorithmParameterSpec paramSpec)
         throws InvalidParameterSpecException {
@@ -63,22 +65,22 @@ public final class CCMParameters extends AlgorithmParametersSpi {
             int tLen;
             if (val.data.available() != 0) {
                 tLen = val.data.getInteger();
-                if (tLen < 4 || tLen > 16 || (tLen & 0x01) == 1) {
+                if (tLen < 8 || tLen > 16) {
                     throw new IOException
-                            ("CCM parameter parsing error: unsupported tag len: " +
+                            ("OCB parameter parsing error: unsupported tag len: " +
                                     tLen);
                 }
                 if (val.data.available() != 0) {
                     throw new IOException
-                        ("CCM parameter parsing error: extra data");
+                        ("OCB parameter parsing error: extra data");
                 }
             } else {
-                tLen = 8;
+                tLen = 16;
             }
             this.iv = iv.clone();
             this.tLen = tLen;
         } else {
-            throw new IOException("CCM parameter parsing error: no SEQ tag");
+            throw new IOException("OCB parameter parsing error: no SEQ tag");
         }
     }
 
