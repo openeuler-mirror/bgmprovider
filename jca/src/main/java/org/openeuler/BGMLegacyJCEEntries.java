@@ -122,6 +122,8 @@ class BGMLegacyJCEEntries extends AbstractEntries {
                 "org.bouncycastle.jcajce.provider.symmetric.SM4$AlgParamGen");
         add(provider, "KeyGenerator", "SM4",
                 "org.bouncycastle.jcajce.provider.symmetric.SM4$KeyGen");
+        add(provider, "AlgorithmParameters", "CCM",
+                "org.openeuler.com.sun.crypto.provider.CCMParameters");
     }
 
     private void putPBES2(Provider provider) {

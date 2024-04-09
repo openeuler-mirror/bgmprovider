@@ -34,6 +34,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Key;
 import java.security.Provider;
@@ -72,8 +73,7 @@ public class SM4Test {
             testUpdateAndDoFinalZeroParameter("SM4/CCM/NoPadding", key, 12, len);
             testUpdateAndDoFinalZeroParameter("SM4/GCM/NoPadding", key, 12, len, 2);
             testUpdateAndDoFinalZeroParameter("SM4/CTR/NoPadding", key, 12, len, 2);
-            // CCM currently only supports one update
-//            testUpdateAndDoFinalZeroParameter("SM4/CCM/NoPadding", key, 12, len, 2);
+            testUpdateAndDoFinalZeroParameter("SM4/CCM/NoPadding", key, 12, len, 2);
         }
 
         // SM4/CTS/NoPadding
@@ -100,8 +100,6 @@ public class SM4Test {
             testUpdateAndDoFinalZeroParameter("SM4/CBC/NoPadding", key, 16, len, 2);
             testUpdateAndDoFinalZeroParameter("SM4/CFB/NoPadding", key, 16, len, 2);
             testUpdateAndDoFinalZeroParameter("SM4/OFB/NoPadding", key, 16, len, 2);
-
-            // CCM currently only supports one update
 //            testUpdateAndDoFinalZeroParameter("SM4/OCB/NoPadding", key, 12, len, 2);
         }
     }
@@ -369,6 +367,167 @@ public class SM4Test {
     }
 
     @Test
+    public void testCCM() throws Exception {
+        if (Security.getProvider("BC") == null) {
+            System.out.println("Skip test, BouncyCastleProvider does not exist");
+            return;
+        }
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+        int[] ivLens = new int[]{7, 8, 9, 10, 11, 12, 13};
+        int[] lengths = new int[20];
+
+        SecureRandom random = new SecureRandom();
+        for (int i = 0; i < lengths.length; i++) {
+            lengths[i] = random.nextInt(2048) + 1;
+        }
+        for (int ivLen : ivLens) {
+            for (int length : lengths) {
+                int tLen = (random.nextInt(6) + 2) * 2 * 8;
+                testAEADMode("SM4/CCM/NoPadding", key, tLen, ivLen, length);
+                int updateLen = random.nextInt(length);
+                testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, tLen, ivLen, length, updateLen);
+                testInitAlgorithmParameters("SM4/CCM/NoPadding", key, tLen, ivLen, length);
+            }
+        }
+    }
+
+    @Test
+    public void testGetOutputSize() throws Exception {
+        if (Security.getProvider("BC") == null) {
+            System.out.println("Skip test, BouncyCastleProvider does not exist");
+            return;
+        }
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+
+        int[] plainTextLens = {0, 10, 15, 16, 17, 31, 32, 33, 64, 128};
+        String[] transformations = {
+                "SM4/ECB/PKCS5Padding",
+                "SM4/CBC/PKCS5Padding",
+                "SM4/CFB/PKCS5Padding",
+                "SM4/OFB/PKCS5Padding",
+                "SM4/CTR/PKCS5Padding",
+                "SM4/CTS/PKCS5Padding",
+
+                "SM4/ECB/NoPadding",
+                "SM4/CBC/NoPadding",
+                "SM4/CFB/NoPadding",
+                "SM4/OFB/NoPadding",
+                "SM4/CTR/NoPadding",
+                "SM4/CTS/NoPadding",
+
+                "SM4/GCM/NoPadding",
+                "SM4/CCM/NoPadding",
+                "SM4/OCB/NoPadding"
+        };
+        for (int plainTextLen : plainTextLens) {
+            for (String transformation : transformations) {
+                testGetOutputSize(transformation, key, plainTextLen);
+            }
+        }
+    }
+
+    private void testGetOutputSize(String transformation, Key key, int plainTextLen)
+            throws Exception {
+        int tagLen = getTagLen(transformation);
+        System.out.println("transformation=" + transformation + ", plainTextLen=" + plainTextLen + ", tagLen=" + tagLen);
+        Cipher bcCipher = Cipher.getInstance(transformation, "BC");
+        Cipher bgmCipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+        AlgorithmParameterSpec parameterSpec = getAlgorithmParameterSpec(transformation, tagLen);
+        bcCipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        bgmCipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        int bcEncryptedOutputSize = bcCipher.getOutputSize(plainTextLen);
+        int bgmEncryptedOutputSize = bgmCipher.getOutputSize(plainTextLen);
+        System.out.println("bcEncryptedOutputSize:" + bcEncryptedOutputSize);
+        System.out.println("bgmEncryptedOutputSize:" + bgmEncryptedOutputSize);
+        Assert.assertEquals(bcEncryptedOutputSize, bgmEncryptedOutputSize);
+
+        boolean isAADMode = isAADMode(transformation);
+        boolean isPKCS5Padding = transformation.toUpperCase().contains("PKCS5");
+
+        int expectedEncryptedLen = getExpectedOutputSize(isAADMode, isPKCS5Padding,
+                plainTextLen, tagLen, false);
+        Assert.assertEquals(expectedEncryptedLen, bgmEncryptedOutputSize);
+
+        bcCipher.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        bgmCipher.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        int bcDecryptedOutputSize = bcCipher.getOutputSize(bcEncryptedOutputSize);
+        int bgmDecryptedOutputSize = bgmCipher.getOutputSize(bgmEncryptedOutputSize);
+        System.out.println("bcDecryptedOutputSize:" + bcDecryptedOutputSize);
+        System.out.println("bgmDecryptedOutputSize:" + bgmDecryptedOutputSize);
+        Assert.assertEquals(bcDecryptedOutputSize, bgmDecryptedOutputSize);
+
+        int expectedDecryptedLen = getExpectedOutputSize(isAADMode, isPKCS5Padding,
+                bgmEncryptedOutputSize, tagLen, true);
+        Assert.assertEquals(expectedDecryptedLen, bgmDecryptedOutputSize);
+    }
+
+    private int getTagLen(String transformation) {
+        transformation = transformation.toUpperCase();
+        int[] supportedTagLens = null;
+        if (transformation.contains("GCM")) { // 128, 120, 112, 104, 96
+            supportedTagLens = new int[]{128, 120, 112, 104, 96};
+        } else if (transformation.contains("CCM")) { // 128, 112, 96, 80, 64, 48, 32
+            supportedTagLens = new int[]{128, 112, 96, 80, 64, 48, 32};
+        } else if (transformation.contains("OCB")) { // 128
+            supportedTagLens = new int[]{128, 120, 112, 104, 96, 88, 80, 72, 64};
+        } else { // do nothing
+
+        }
+        if (supportedTagLens == null) {
+            return 0;
+        }
+        SecureRandom random = new SecureRandom();
+        int index = random.nextInt(supportedTagLens.length - 1);
+        return supportedTagLens[index];
+    }
+
+    private int getExpectedOutputSize(boolean isAADMode, boolean isPKCS5Padding,
+                                      int inputLen, int tagLen, boolean decrypting) {
+        if (isAADMode) { // is AAD Mode (GCM/CCM/OCB)
+            if (isPKCS5Padding) { // Not Support
+                throw new IllegalStateException("Not Support");
+            } else {
+                int tLen = tagLen / 8;
+                return decrypting ? inputLen - tLen : inputLen + tLen;
+            }
+        } else {
+            if (isPKCS5Padding && !decrypting) {  // PKCS5Padding
+                return inputLen + padLength(inputLen, 16);
+            } else { // NoPadding
+                return inputLen;
+            }
+        }
+    }
+
+    private int padLength(int len, int blockSize) {
+        return blockSize - (len % blockSize);
+    }
+
+    private AlgorithmParameterSpec getAlgorithmParameterSpec(String transformation, int tagLen) {
+        transformation = transformation.toUpperCase();
+        if (transformation.contains("GCM")) {
+            return new GCMParameterSpec(tagLen, new byte[12]);
+        } else if (transformation.contains("CCM")) {
+            return new GCMParameterSpec(tagLen, new byte[12]);
+        } else if (transformation.contains("OCB")) {
+            return new GCMParameterSpec(tagLen, new byte[15]);
+        } else if (transformation.contains("ECB")) {
+            return null;
+        } else {
+            return new IvParameterSpec(new byte[16]);
+        }
+    }
+
+    private boolean isAADMode(String transformation) {
+        transformation = transformation.toUpperCase();
+        return transformation.contains("GCM") || transformation.contains("CCM") || transformation.contains("OCB");
+    }
+
+    @Test
     public void test() throws Exception {
         if (Security.getProvider("BC") == null) {
             System.out.println("Skip test, BouncyCastleProvider does not exist");
@@ -510,19 +669,17 @@ public class SM4Test {
         testUpdateAndDofinalAEADMode("SM4/OCB/NoPadding", key, 128, 15, 16, 16);
         testUpdateAndDofinalAEADMode("SM4/OCB/NoPadding", key, 128, 15, 32, 18);
 
-
-        testAEADMode("SM4/CCM/NoPadding", key, 0, 7, 16);
-        testAEADMode("SM4/CCM/NoPadding", key, 0, 8, 16);
-        testAEADMode("SM4/CCM/NoPadding", key, 0, 9, 16);
-        testAEADMode("SM4/CCM/NoPadding", key, 0, 10, 16);
-        testAEADMode("SM4/CCM/NoPadding", key, 0, 11, 16);
-        testAEADMode("SM4/CCM/NoPadding", key, 0, 12, 16);
-        testAEADMode("SM4/CCM/NoPadding", key, 0, 13, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 7, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 8, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 9, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 10, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 11, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 12, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 13, 16);
         testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, 128, 13, 15, 6);
         testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, 128, 13, 31, 31);
         testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, 128, 13, 16, 16);
         testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, 128, 13, 32, 18);
-
     }
 
     /**
@@ -612,6 +769,10 @@ public class SM4Test {
         Assert.assertArrayEquals(bcOffsetDecrypt, bgmOffsetDecrypt);
     }
 
+    public static void testAEADMode(String algo, Key key, int tLen, int ivLen, int plainTextLen) throws Exception {
+        testAEADMode(algo, key, tLen, ivLen, plainTextLen, false);
+    }
+
     /**
      * test doFinal
      *
@@ -622,7 +783,8 @@ public class SM4Test {
      * @param plainTextLen
      * @throws Exception
      */
-    public static void testAEADMode(String algo, Key key, int tLen, int ivLen, int plainTextLen) throws Exception {
+    public static void testAEADMode(String algo, Key key, int tLen, int ivLen, int plainTextLen, boolean useIvParams)
+            throws Exception {
         Cipher bc = Cipher.getInstance(algo, "BC");
         Cipher bgm = Cipher.getInstance(algo, "BGMJCEProvider");
 
@@ -633,17 +795,15 @@ public class SM4Test {
         int aadLen = (((int) (Math.random() * 32767)) + 1);
         byte[] aad = new byte[aadLen];
         random.nextBytes(aad);
-        GCMParameterSpec gcmParameterSpec = null;
-        if (!algo.contains("CCM")) {
-            gcmParameterSpec = new GCMParameterSpec(tLen, iv);
-            bc.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-        }
+
+        AlgorithmParameterSpec parameterSpec = useIvParams ?
+                new IvParameterSpec(iv) : new GCMParameterSpec(tLen, iv);
+        bc.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        bgm.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
+
         byte[] plainText = new byte[plainTextLen];
         random.nextBytes(plainText);
 
@@ -651,13 +811,8 @@ public class SM4Test {
         byte[] bgmCipherText = bgm.doFinal(plainText);
         Assert.assertArrayEquals(bcCipherText, bgmCipherText);
 
-        if (!algo.contains("CCM")) {
-            bc.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-            bgm.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-        }
+        bc.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        bgm.init(Cipher.DECRYPT_MODE, key, parameterSpec);
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
         byte[] bcPlainText = bc.doFinal(bcCipherText);
@@ -670,15 +825,11 @@ public class SM4Test {
             random.nextBytes(newIv);
         }
 
-        gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
-        if (!algo.contains("CCM")) {
-            gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
-            bc.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
-            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
-        }
+        parameterSpec = useIvParams ? new IvParameterSpec(newIv)
+                : new GCMParameterSpec(tLen, newIv);
+        bc.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        bgm.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
         //test dofinal without output args
@@ -697,13 +848,8 @@ public class SM4Test {
         Assert.assertEquals(bcCipherLen, bgmCipherLen);
         Assert.assertArrayEquals(bcres, bgmres);
 
-        if (!algo.contains("CCM")) {
-            bc.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(newIv));
-            bgm.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(newIv));
-        }
+        bc.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        bgm.init(Cipher.DECRYPT_MODE, key, parameterSpec);
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
         //generate output array
@@ -892,5 +1038,43 @@ public class SM4Test {
             }
         }
         return result;
+    }
+
+    public static void testInitAlgorithmParameters(String transformation, Key key, int tLen, int ivLen,
+                                                   int plainTextLen) throws Exception {
+        SecureRandom random = new SecureRandom();
+
+        byte[] ivBytes = new byte[ivLen];
+        random.nextBytes(ivBytes);
+
+        byte[] plainText = new byte[plainTextLen];
+        random.nextBytes(plainText);
+
+        Cipher bcCipher = Cipher.getInstance(transformation, "BC");
+        Cipher bgmCipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+
+        AlgorithmParameterSpec parameterSpec = new GCMParameterSpec(tLen, ivBytes);
+        String algorithm = getAlgorithmParametersAlgorithm(transformation);
+        if (algorithm != null) {
+            AlgorithmParameters algorithmParameters = AlgorithmParameters.getInstance(algorithm);
+            algorithmParameters.init(parameterSpec);
+            bcCipher.init(Cipher.ENCRYPT_MODE, key, algorithmParameters);
+            bgmCipher.init(Cipher.ENCRYPT_MODE, key, algorithmParameters);
+        } else {
+            bcCipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+            bgmCipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        }
+        byte[] bcEncryptedBytes = bcCipher.doFinal(plainText);
+        byte[] bgmEncryptedBytes = bgmCipher.doFinal(plainText);
+        Arrays.equals(bcEncryptedBytes, bgmEncryptedBytes);
+    }
+
+    private static String getAlgorithmParametersAlgorithm(String transformation) {
+        if (transformation.contains("GCM")) {
+            return "GCM";
+        } else if (transformation.contains("CCM")) {
+            return "CCM";
+        }
+        return null;
     }
 }

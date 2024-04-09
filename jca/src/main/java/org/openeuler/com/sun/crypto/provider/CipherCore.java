@@ -130,6 +130,8 @@ final class CipherCore {
     private static final int CTS_MODE = 6;
     static final int GCM_MODE = 7;
 
+    private static final int CCM_MODE = 8;
+
     /*
      * variables used for performing the GCM (key+iv) uniqueness check.
      * To use GCM mode safely, the cipher object must be re-initialized
@@ -220,10 +222,12 @@ final class CipherCore {
         } else if (modeUpperCase.equals("PCBC")) {
             cipherMode = PCBC_MODE;
             cipher = new PCBC(rawImpl);
-        }
-        else {
+        } else if (modeUpperCase.equals("CCM")) {
+            cipherMode = CCM_MODE;
+            cipher = new CBCMacCounterMode(rawImpl);
+        } else {
             throw new NoSuchAlgorithmException("Cipher mode: " + mode
-                                               + " not found");
+                    + " not found");
         }
     }
 
@@ -277,12 +281,15 @@ final class CipherCore {
             throw new NoSuchPaddingException("Padding: " + paddingScheme
                                              + " not implemented");
         }
-        if ((padding != null) && (cipherMode == GCM_MODE)) {
+        if ((padding != null) && (cipherMode == GCM_MODE || cipherMode == CCM_MODE)) {
             padding = null;
             String modeStr = null;
             switch (cipherMode) {
             case GCM_MODE:
                 modeStr = "GCM";
+                break;
+            case CCM_MODE:
+                modeStr = "CCM";
                 break;
             default:
                 // should never happen
@@ -333,6 +340,17 @@ final class CipherCore {
                 totalLen = 0;
             }
             break;
+        case CCM_MODE:
+            if (isDoFinal) {
+                int tagLen = ((CBCMacCounterMode) cipher).getTagLen();
+                if (!decrypting) {
+                    totalLen = Math.addExact(totalLen, tagLen);
+                } else {
+                    totalLen -= tagLen;
+                }
+            }
+            break;
+
         default:
             if (padding != null && !decrypting) {
                 if (unitBytes != blockSize) {
@@ -392,6 +410,8 @@ final class CipherCore {
             // generate spec using default value
             if (cipherMode == GCM_MODE) {
                 iv = new byte[GaloisCounterMode.DEFAULT_IV_LEN];
+            } else if (cipherMode == CCM_MODE) {
+                iv = new byte[CBCMacCounterMode.DEFAULT_IV_LEN];
             } else {
                 iv = new byte[blockSize];
             }
@@ -401,6 +421,10 @@ final class CipherCore {
             algName = "GCM";
             spec = new GCMParameterSpec
                 (((GaloisCounterMode) cipher).getTagLen()*8, iv);
+        } else if (cipherMode == CCM_MODE) {
+            algName = "CCM";
+            spec = new GCMParameterSpec
+                    (((CBCMacCounterMode) cipher).getTagLen()*8, iv);
         } else {
             spec = new IvParameterSpec(iv);
         }
@@ -507,9 +531,29 @@ final class CipherCore {
                     throw new InvalidAlgorithmParameterException
                         ("Unsupported parameter: " + params);
                }
+            } else if (cipherMode == CCM_MODE) {
+                if (params instanceof GCMParameterSpec) {
+                    tagLen = ((GCMParameterSpec)params).getTLen();
+                    if (tagLen < 32 || tagLen > 128 || ((tagLen & 0x0F) != 0)) {
+                        throw new InvalidAlgorithmParameterException
+                             ("Unsupported TLen value; must be one of " +
+                              "{128, 112, 96, 80, 64, 48, 32}");
+                    }
+                    tagLen = tagLen >> 3;
+                    ivBytes = ((GCMParameterSpec)params).getIV();
+                } else if (params instanceof IvParameterSpec) {
+                    ivBytes = ((IvParameterSpec)params).getIV();
+                } else {
+                    throw new InvalidAlgorithmParameterException
+                            ("Unsupported parameter: " + params);
+                }
+                if (ivBytes.length < 7 || ivBytes.length > 13) {
+                    throw new InvalidAlgorithmParameterException
+                            ("Wrong IV length: must be in the range [7,13] bytes long");
+                }
             } else {
                 if (params instanceof IvParameterSpec) {
-                    ivBytes = ((IvParameterSpec)params).getIV();
+                    ivBytes = ((IvParameterSpec) params).getIV();
                     if (cipherMode == CTR_MODE) {
                         if (ivBytes.length < 8 || ivBytes.length > 16) {
                             throw new InvalidAlgorithmParameterException
@@ -525,7 +569,7 @@ final class CipherCore {
                     }
                 } else {
                     throw new InvalidAlgorithmParameterException
-                        ("Unsupported parameter: " + params);
+                            ("Unsupported parameter: " + params);
                 }
             }
         }
@@ -545,6 +589,8 @@ final class CipherCore {
             }
             if (cipherMode == GCM_MODE) {
                 ivBytes = new byte[GaloisCounterMode.DEFAULT_IV_LEN];
+            } else if (cipherMode == CCM_MODE) {
+                ivBytes = new byte[CBCMacCounterMode.DEFAULT_IV_LEN];
             } else {
                 ivBytes = new byte[blockSize];
             }
@@ -577,6 +623,12 @@ final class CipherCore {
             }
             ((GaloisCounterMode) cipher).init
                 (decrypting, algorithm, keyBytes, ivBytes, tagLen);
+        } else if (cipherMode == CCM_MODE) {
+            if(tagLen == -1) {
+                tagLen = CBCMacCounterMode.DEFAULT_TAG_LEN;
+            }
+            ((CBCMacCounterMode) cipher).init
+               (decrypting, algorithm, keyBytes, ivBytes, tagLen);
         } else {
             cipher.init(decrypting, algorithm, keyBytes, ivBytes);
         }
@@ -593,6 +645,9 @@ final class CipherCore {
             try {
                 if (cipherMode == GCM_MODE) {
                     paramType = "GCM";
+                    spec = params.getParameterSpec(GCMParameterSpec.class);
+                } else if (cipherMode == CCM_MODE) {
+                    paramType = "CCM";
                     spec = params.getParameterSpec(GCMParameterSpec.class);
                 } else {
                     // NOTE: RC2 parameters are always handled through
@@ -1087,11 +1142,12 @@ final class CipherCore {
         throws IllegalBlockSizeException, AEADBadTagException,
         ShortBufferException {
 
-        if ((cipherMode != GCM_MODE) && (in == null || len == 0)) {
+        if ((cipherMode != GCM_MODE && cipherMode != CCM_MODE)
+                && (in == null || len == 0)) {
             return 0;
         }
         if ((cipherMode != CFB_MODE) && (cipherMode != OFB_MODE) &&
-            (cipherMode != GCM_MODE) &&
+            (cipherMode != GCM_MODE) && (cipherMode != CCM_MODE) &&
             ((len % unitBytes) != 0) && (cipherMode != CTS_MODE)) {
                 if (padding != null) {
                     throw new IllegalBlockSizeException
