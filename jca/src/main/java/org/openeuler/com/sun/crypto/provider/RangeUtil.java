@@ -25,8 +25,6 @@
 
 package org.openeuler.com.sun.crypto.provider;
 
-import com.sun.crypto.provider.Preconditions;
-
 import java.util.List;
 import java.util.function.BiFunction;
 import java.security.*;

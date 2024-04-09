@@ -31,8 +31,10 @@ import java.security.AlgorithmParametersSpi;
 import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
 import javax.crypto.spec.GCMParameterSpec;
-import sun.misc.HexDumpEncoder;
-import sun.security.util.*;
+
+import org.openeuler.sun.misc.HexDumpEncoder;
+import sun.security.util.DerOutputStream;
+import sun.security.util.DerValue;
 
 public final class CCMParameters extends AlgorithmParametersSpi {
     // the iv

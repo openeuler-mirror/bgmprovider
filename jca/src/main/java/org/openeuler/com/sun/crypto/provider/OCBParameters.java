@@ -26,7 +26,7 @@
 
 package org.openeuler.com.sun.crypto.provider;
 
-import sun.misc.HexDumpEncoder;
+import org.openeuler.sun.misc.HexDumpEncoder;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
 
