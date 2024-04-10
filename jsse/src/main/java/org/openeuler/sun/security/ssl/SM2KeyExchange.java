@@ -26,22 +26,26 @@
 package org.openeuler.sun.security.ssl;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.security.GeneralSecurityException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
+import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
 import javax.crypto.KeyAgreement;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLHandshakeException;
 
-import org.openeuler.SM2KeyExchangeUtil;
+import org.openeuler.SM2KeyExchangeParameterSpec;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroupType;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
+
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Possession;
+import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import sun.security.util.ECUtil;
 
 final class SM2KeyExchange {
@@ -53,66 +57,46 @@ final class SM2KeyExchange {
     static final class SM2Credentials implements SSLCredentials {
         final ECPublicKey popPublicKey;
         final NamedGroup namedGroup;
-        final byte[] peerEncodePoint;
 
-        SM2Credentials(ECPublicKey popPublicKey, NamedGroup namedGroup, byte[] encodePoint) {
+        SM2Credentials(ECPublicKey popPublicKey, NamedGroup namedGroup) {
             this.popPublicKey = popPublicKey;
             this.namedGroup = namedGroup;
-            this.peerEncodePoint = encodePoint;
         }
     }
 
     static final class SM2Possession implements SSLPossession {
-        final PrivateKey privateKey;
-//        final BCECPublicKey publicKey;
+        final ECPrivateKey privateKey;
         final ECPublicKey publicKey;
         final NamedGroup namedGroup;
-        final BigInteger randomNum;
 
-        SM2Possession(NamedGroup namedGroup, SecureRandom random, ConnectionContext context) {
-            ServerHandshakeContext shc = (ServerHandshakeContext) context;
-
-            GMX509Possession gmx509Possession = null;
-            if (shc.interimAuthn instanceof GMX509Possession) {
-                gmx509Possession = ((GMX509Possession)shc.interimAuthn);
-            }
-
-            if (gmx509Possession != null) {
-                publicKey = (ECPublicKey) gmx509Possession.popEncCerts[0].
-                        getPublicKey();
-                privateKey = gmx509Possession.popEncPrivateKey;
-                randomNum = SM2KeyExchangeUtil.generateRandom(
-                         publicKey.getParams().getOrder(), random);
-            } else {
-                publicKey = null;
-                privateKey = null;
-                randomNum = null;
+        SM2Possession(NamedGroup namedGroup, SecureRandom random) {
+            try {
+                KeyPairGenerator kpg = JsseJce.getKeyPairGenerator("SM2");
+                ECGenParameterSpec params =
+                        (ECGenParameterSpec) namedGroup.getParameterSpec();
+                kpg.initialize(params, random);
+                KeyPair kp = kpg.generateKeyPair();
+                privateKey = (ECPrivateKey) kp.getPrivate();
+                publicKey = (ECPublicKey) kp.getPublic();
+            } catch (GeneralSecurityException e) {
+                throw new RuntimeException(
+                        "Could not generate SM2 keypair", e);
             }
 
             this.namedGroup = namedGroup;
         }
 
-        SM2Possession(SM2Credentials credentials, SecureRandom random, ConnectionContext context) {
-            ClientHandshakeContext chc = (ClientHandshakeContext) context;
-
-            GMX509Possession gmx509Possession = null;
-            for (SSLPossession possession : chc.handshakePossessions) {
-                if (possession instanceof GMX509Possession) {
-                    gmx509Possession = (GMX509Possession)possession;
-                    break;
-                }
-            }
-
-            if (gmx509Possession != null) {
-                publicKey = (ECPublicKey) gmx509Possession.popEncCerts[0].
-                        getPublicKey();
-                privateKey = gmx509Possession.popEncPrivateKey;
-                randomNum = SM2KeyExchangeUtil.generateRandom(
-                        publicKey.getParams().getOrder(), random);
-            } else {
-                publicKey = null;
-                privateKey = null;
-                randomNum = null;
+        SM2Possession(SM2Credentials credentials, SecureRandom random) {
+            ECParameterSpec params = credentials.popPublicKey.getParams();
+            try {
+                KeyPairGenerator kpg = JsseJce.getKeyPairGenerator("SM2");
+                kpg.initialize(params, random);
+                KeyPair kp = kpg.generateKeyPair();
+                privateKey = (ECPrivateKey) kp.getPrivate();
+                publicKey = (ECPublicKey) kp.getPublic();
+            } catch (GeneralSecurityException e) {
+                throw new RuntimeException(
+                        "Could not generate SM2 keypair", e);
             }
 
             this.namedGroup = credentials.namedGroup;
@@ -153,7 +137,7 @@ final class SM2KeyExchange {
 
             if (preferableNamedGroup != null) {
                 return new SM2Possession(preferableNamedGroup,
-                            context.sslContext.getSecureRandom(), context);
+                            context.sslContext.getSecureRandom());
             }
 
             // no match found, cannot use this cipher suite.
@@ -173,51 +157,67 @@ final class SM2KeyExchange {
         public SSLKeyDerivation createKeyDerivation(
                 HandshakeContext context) throws IOException {
             SM2Possession sm2Possession = null;
-            SM2Credentials sm2Credentials = null;
+            GMX509Possession gmx509Possession = null;
             for (SSLPossession poss : context.handshakePossessions) {
-                if (!(poss instanceof SM2Possession)) {
-                    continue;
+                if (poss instanceof SM2Possession) {
+                    sm2Possession = (SM2Possession) poss;
+                } else if (poss instanceof GMX509Possession) {
+                    gmx509Possession = (GMX509Possession) poss;
                 }
-
-                NamedGroup ng = ((SM2Possession)poss).namedGroup;
-                for (SSLCredentials cred : context.handshakeCredentials) {
-                    if (!(cred instanceof SM2Credentials)) {
-                        continue;
-                    }
-                    if (ng.equals(((SM2Credentials)cred).namedGroup)) {
-                        sm2Credentials = (SM2Credentials)cred;
-                        break;
-                    }
-                }
-
-                if (sm2Credentials != null) {
-                    sm2Possession = (SM2Possession)poss;
+                if (sm2Possession != null && gmx509Possession != null) {
                     break;
                 }
             }
-
-            if (sm2Possession == null || sm2Credentials == null) {
+            if (sm2Possession == null || gmx509Possession == null) {
                 throw context.conContext.fatal(Alert.HANDSHAKE_FAILURE,
-                    "No sufficient sm2 key agreement parameters negotiated");
+                        "No sufficient sm2 key agreement parameters negotiated");
+            }
+
+            SM2Credentials sm2Credentials = null;
+            GMX509Credentials gmx509Credentials = null;
+            for (SSLCredentials cred : context.handshakeCredentials) {
+                if (cred instanceof SM2Credentials) {
+                    sm2Credentials = (SM2Credentials)cred;
+                } else if (cred instanceof GMX509Credentials) {
+                    gmx509Credentials = (GMX509Credentials) cred;
+                }
+                if (sm2Credentials != null && gmx509Credentials != null) {
+                    break;
+                }
+            }
+            if (sm2Credentials == null || gmx509Credentials == null) {
+                throw context.conContext.fatal(Alert.HANDSHAKE_FAILURE,
+                        "No sufficient sm2 key agreement parameters negotiated");
             }
 
             return new SM2KAKeyDerivation(context,
-                sm2Possession.privateKey, sm2Credentials.popPublicKey);
+                    (ECPrivateKey) gmx509Possession.popEncPrivateKey, (ECPublicKey) gmx509Possession.popEncPublicKey,
+                    sm2Possession.privateKey, sm2Possession.publicKey,
+                    (ECPublicKey) gmx509Credentials.popEncPublicKey, sm2Credentials.popPublicKey);
         }
     }
 
     private static final
             class SM2KAKeyDerivation implements SSLKeyDerivation {
         private final HandshakeContext context;
-        private final PrivateKey localPrivateKey;
-        private final PublicKey peerPublicKey;
+        private final ECPrivateKey localPrivateKey;
+        private final ECPublicKey localPublicKey;
+        private final ECPrivateKey localTempPrivateKey;
+        private final ECPublicKey localTempPublicKey;
+        private final ECPublicKey peerPublicKey;
+        private final ECPublicKey peerTempPublicKey;
 
         SM2KAKeyDerivation(HandshakeContext context,
-                PrivateKey localPrivateKey,
-                PublicKey peerPublicKey) {
+                ECPrivateKey localPrivateKey, ECPublicKey localPublicKey,
+                ECPrivateKey localTempPrivateKey, ECPublicKey localTempPublicKey,
+                ECPublicKey peerPublicKey, ECPublicKey peerTempPublicKey) {
             this.context = context;
             this.localPrivateKey = localPrivateKey;
+            this.localPublicKey = localPublicKey;
+            this.localTempPrivateKey = localTempPrivateKey;
+            this.localTempPublicKey = localTempPublicKey;
             this.peerPublicKey = peerPublicKey;
+            this.peerTempPublicKey = peerTempPublicKey;
         }
 
         @Override
@@ -229,6 +229,10 @@ final class SM2KeyExchange {
         private SecretKey gmtlsDeriveKey(String algorithm,
                                        AlgorithmParameterSpec params) throws IOException {
             try {
+                if (params == null) {
+                    params = new SM2KeyExchangeParameterSpec(localPublicKey, localTempPrivateKey,
+                            localTempPublicKey, peerTempPublicKey, 48, context.sslConfig.isClientMode);
+                }
                 KeyAgreement ka = JsseJce.getKeyAgreement("SM2");
                 ka.init(localPrivateKey, params, null);
                 ka.doPhase(peerPublicKey, true);

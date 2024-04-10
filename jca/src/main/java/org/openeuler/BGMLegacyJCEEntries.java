@@ -71,7 +71,7 @@ class BGMLegacyJCEEntries extends AbstractEntries {
         add(provider, "KeyPairGenerator", "SM2",
                 "org.openeuler.legacy.SM2KeyPairGenerator");
         add(provider, "KeyAgreement", "SM2",
-                "org.openeuler.legacy.SM2KeyAgreement");
+                "org.openeuler.SM2KeyAgreement");
         add(provider, "KeyFactory", "SM2",
                 "org.bouncycastle.jcajce.provider.asymmetric.ec.KeyFactorySpi$EC",
                 createAliasesWithOid("1.2.156.10197.1.301"));

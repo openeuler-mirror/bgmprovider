@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -36,6 +37,9 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPoint;
+import java.security.spec.ECPublicKeySpec;
+import java.security.spec.InvalidKeySpecException;
 import java.text.MessageFormat;
 import java.util.Locale;
 
@@ -74,6 +78,9 @@ final class SM2ServerKeyExchange {
         // signature bytes, or null if anonymous
         private final byte[] paramsSignature;
 
+        // public key object encapsulated in this message
+        private final ECPublicKey publicKey;
+
         private final boolean useExplicitSigAlgorithm;
 
         // the signature algorithm used by this ServerKeyExchange message
@@ -109,10 +116,10 @@ final class SM2ServerKeyExchange {
                     "No SM2 credentials negotiated for server key exchange");
             }
 
-            ECPublicKey publicKey = (ECPublicKey) sm2Possession.publicKey;
+            publicKey = sm2Possession.publicKey;
             ECParameterSpec params = publicKey.getParams();
-            publicPoint = ECUtil.encodePoint(SM2KeyExchangeUtil.generateR(publicKey,
-                    sm2Possession.randomNum), params.getCurve());
+            ECPoint point = publicKey.getW();
+            publicPoint = JsseJce.encodePoint(point, params.getCurve());
 
             this.namedGroup = NamedGroup.valueOf(params);
             if ((namedGroup == null) || (namedGroup.oid == null) ) {
@@ -184,11 +191,33 @@ final class SM2ServerKeyExchange {
             // namedGroup
             int namedGroupId = Record.getInt16(m);
             this.namedGroup = NamedGroup.SM2P256V1;
+
+            ECParameterSpec parameters =
+                    JsseJce.getECParameterSpec(namedGroup.oid);
+            if (parameters == null) {
+                throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
+                        "No supported EC parameter: " + namedGroup);
+            }
+
             publicPoint = Record.getBytes8(m);
             if (publicPoint.length == 0) {
                 throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
                     "Insufficient ECPoint data: " + namedGroup);
             }
+
+            ECPublicKey ecPublicKey;
+            try {
+                ECPoint point =
+                        JsseJce.decodePoint(publicPoint, parameters.getCurve());
+                KeyFactory factory = JsseJce.getKeyFactory("EC");
+                ecPublicKey = (ECPublicKey)factory.generatePublic(
+                        new ECPublicKeySpec(point, parameters));
+            } catch (NoSuchAlgorithmException |
+                     InvalidKeySpecException | IOException ex) {
+                throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
+                        "Invalid ECPoint: " + namedGroup, ex);
+            }
+            publicKey = ecPublicKey;
 
             GMX509Credentials x509Credentials = null;
             for (SSLCredentials cd : chc.handshakeCredentials) {
@@ -465,19 +494,11 @@ final class SM2ServerKeyExchange {
                     "Consuming SM2 ServerKeyExchange handshake message", skem);
             }
 
-            GMX509Credentials gmx509Credentials = null;
-            for (SSLCredentials sslCredentials : chc.handshakeCredentials) {
-                if (sslCredentials instanceof GMX509Credentials) {
-                    gmx509Credentials = (GMX509Credentials)sslCredentials;
-                    break;
-                }
-            }
             //
             // update
             //
             chc.handshakeCredentials.add(
-                    new SM2Credentials((ECPublicKey) gmx509Credentials.popEncPublicKey,
-                    skem.namedGroup, skem.publicPoint));
+                    new SM2Credentials(skem.publicKey, skem.namedGroup));
 
             //
             // produce

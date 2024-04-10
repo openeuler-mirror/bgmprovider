@@ -27,22 +27,24 @@ package org.openeuler.sun.security.ssl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.CryptoPrimitive;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPoint;
+import java.security.spec.ECPublicKeySpec;
 import java.text.MessageFormat;
+import java.util.EnumSet;
 import java.util.Locale;
 import javax.crypto.SecretKey;
-import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLHandshakeException;
 
-import org.openeuler.SM2KeyExchangeParameterSpec;
-import org.openeuler.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Credentials;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Possession;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
-import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import org.openeuler.sun.misc.HexDumpEncoder;
-import sun.security.util.ECUtil;
 
 /**
  * Pack of the "ClientKeyExchange" handshake message.
@@ -62,28 +64,12 @@ final class SM2ClientKeyExchange {
         private final byte[] encodedPoint;
 
         SM2ClientKeyExchangeMessage(HandshakeContext handshakeContext,
-                ECPublicKey publicKey) throws SSLException {
+                ECPublicKey publicKey) {
             super(handshakeContext);
 
-            // This happens in client side only.
-            ClientHandshakeContext chc =
-                    (ClientHandshakeContext) handshakeContext;
-
-            SM2Possession sm2Possession = null;
-            for (SSLPossession possession : chc.handshakePossessions) {
-                if (possession instanceof SM2Possession) {
-                    sm2Possession = (SM2Possession)possession;
-                }
-            }
-
-            if (sm2Possession == null) {
-                // unlikely
-                throw chc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
-                    "No SM2 credentials negotiated for client key exchange");
-            }
-
-            encodedPoint = ECUtil.encodePoint(SM2KeyExchangeUtil.generateR(((ECPublicKey)publicKey),
-                    sm2Possession.randomNum), ((ECPublicKey)publicKey).getParams().getCurve());
+            ECPoint point = publicKey.getW();
+            ECParameterSpec params = publicKey.getParams();
+            encodedPoint = JsseJce.encodePoint(point, params.getCurve());
         }
 
         SM2ClientKeyExchangeMessage(HandshakeContext handshakeContext,
@@ -180,7 +166,7 @@ final class SM2ClientKeyExchange {
             }
 
             SM2Possession sm2Possession = new SM2Possession(
-                    sm2Credentials, chc.sslContext.getSecureRandom(), context);
+                    sm2Credentials, chc.sslContext.getSecureRandom());
             chc.handshakePossessions.add(sm2Possession);
             SM2ClientKeyExchangeMessage cke =
                     new SM2ClientKeyExchangeMessage(
@@ -204,12 +190,8 @@ final class SM2ClientKeyExchange {
                         "Not supported key exchange type");
             } else {
                 SSLKeyDerivation masterKD = ke.createKeyDerivation(chc);
-                SM2KeyExchangeParameterSpec sm2params = new SM2KeyExchangeParameterSpec(
-                        sm2Possession.publicKey, "1234567812345678".getBytes(),
-                        sm2Possession.randomNum, sm2Credentials.peerEncodePoint,
-                        "1234567812345678".getBytes(), 48, false);
                 SecretKey masterSecret =
-                        masterKD.deriveKey("MasterSecret", sm2params);
+                        masterKD.deriveKey("MasterSecret", null);
                 chc.handshakeSession.setMasterSecret(masterSecret);
 
                 SSLTrafficKeyDerivation kd =
@@ -284,26 +266,36 @@ final class SM2ClientKeyExchange {
                     "Consuming SM2 ClientKeyExchange handshake message", cke);
             }
 
-            GMX509Credentials gmx509Credentials = null;
-            for (SSLCredentials sslCredentials : shc.handshakeCredentials) {
-                if (sslCredentials instanceof GMX509Credentials) {
-                    gmx509Credentials = (GMX509Credentials)sslCredentials;
-                    break;
-                }
-            }
-
             // create the credentials
-            shc.handshakeCredentials.add(new SM2Credentials(
-                    (ECPublicKey) gmx509Credentials.popEncPublicKey, namedGroup, cke.encodedPoint));
+            try {
+                ECPoint point =
+                        JsseJce.decodePoint(cke.encodedPoint, params.getCurve());
+                ECPublicKeySpec spec = new ECPublicKeySpec(point, params);
+
+                KeyFactory kf = JsseJce.getKeyFactory("EC");
+                ECPublicKey peerPublicKey =
+                        (ECPublicKey)kf.generatePublic(spec);
+
+                // check constraints of peer ECPublicKey
+                if (shc.algorithmConstraints != null &&
+                        !shc.algorithmConstraints.permits(
+                                EnumSet.of(CryptoPrimitive.KEY_AGREEMENT),
+                                peerPublicKey)) {
+                    throw new SSLHandshakeException(
+                            "ECPublicKey does not comply to algorithm constraints");
+                }
+
+                shc.handshakeCredentials.add(new SM2Credentials(
+                        peerPublicKey, namedGroup));
+            } catch (GeneralSecurityException | java.io.IOException e) {
+                throw (SSLHandshakeException)(new SSLHandshakeException(
+                        "Could not generate ECPublicKey").initCause(e));
+            }
 
             // update the states
             SSLKeyDerivation masterKD = ke.createKeyDerivation(shc);
-            SM2KeyExchangeParameterSpec sm2params = new SM2KeyExchangeParameterSpec(
-                    sm2Possession.publicKey, "1234567812345678".getBytes(),
-                    sm2Possession.randomNum, cke.encodedPoint,
-                    "1234567812345678".getBytes(), 48, true);
             SecretKey masterSecret =
-                    masterKD.deriveKey("MasterSecret", sm2params);
+                    masterKD.deriveKey("MasterSecret", null);
             shc.handshakeSession.setMasterSecret(masterSecret);
 
             SSLTrafficKeyDerivation kd =

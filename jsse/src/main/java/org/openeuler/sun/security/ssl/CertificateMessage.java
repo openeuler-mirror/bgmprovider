@@ -37,6 +37,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.ECPublicKey;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1629,8 +1630,8 @@ final class CertificateMessage {
                             "No X.509 certificate for client authentication, " +
                                     "use empty Certificate message instead");
                 }
-                gmx509Possession = new GMX509Possession(null,
-                        new X509Certificate[0], null, new X509Certificate[0]
+                gmx509Possession = new GMX509Possession(null, null,
+                        new X509Certificate[0], null, null, new X509Certificate[0]
                 );
             }
 

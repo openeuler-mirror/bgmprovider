@@ -24,28 +24,30 @@
 
 package org.openeuler;
 
-import java.math.BigInteger;
-import java.security.PublicKey;
+import org.openeuler.commons.GMJCEConstants;
+import org.openeuler.util.GMUtil;
+
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
 
 /**
  * SM2KeyExchangeParameterSpec
  */
 public class SM2KeyExchangeParameterSpec implements AlgorithmParameterSpec {
-    // local public key
-    private PublicKey localPublicKey;
-
     // local id
     private byte[] localId;
-
-    // local random
-    private BigInteger localRandom;
-
-    // peer R point
-    private byte[] peerRBytes;
+    // local public key
+    private ECPublicKey localPublicKey;
+    // local temp private key (local random)
+    private ECPrivateKey localTempPrivateKey;
+    // local temp private key (local random)
+    private ECPublicKey localTempPublicKey;
 
     // peer id
     private byte[] peerId;
+    // peer temp public key (R point)
+    private ECPublicKey peerTempPublicKey;
 
     // length of the secret to be derived
     private int secretLen;
@@ -54,49 +56,100 @@ public class SM2KeyExchangeParameterSpec implements AlgorithmParameterSpec {
     private boolean useClientMode;
 
     // When the PublicKey can be obtained locally, it is recommended to use this constructor
-    public SM2KeyExchangeParameterSpec(PublicKey localPublicKey, byte[] localId,
-                                       BigInteger localRandom, byte[] peerRBytes, byte[] peerId,
+
+
+    public SM2KeyExchangeParameterSpec(byte[] localId, ECPublicKey localPublicKey,
+                                       ECPrivateKey localTempPrivateKey, ECPublicKey localTempPublicKey,
+                                       byte[] peerId, ECPublicKey peerTempPublicKey,
                                        int secretLen, boolean useClientMode) {
-        this.localPublicKey = localPublicKey;
         this.localId = localId;
-        this.localRandom = localRandom;
-        this.peerRBytes = peerRBytes;
+        this.localPublicKey = localPublicKey;
+        this.localTempPrivateKey = localTempPrivateKey;
+        this.localTempPublicKey = localTempPublicKey;
         this.peerId = peerId;
+        this.peerTempPublicKey = peerTempPublicKey;
         this.secretLen = secretLen;
         this.useClientMode = useClientMode;
     }
 
-    // When there is only a private key locally, a public key can be generated based on the private key
-    public SM2KeyExchangeParameterSpec(byte[] localId, BigInteger localRandom,
-                                       byte[] peerRBytes, byte[] peerId, int secretLen, boolean useClientMode) {
-        this(null, localId, localRandom, peerRBytes, peerId, secretLen, useClientMode);
+    public SM2KeyExchangeParameterSpec(ECPublicKey localPublicKey,
+                                       ECPrivateKey localTempPrivateKey, ECPublicKey localTempPublicKey,
+                                       ECPublicKey peerTempPublicKey,
+                                       int secretLen, boolean useClientMode) {
+
+        this(GMJCEConstants.DEFAULT_ID, localPublicKey, localTempPrivateKey, localTempPublicKey,
+                GMJCEConstants.DEFAULT_ID, peerTempPublicKey, secretLen, useClientMode);
     }
 
-    public PublicKey getLocalPublicKey() {
-        return localPublicKey;
+    public SM2KeyExchangeParameterSpec(byte[] localId,
+                                       ECPrivateKey localTempPrivateKey, ECPublicKey localTempPublicKey,
+                                       byte[] peerId, ECPublicKey peerTempPublicKey,
+                                       int secretLen, boolean useClientMode) {
+        this(localId, null, localTempPrivateKey, localTempPublicKey,
+                peerId, peerTempPublicKey, secretLen, useClientMode);
     }
 
     public byte[] getLocalId() {
         return localId;
     }
 
-    public BigInteger getLocalRandom() {
-        return localRandom;
+    public void setLocalId(byte[] localId) {
+        this.localId = localId;
     }
 
-    public byte[] getPeerRBytes() {
-        return peerRBytes;
+    public ECPublicKey getLocalPublicKey() {
+        return localPublicKey;
+    }
+
+    public void setLocalPublicKey(ECPublicKey localPublicKey) {
+        this.localPublicKey = localPublicKey;
+    }
+
+    public ECPrivateKey getLocalTempPrivateKey() {
+        return localTempPrivateKey;
+    }
+
+    public void setLocalTempPrivateKey(ECPrivateKey localTempPrivateKey) {
+        this.localTempPrivateKey = localTempPrivateKey;
+    }
+
+    public ECPublicKey getLocalTempPublicKey() {
+        return localTempPublicKey;
+    }
+
+    public void setLocalTempPublicKey(ECPublicKey localTempPublicKey) {
+        this.localTempPublicKey = localTempPublicKey;
     }
 
     public byte[] getPeerId() {
         return peerId;
     }
 
+    public void setPeerId(byte[] peerId) {
+        this.peerId = peerId;
+    }
+
+    public ECPublicKey getPeerTempPublicKey() {
+        return peerTempPublicKey;
+    }
+
+    public void setPeerTempPublicKey(ECPublicKey peerTempPublicKey) {
+        this.peerTempPublicKey = peerTempPublicKey;
+    }
+
     public int getSecretLen() {
         return secretLen;
     }
 
+    public void setSecretLen(int secretLen) {
+        this.secretLen = secretLen;
+    }
+
     public boolean isUseClientMode() {
         return useClientMode;
+    }
+
+    public void setUseClientMode(boolean useClientMode) {
+        this.useClientMode = useClientMode;
     }
 }
