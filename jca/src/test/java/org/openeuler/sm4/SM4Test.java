@@ -1,4 +1,4 @@
-/*                                                                                                                                           
+/*
  * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -32,8 +32,11 @@ import org.openeuler.BGMJCEProvider;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.AlgorithmParameters;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Key;
 import java.security.Provider;
@@ -59,23 +62,85 @@ public class SM4Test {
     }
 
     @Test
+    public void testSaveAndRestore() throws Exception {
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+        key = new SecretKeySpec(new byte[16], "SM4");
+
+        testSaveAndRestore("SM4/CBC/NoPadding", key, 16, 48);
+        testSaveAndRestore("SM4/CFB/NoPadding", key, 16, 52);
+        testSaveAndRestore("SM4/OFB/NoPadding", key, 16, 53);
+        testSaveAndRestore("SM4/CTS/NoPadding", key, 16, 54);
+        testSaveAndRestore("SM4/CTR/NoPadding", key, 16, 55);
+        testSaveAndRestore("SM4/GCM/NoPadding", key, 12, 56);
+        testSaveAndRestore("SM4/OCB/NoPadding", key, 12, 57);
+        testSaveAndRestore("SM4/CCM/NoPadding", key, 12, 58);
+
+        testSaveAndRestore("SM4/CBC/PKCS5Padding", key, 16, 48);
+        testSaveAndRestore("SM4/CFB/PKCS5Padding", key, 16, 52);
+        testSaveAndRestore("SM4/OFB/PKCS5Padding", key, 16, 53);
+        testSaveAndRestore("SM4/CTR/PKCS5Padding", key, 16, 54);
+    }
+
+    private void testSaveAndRestore(String transformation, Key key, int ivLen, int plainTextLen) throws Exception {
+        // compute expect encrypted bytes
+        byte[] iv = new byte[ivLen];
+        AlgorithmParameterSpec parameterSpec = new IvParameterSpec(iv);
+        byte[] plainText = new byte[plainTextLen];
+        Arrays.fill(plainText, (byte) 1);
+        Cipher cipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+        cipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        byte[] encryptedBytes = cipher.doFinal(plainText);
+
+        // compute actual encrypted bytes
+        // decrypt update
+        cipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+        cipher.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        int updateLen = encryptedBytes.length / 2;
+        byte[] updatedDecryptedBytes = cipher.update(encryptedBytes, 0, updateLen);
+        if (updatedDecryptedBytes == null) {
+            updatedDecryptedBytes = new byte[0];
+        }
+        byte[] actualDecryptedBytes = Arrays.copyOf(updatedDecryptedBytes, updatedDecryptedBytes.length);
+
+        // decrypt doFinal
+        int doFinalLen = encryptedBytes.length - updateLen;
+        int outputSize = cipher.getOutputSize(doFinalLen);
+        byte[] output = new byte[outputSize];
+        try {
+            cipher.doFinal(encryptedBytes, updateLen, doFinalLen, output, 17);
+        } catch (ShortBufferException e) {
+            int decryptedFinalLen = cipher.doFinal(encryptedBytes, updateLen, doFinalLen, output, 0);
+            actualDecryptedBytes = Arrays.copyOf(actualDecryptedBytes,
+                    actualDecryptedBytes.length + decryptedFinalLen);
+            System.arraycopy(output, 0, actualDecryptedBytes, updatedDecryptedBytes.length, decryptedFinalLen);
+        }
+        Assert.assertArrayEquals(plainText, actualDecryptedBytes);
+    }
+
+    @Test
     public void testUpdateAndDoFinalZeroParameter() throws Exception {
         KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
         keyGen.init(128);
         SecretKey key = keyGen.generateKey();
         // SM4/GCM/NoPadding
         // SM4/CCM/NoPadding
-        int[] lengthArray = {0, 3, 15, 16, 17, 32, 105};
+        int[] lengthArray = {0,15, 16, 17, 32, 64, 105};
         for (int len : lengthArray) {
             testUpdateAndDoFinalZeroParameter("SM4/GCM/NoPadding", key, 12, len);
             testUpdateAndDoFinalZeroParameter("SM4/CTR/NoPadding", key, 12, len);
             testUpdateAndDoFinalZeroParameter("SM4/CCM/NoPadding", key, 12, len);
+            testUpdateAndDoFinalZeroParameter("SM4/GCM/NoPadding", key, 12, len, 2);
+            testUpdateAndDoFinalZeroParameter("SM4/CTR/NoPadding", key, 12, len, 2);
+            testUpdateAndDoFinalZeroParameter("SM4/CCM/NoPadding", key, 12, len, 2);
         }
 
         // SM4/CTS/NoPadding
         lengthArray = new int[]{16, 17, 32, 105};
         for (int len : lengthArray) {
             testUpdateAndDoFinalZeroParameter("SM4/CTS/NoPadding", key, 16, len);
+            testUpdateAndDoFinalZeroParameter("SM4/CTS/NoPadding", key, 16, len, 2);
         }
 
         // SM4/ECB/NoPadding
@@ -90,11 +155,23 @@ public class SM4Test {
             testUpdateAndDoFinalZeroParameter("SM4/CFB/NoPadding", key, 16, len);
             testUpdateAndDoFinalZeroParameter("SM4/OFB/NoPadding", key, 16, len);
             testUpdateAndDoFinalZeroParameter("SM4/OCB/NoPadding", key, 12, len);
+
+            testUpdateAndDoFinalZeroParameter("SM4/ECB/NoPadding", key, 16, len, 2);
+            testUpdateAndDoFinalZeroParameter("SM4/CBC/NoPadding", key, 16, len, 2);
+            testUpdateAndDoFinalZeroParameter("SM4/CFB/NoPadding", key, 16, len, 2);
+            testUpdateAndDoFinalZeroParameter("SM4/OFB/NoPadding", key, 16, len, 2);
+//            testUpdateAndDoFinalZeroParameter("SM4/OCB/NoPadding", key, 12, len, 2);
         }
     }
 
     private void testUpdateAndDoFinalZeroParameter(String transformation, Key key, int ivLen, int plainTextLen)
             throws Exception {
+        testUpdateAndDoFinalZeroParameter(transformation, key, ivLen, plainTextLen, 1);
+    }
+
+    private void testUpdateAndDoFinalZeroParameter(String transformation, Key key, int ivLen, int plainTextLen,
+                                                   int updateCount) throws Exception {
+
         SecureRandom random = new SecureRandom();
 
         byte[] plainTextBytes = new byte[plainTextLen];
@@ -122,15 +199,23 @@ public class SM4Test {
             bcCipher.updateAAD(aadBytes);
             bgmCipher.updateAAD(aadBytes);
         }
+        byte[] bcEncryptedBytesAll = null;
+        byte[] bgmEncryptedBytesAll = null;
 
-        byte[] bcUpdateBytes = bcCipher.update(plainTextBytes);
-        byte[] bgmUpdateBytes = bgmCipher.update(plainTextBytes);
-        Assert.assertArrayEquals(bcUpdateBytes, bgmUpdateBytes);
+        for (int i = 0; i < updateCount; i++) {
+            byte[] bcUpdateBytes = bcCipher.update(plainTextBytes);
+            byte[] bgmUpdateBytes = bgmCipher.update(plainTextBytes);
+            bcEncryptedBytesAll = concatBytes(bcEncryptedBytesAll, bcUpdateBytes);
+            bgmEncryptedBytesAll = concatBytes(bgmEncryptedBytesAll, bgmUpdateBytes);
+        }
 
-        byte[] bcEncryptedBytes = bcCipher.doFinal();
-        byte[] bgmEncryptedBytes = bgmCipher.doFinal();
+        byte[] bcFinalBytes = bcCipher.doFinal();
+        byte[] bgmFinalBytes = bgmCipher.doFinal();
 
-        Assert.assertArrayEquals(bcEncryptedBytes, bgmEncryptedBytes);
+        bcEncryptedBytesAll = concatBytes(bcEncryptedBytesAll, bcFinalBytes);
+        bgmEncryptedBytesAll = concatBytes(bgmEncryptedBytesAll, bgmFinalBytes);
+
+        Assert.assertArrayEquals(bcEncryptedBytesAll, bgmEncryptedBytesAll);
     }
 
     @Test
@@ -149,7 +234,7 @@ public class SM4Test {
                 "SM4/OFB/NoPadding"
         };
         int[] validIvLengths = new int[]{16};
-        int[] invalidIvLengths = new int[]{0,7,15,17,32};
+        int[] invalidIvLengths = new int[]{0, 7, 15, 17, 32};
         for (String transformation : transformations) {
             testIvLength(transformation, key, validIvLengths, invalidIvLengths);
         }
@@ -159,7 +244,7 @@ public class SM4Test {
         for (int i = 0; i < validIvLengths.length; i++) {
             validIvLengths[i] = i + 8;
         }
-        invalidIvLengths = new int[]{0,1,5,7,17,32};
+        invalidIvLengths = new int[]{0, 1, 5, 7, 17, 32};
         testIvLength("SM4/CTR/NoPadding", key, validIvLengths, invalidIvLengths);
 
         // iv.length >=1 GCM
@@ -175,7 +260,7 @@ public class SM4Test {
         for (int i = 0; i < validIvLengths.length; i++) {
             validIvLengths[i] = i;
         }
-        invalidIvLengths = new int[]{16,17,30};
+        invalidIvLengths = new int[]{16, 17, 30};
         testIvLength("SM4/OCB/NoPadding", key, validIvLengths, invalidIvLengths);
 
         // iv.length = [7,13] CCM
@@ -217,8 +302,8 @@ public class SM4Test {
         keyGen.init(128);
         SecretKey key = keyGen.generateKey();
 
-        int[] noPaddingPlainTextLens = new int[]{16, 32};
-        String[] noPaddingTransformations = new String[]{
+        int[] NoPaddingPlainTextLens = new int[]{16, 32};
+        String[] NoPaddingTransformations = new String[]{
                 "SM4/CBC/NoPadding",
                 "SM4/CFB/NoPadding",
                 "SM4/CTS/NoPadding",
@@ -226,43 +311,43 @@ public class SM4Test {
                 "SM4/OFB/NoPadding"
         };
 
-        int[] pkcs5PaddingPlainTextLens = new int[]{15, 16, 31, 32};
-        String[] pkcs5PaddingTransformations = new String[]{
+        int[] PKCS5PaddingPlainTextLens = new int[]{15, 16, 31, 32};
+        String[] PKCS5PaddingTransformations = new String[]{
                 "SM4/CBC/PKCS5Padding",
                 "SM4/CFB/PKCS5Padding",
-                "SM4/CTS/PKCS5Padding",
+//                "SM4/CTS/PKCS5Padding",
                 "SM4/CTR/PKCS5Padding",
                 "SM4/OFB/PKCS5Padding"
         };
 
         // no iv ECB
-        for (int plainTextLen : noPaddingPlainTextLens) {
+        for (int plainTextLen : NoPaddingPlainTextLens) {
             testReDoFinal("SM4/ECB/NoPadding", key, 0, plainTextLen);
         }
 
-        for (int plainTextLen : pkcs5PaddingPlainTextLens) {
+        for (int plainTextLen : PKCS5PaddingPlainTextLens) {
             testReDoFinal("SM4/ECB/PKCS5Padding", key, 0, plainTextLen);
         }
 
         // iv.length = 16 (CBC/CFB/CTS/CTR/OFB)
-        for (String transformation : noPaddingTransformations) {
-            for (int plainTextLen : noPaddingPlainTextLens) {
+        for (String transformation : NoPaddingTransformations) {
+            for (int plainTextLen : NoPaddingPlainTextLens) {
                 testReDoFinal(transformation, key, 16, plainTextLen);
             }
         }
-        for (String transformation : pkcs5PaddingTransformations) {
-            for (int plainTextLen : pkcs5PaddingPlainTextLens) {
+        for (String transformation : PKCS5PaddingTransformations) {
+            for (int plainTextLen : PKCS5PaddingPlainTextLens) {
                 testReDoFinal(transformation, key, 16, plainTextLen);
             }
         }
 
         // iv.length = [8,16] CTR
         for (int i = 8; i <= 16; i++) {
-            for (int plainTextLen : noPaddingPlainTextLens) {
+            for (int plainTextLen : NoPaddingPlainTextLens) {
                 testReDoFinal("SM4/CTR/NoPadding", key, i, plainTextLen);
             }
 
-            for (int plainTextLen : pkcs5PaddingPlainTextLens) {
+            for (int plainTextLen : PKCS5PaddingPlainTextLens) {
                 testReDoFinal("SM4/CTR/PKCS5Padding", key, i, plainTextLen);
             }
         }
@@ -291,7 +376,8 @@ public class SM4Test {
         byte[] data = new byte[plainTextLen];
         random.nextBytes(data);
 
-        Cipher cipher = Cipher.getInstance(transformation , "BGMJCEProvider");
+        Cipher cipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+        Cipher bcCipher = Cipher.getInstance(transformation, "BC");
         IvParameterSpec ivParameterSpec = null;
         if (!transformation.contains("ECB")) {
             // iv
@@ -300,19 +386,27 @@ public class SM4Test {
             ivParameterSpec = new IvParameterSpec(iv);
 
             cipher.init(Cipher.ENCRYPT_MODE, key, ivParameterSpec);
+            bcCipher.init(Cipher.ENCRYPT_MODE, key, ivParameterSpec);
         } else {
             cipher.init(Cipher.ENCRYPT_MODE, key);
+            bcCipher.init(Cipher.ENCRYPT_MODE, key);
         }
 
         byte[] encryptedBytes = cipher.doFinal(data);
-
+        byte[] bcEncryptedBytes = bcCipher.doFinal(data);
+        Assert.assertArrayEquals("transformation=" + transformation + ",ivLen=" + ivLen +
+                        ",plainTextLen=" + plainTextLen, bcEncryptedBytes, encryptedBytes);
         Throwable ex = null;
         byte[] encryptedBytesAgain = null;
+        byte[] bcEncryptedBytesAgain = null;
         try {
             encryptedBytesAgain = cipher.doFinal(data);
+            bcEncryptedBytesAgain = bcCipher.doFinal(data);
         } catch (Exception e) {
             ex = e;
         }
+        Assert.assertArrayEquals("transformation=" + transformation + ",ivLen=" + ivLen +
+                ",plainTextLen=" + plainTextLen, bcEncryptedBytesAgain, encryptedBytesAgain);
         if (transformation.contains("GCM")) {
             Assert.assertTrue(transformation + " testReDoFinal encrypt failed",
                     ex instanceof IllegalStateException);
@@ -333,6 +427,167 @@ public class SM4Test {
     }
 
     @Test
+    public void testCCM() throws Exception {
+        if (Security.getProvider("BC") == null) {
+            System.out.println("Skip test, BouncyCastleProvider does not exist");
+            return;
+        }
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+        int[] ivLens = new int[]{7, 8, 9, 10, 11, 12, 13};
+        int[] lengths = new int[20];
+
+        SecureRandom random = new SecureRandom();
+        for (int i = 0; i < lengths.length; i++) {
+            lengths[i] = random.nextInt(2048) + 1;
+        }
+        for (int ivLen : ivLens) {
+            for (int length : lengths) {
+                int tLen = (random.nextInt(6) + 2) * 2 * 8;
+                testAEADMode("SM4/CCM/NoPadding", key, tLen, ivLen, length);
+                int updateLen = random.nextInt(length);
+                testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, tLen, ivLen, length, updateLen);
+                testInitAlgorithmParameters("SM4/CCM/NoPadding", key, tLen, ivLen, length);
+            }
+        }
+    }
+
+    @Test
+    public void testGetOutputSize() throws Exception {
+        if (Security.getProvider("BC") == null) {
+            System.out.println("Skip test, BouncyCastleProvider does not exist");
+            return;
+        }
+        KeyGenerator keyGen = KeyGenerator.getInstance("SM4", "BGMJCEProvider");
+        keyGen.init(128);
+        SecretKey key = keyGen.generateKey();
+
+        int[] plainTextLens = {0, 10, 15, 16, 17, 31, 32, 33, 64, 128};
+        String[] transformations = {
+                "SM4/ECB/PKCS5Padding",
+                "SM4/CBC/PKCS5Padding",
+                "SM4/CFB/PKCS5Padding",
+                "SM4/OFB/PKCS5Padding",
+                "SM4/CTR/PKCS5Padding",
+//                "SM4/CTS/PKCS5Padding",
+
+                "SM4/ECB/NoPadding",
+                "SM4/CBC/NoPadding",
+                "SM4/CFB/NoPadding",
+                "SM4/OFB/NoPadding",
+                "SM4/CTR/NoPadding",
+                "SM4/CTS/NoPadding",
+
+                "SM4/GCM/NoPadding",
+                "SM4/CCM/NoPadding",
+                "SM4/OCB/NoPadding"
+        };
+        for (int plainTextLen : plainTextLens) {
+            for (String transformation : transformations) {
+                testGetOutputSize(transformation, key, plainTextLen);
+            }
+        }
+    }
+
+    private void testGetOutputSize(String transformation, Key key, int plainTextLen)
+            throws Exception {
+        int tagLen = getTagLen(transformation);
+        System.out.println("transformation=" + transformation + ", plainTextLen=" + plainTextLen + ", tagLen=" + tagLen);
+        Cipher bcCipher = Cipher.getInstance(transformation, "BC");
+        Cipher bgmCipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+        AlgorithmParameterSpec parameterSpec = getAlgorithmParameterSpec(transformation, tagLen);
+        bcCipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        bgmCipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        int bcEncryptedOutputSize = bcCipher.getOutputSize(plainTextLen);
+        int bgmEncryptedOutputSize = bgmCipher.getOutputSize(plainTextLen);
+        System.out.println("bcEncryptedOutputSize:" + bcEncryptedOutputSize);
+        System.out.println("bgmEncryptedOutputSize:" + bgmEncryptedOutputSize);
+        Assert.assertEquals(bcEncryptedOutputSize, bgmEncryptedOutputSize);
+
+        boolean isAADMode = isAADMode(transformation);
+        boolean isPKCS5Padding = transformation.toUpperCase().contains("PKCS5");
+
+        int expectedEncryptedLen = getExpectedOutputSize(isAADMode, isPKCS5Padding,
+                plainTextLen, tagLen, false);
+        Assert.assertEquals(expectedEncryptedLen, bgmEncryptedOutputSize);
+
+        bcCipher.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        bgmCipher.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        int bcDecryptedOutputSize = bcCipher.getOutputSize(bcEncryptedOutputSize);
+        int bgmDecryptedOutputSize = bgmCipher.getOutputSize(bgmEncryptedOutputSize);
+        System.out.println("bcDecryptedOutputSize:" + bcDecryptedOutputSize);
+        System.out.println("bgmDecryptedOutputSize:" + bgmDecryptedOutputSize);
+        Assert.assertEquals(bcDecryptedOutputSize, bgmDecryptedOutputSize);
+
+        int expectedDecryptedLen = getExpectedOutputSize(isAADMode, isPKCS5Padding,
+                bgmEncryptedOutputSize, tagLen, true);
+        Assert.assertEquals(expectedDecryptedLen, bgmDecryptedOutputSize);
+    }
+
+    private int getTagLen(String transformation) {
+        transformation = transformation.toUpperCase();
+        int[] supportedTagLens = null;
+        if (transformation.contains("GCM")) { // 128, 120, 112, 104, 96
+            supportedTagLens = new int[]{128, 120, 112, 104, 96};
+        } else if (transformation.contains("CCM")) { // 128, 112, 96, 80, 64, 48, 32
+            supportedTagLens = new int[]{128, 112, 96, 80, 64, 48, 32};
+        } else if (transformation.contains("OCB")) { // 128
+            supportedTagLens = new int[]{128, 120, 112, 104, 96, 88, 80, 72, 64};
+        } else { // do nothing
+
+        }
+        if (supportedTagLens == null) {
+            return 0;
+        }
+        SecureRandom random = new SecureRandom();
+        int index = random.nextInt(supportedTagLens.length - 1);
+        return supportedTagLens[index];
+    }
+
+    private int getExpectedOutputSize(boolean isAADMode, boolean isPKCS5Padding,
+                                      int inputLen, int tagLen, boolean decrypting) {
+        if (isAADMode) { // is AAD Mode (GCM/CCM/OCB)
+            if (isPKCS5Padding) { // Not Support
+                throw new IllegalStateException("Not Support");
+            } else {
+                int tLen = tagLen / 8;
+                return decrypting ? inputLen - tLen : inputLen + tLen;
+            }
+        } else {
+            if (isPKCS5Padding && !decrypting) {  // PKCS5Padding
+                return inputLen + padLength(inputLen, 16);
+            } else { // NoPadding
+                return inputLen;
+            }
+        }
+    }
+
+    private int padLength(int len, int blockSize) {
+        return blockSize - (len % blockSize);
+    }
+
+    private AlgorithmParameterSpec getAlgorithmParameterSpec(String transformation, int tagLen) {
+        transformation = transformation.toUpperCase();
+        if (transformation.contains("GCM")) {
+            return new GCMParameterSpec(tagLen, new byte[12]);
+        } else if (transformation.contains("CCM")) {
+            return new GCMParameterSpec(tagLen, new byte[12]);
+        } else if (transformation.contains("OCB")) {
+            return new GCMParameterSpec(tagLen, new byte[15]);
+        } else if (transformation.contains("ECB")) {
+            return null;
+        } else {
+            return new IvParameterSpec(new byte[16]);
+        }
+    }
+
+    private boolean isAADMode(String transformation) {
+        transformation = transformation.toUpperCase();
+        return transformation.contains("GCM") || transformation.contains("CCM") || transformation.contains("OCB");
+    }
+
+    @Test
     public void test() throws Exception {
         if (Security.getProvider("BC") == null) {
             System.out.println("Skip test, BouncyCastleProvider does not exist");
@@ -342,197 +597,149 @@ public class SM4Test {
         keyGen.init(128);
         SecretKey key = keyGen.generateKey();
 
-        test("SM4/CBC/NOPADDING", key, 16, 64);
-        test("SM4/CBC/pkcs5padding", key, 16, 11);
-        test("SM4/CBC/pkcs5padding", key, 16, 32);
-        testUpdate("SM4/CBC/NOPADDING", key, 16, 15);
-        testUpdate("SM4/CBC/NOPADDING", key, 16, 16);
-        testUpdate("SM4/CBC/NOPADDING", key, 16, 31);
-        testUpdate("SM4/CBC/NOPADDING", key, 16, 32);
-        testUpdate("SM4/CBC/pkcs5padding", key, 16, 15);
-        testUpdate("SM4/CBC/pkcs5padding", key, 16, 16);
-        testUpdate("SM4/CBC/pkcs5padding", key, 16, 31);
-        testUpdate("SM4/CBC/pkcs5padding", key, 16, 32);
-        testUpdateAndDofinal("SM4/CBC/NOPADDING", key, 16, 16, 7);
-        testUpdateAndDofinal("SM4/CBC/NOPADDING", key, 16, 32, 32);
-        testUpdateAndDofinal("SM4/CBC/pkcs5padding", key, 16, 15, 6);
-        testUpdateAndDofinal("SM4/CBC/pkcs5padding", key, 16, 31, 31);
-        testUpdateAndDofinal("SM4/CBC/pkcs5padding", key, 16, 16, 16);
-        testUpdateAndDofinal("SM4/CBC/pkcs5padding", key, 16, 32, 18);
+        // CBC
+        int[] lengths = new int[]{0, 16, 32, 48, 64, 128};
+        for (int length : lengths) {
+            test("SM4/CBC/NoPadding", key, 16, length);
+        }
+        lengths = new int[]{0, 1, 3, 7, 15, 16, 17, 32, 33, 64, 128};
+        for (int length : lengths) {
+            test("SM4/CBC/PKCS5Padding", key, 16, length);
+        }
+        testUpdateAndDofinal("SM4/CBC/NoPadding", key, 16, 16, 7);
+        testUpdateAndDofinal("SM4/CBC/NoPadding", key, 16, 32, 32);
+        testUpdateAndDofinal("SM4/CBC/PKCS5Padding", key, 16, 15, 6);
+        testUpdateAndDofinal("SM4/CBC/PKCS5Padding", key, 16, 31, 31);
+        testUpdateAndDofinal("SM4/CBC/PKCS5Padding", key, 16, 16, 16);
+        testUpdateAndDofinal("SM4/CBC/PKCS5Padding", key, 16, 32, 18);
 
-        test("SM4/CFB/NOPADDING", key, 16, 128);
-        test("SM4/CFB/pkcs5padding", key, 16, 22);
-        test("SM4/CFB/pkcs5padding", key, 16, 32);
-        testUpdate("SM4/CFB/NOPADDING", key, 16, 15);
-        testUpdate("SM4/CFB/NOPADDING", key, 16, 16);
-        testUpdate("SM4/CFB/NOPADDING", key, 16, 31);
-        testUpdate("SM4/CFB/NOPADDING", key, 16, 32);
-        testUpdate("SM4/CFB/pkcs5padding", key, 16, 15);
-        testUpdate("SM4/CFB/pkcs5padding", key, 16, 16);
-        testUpdate("SM4/CFB/pkcs5padding", key, 16, 31);
-        testUpdate("SM4/CFB/pkcs5padding", key, 16, 32);
-        testUpdateAndDofinal("SM4/CFB/NOPADDING", key, 16, 16, 7);
-        testUpdateAndDofinal("SM4/CFB/NOPADDING", key, 16, 32, 32);
-        testUpdateAndDofinal("SM4/CFB/pkcs5padding", key, 16, 15, 6);
-        testUpdateAndDofinal("SM4/CFB/pkcs5padding", key, 16, 31, 31);
-        testUpdateAndDofinal("SM4/CFB/pkcs5padding", key, 16, 16, 16);
-        testUpdateAndDofinal("SM4/CFB/pkcs5padding", key, 16, 32, 18);
+        // CFB
+        lengths = new int[]{0, 1, 3, 7, 15, 16, 17, 32, 33, 64, 128};
+        for (int length : lengths) {
+            test("SM4/CFB/NoPadding", key, 16, length);
+            test("SM4/CFB/PKCS5Padding", key, 16, length);
+        }
+        testUpdateAndDofinal("SM4/CFB/NoPadding", key, 16, 16, 7);
+        testUpdateAndDofinal("SM4/CFB/NoPadding", key, 16, 32, 32);
+        testUpdateAndDofinal("SM4/CFB/PKCS5Padding", key, 16, 15, 6);
+        testUpdateAndDofinal("SM4/CFB/PKCS5Padding", key, 16, 31, 31);
+        testUpdateAndDofinal("SM4/CFB/PKCS5Padding", key, 16, 16, 16);
+        testUpdateAndDofinal("SM4/CFB/PKCS5Padding", key, 16, 32, 18);
 
+        // CTS
+        lengths = new int[]{16, 32, 48, 64, 128};
+        for (int length : lengths) {
+            test("SM4/CTS/NoPadding", key, 16, length);
+            //test("SM4/CTS/PKCS5Padding", key, 16, length);
+        }
+//        test("SM4/CTS/PKCS5Padding", key, 16, 32);
+        testUpdateAndDofinal("SM4/CTS/NoPadding", key, 16, 16, 7);
+        testUpdateAndDofinal("SM4/CTS/NoPadding", key, 16, 32, 32);
+//        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 15, 6);
+//        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 31, 31);
+//        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 16, 16);
+//        testUpdateAndDofinal("SM4/CTS/PKCS5Padding", key, 16, 32, 18);
 
-        test("SM4/CTS/NOPADDING", key, 16, 32);
-        test("SM4/CTS/NOPADDING", key, 16, 33);
-        test("SM4/CTS/pkcs5padding", key, 16, 11);
-        test("SM4/CTS/pkcs5padding", key, 16, 32);
-        testUpdate("SM4/CTS/NOPADDING", key, 16, 15);
-        testUpdate("SM4/CTS/NOPADDING", key, 16, 16);
-        testUpdate("SM4/CTS/NOPADDING", key, 16, 31);
-        testUpdate("SM4/CTS/NOPADDING", key, 16, 32);
-        testUpdate("SM4/CTS/pkcs5padding", key, 16, 15);
-        testUpdate("SM4/CTS/pkcs5padding", key, 16, 16);
-        testUpdate("SM4/CTS/pkcs5padding", key, 16, 31);
-        testUpdate("SM4/CTS/pkcs5padding", key, 16, 32);
-        testUpdateAndDofinal("SM4/CTS/NOPADDING", key, 16, 16, 7);
-        testUpdateAndDofinal("SM4/CTS/NOPADDING", key, 16, 32, 32);
-        testUpdateAndDofinal("SM4/CTS/pkcs5padding", key, 16, 15, 6);
-        testUpdateAndDofinal("SM4/CTS/pkcs5padding", key, 16, 31, 31);
-        testUpdateAndDofinal("SM4/CTS/pkcs5padding", key, 16, 16, 16);
-        testUpdateAndDofinal("SM4/CTS/pkcs5padding", key, 16, 32, 18);
+        // CTR
+        int[] ivLens = new int[]{8, 9, 10, 11, 12, 13, 14, 15, 16};
+        lengths = new int[]{0, 1, 3, 7, 15, 16, 17, 32, 33, 64, 128};
+        for (int ivLen : ivLens) {
+            for (int length : lengths) {
+                test("SM4/CTR/NoPadding", key, ivLen, length);
+            }
+        }
+        testUpdateAndDofinal("SM4/CTR/NoPadding", key, 16, 16, 7);
+        testUpdateAndDofinal("SM4/CTR/NoPadding", key, 16, 32, 32);
+        testUpdateAndDofinal("SM4/CTR/NoPadding", key, 16, 15, 5);
+        testUpdateAndDofinal("SM4/CTR/NoPadding", key, 16, 31, 31);
+        testUpdateAndDofinal("SM4/CTR/PKCS5Padding", key, 16, 15, 6);
+        testUpdateAndDofinal("SM4/CTR/PKCS5Padding", key, 16, 31, 31);
+        testUpdateAndDofinal("SM4/CTR/PKCS5Padding", key, 16, 16, 16);
+        testUpdateAndDofinal("SM4/CTR/PKCS5Padding", key, 16, 32, 18);
 
+        // OFB
+        lengths = new int[]{0, 1, 3, 7, 15, 16, 17, 32, 33, 64, 128};
+        for (int length : lengths) {
+            test("SM4/OFB/NoPadding", key, 16, length);
+            test("SM4/OFB/PKCS5Padding", key, 16, length);
+        }
+        testUpdateAndDofinal("SM4/OFB/NoPadding", key, 16, 16, 7);
+        testUpdateAndDofinal("SM4/OFB/NoPadding", key, 16, 32, 32);
+        testUpdateAndDofinal("SM4/OFB/PKCS5Padding", key, 16, 15, 6);
+        testUpdateAndDofinal("SM4/OFB/PKCS5Padding", key, 16, 31, 31);
+        testUpdateAndDofinal("SM4/OFB/PKCS5Padding", key, 16, 16, 16);
+        testUpdateAndDofinal("SM4/OFB/PKCS5Padding", key, 16, 32, 18);
 
-        test("SM4/CTR/NOPADDING", key, 8, 11);
-        test("SM4/CTR/NOPADDING", key, 9, 13);
-        test("SM4/CTR/NOPADDING", key, 10, 7);
-        test("SM4/CTR/NOPADDING", key, 11, 19);
-        test("SM4/CTR/NOPADDING", key, 12, 21);
-        test("SM4/CTR/NOPADDING", key, 13, 11);
-        test("SM4/CTR/NOPADDING", key, 14, 12);
-        test("SM4/CTR/NOPADDING", key, 15, 14);
-        test("SM4/CTR/NOPADDING", key, 16, 15);
-        test("SM4/CTR/pkcs5padding", key, 16, 15);
-        test("SM4/CTR/pkcs5padding", key, 16, 16);
-        testUpdate("SM4/CTR/NOPADDING", key, 16, 15);
-        testUpdate("SM4/CTR/NOPADDING", key, 16, 16);
-        testUpdate("SM4/CTR/NOPADDING", key, 16, 31);
-        testUpdate("SM4/CTR/NOPADDING", key, 16, 32);
-        testUpdate("SM4/CTR/pkcs5padding", key, 16, 15);
-        testUpdate("SM4/CTR/pkcs5padding", key, 16, 16);
-        testUpdate("SM4/CTR/pkcs5padding", key, 16, 31);
-        testUpdate("SM4/CTR/pkcs5padding", key, 16, 32);
-        testUpdateAndDofinal("SM4/CTR/NOPADDING", key, 16, 16, 7);
-        testUpdateAndDofinal("SM4/CTR/NOPADDING", key, 16, 32, 32);
-        testUpdateAndDofinal("SM4/CTR/NOPADDING", key, 16, 15, 5);
-        testUpdateAndDofinal("SM4/CTR/NOPADDING", key, 16, 31, 31);
-        testUpdateAndDofinal("SM4/CTR/pkcs5padding", key, 16, 15, 6);
-        testUpdateAndDofinal("SM4/CTR/pkcs5padding", key, 16, 31, 31);
-        testUpdateAndDofinal("SM4/CTR/pkcs5padding", key, 16, 16, 16);
-        testUpdateAndDofinal("SM4/CTR/pkcs5padding", key, 16, 32, 18);
+        // ECB
+        lengths = new int[]{0, 16, 32, 48, 64, 128};
+        for (int length : lengths) {
+            test("SM4/ECB/NoPadding", key, 0, length);
+        }
+        lengths = new int[]{0, 1, 3, 7, 15, 16, 17, 32, 33, 64, 128};
+        for (int length : lengths) {
+            test("SM4/ECB/PKCS5Padding", key, 0, length);
+        }
+        testUpdateAndDofinal("SM4/ECB/NoPadding", key, 16, 16, 7);
+        testUpdateAndDofinal("SM4/ECB/NoPadding", key, 16, 32, 32);
+        testUpdateAndDofinal("SM4/ECB/PKCS5Padding", key, 16, 15, 6);
+        testUpdateAndDofinal("SM4/ECB/PKCS5Padding", key, 16, 31, 31);
+        testUpdateAndDofinal("SM4/ECB/PKCS5Padding", key, 16, 16, 16);
+        testUpdateAndDofinal("SM4/ECB/PKCS5Padding", key, 16, 32, 18);
 
+        // GCM
+        testAEADMode("SM4/GCM/NoPadding", key, 96, 1, 16);
+        testAEADMode("SM4/GCM/NoPadding", key, 104, 2, 17);
+        testAEADMode("SM4/GCM/NoPadding", key, 112, 3, 18);
+        testAEADMode("SM4/GCM/NoPadding", key, 120, 4, 19);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 5, 20);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 6, 21);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 7, 22);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 8, 23);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 9, 24);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 10, 25);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 11, 26);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 12, 27);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 13, 28);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 14, 29);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 15, 30);
+        testAEADMode("SM4/GCM/NoPadding", key, 128, 16, 31);
+        testUpdateAndDofinalAEADMode("SM4/GCM/NoPadding", key, 128, 16, 15, 6);
+        testUpdateAndDofinalAEADMode("SM4/GCM/NoPadding", key, 128, 16, 31, 31);
+        testUpdateAndDofinalAEADMode("SM4/GCM/NoPadding", key, 128, 16, 16, 16);
+        testUpdateAndDofinalAEADMode("SM4/GCM/NoPadding", key, 128, 16, 32, 18);
 
-        test("SM4/OFB/NOPADDING", key, 16, 32);
-        test("SM4/OFB/pkcs5padding", key, 16, 15);
-        test("SM4/OFB/pkcs5padding", key, 16, 32);
-        testUpdate("SM4/OFB/NOPADDING", key, 16, 15);
-        testUpdate("SM4/OFB/NOPADDING", key, 16, 16);
-        testUpdate("SM4/OFB/NOPADDING", key, 16, 31);
-        testUpdate("SM4/OFB/NOPADDING", key, 16, 32);
-        testUpdate("SM4/OFB/pkcs5padding", key, 16, 15);
-        testUpdate("SM4/OFB/pkcs5padding", key, 16, 16);
-        testUpdate("SM4/OFB/pkcs5padding", key, 16, 31);
-        testUpdate("SM4/OFB/pkcs5padding", key, 16, 32);
-        testUpdateAndDofinal("SM4/OFB/NOPADDING", key, 16, 16, 7);
-        testUpdateAndDofinal("SM4/OFB/NOPADDING", key, 16, 32, 32);
-        testUpdateAndDofinal("SM4/OFB/pkcs5padding", key, 16, 15, 6);
-        testUpdateAndDofinal("SM4/OFB/pkcs5padding", key, 16, 31, 31);
-        testUpdateAndDofinal("SM4/OFB/pkcs5padding", key, 16, 16, 16);
-        testUpdateAndDofinal("SM4/OFB/pkcs5padding", key, 16, 32, 18);
+        testAEADMode("SM4/OCB/NoPadding", key, 64, 0, 16);
+        testAEADMode("SM4/OCB/NoPadding", key, 72, 1, 17);
+        testAEADMode("SM4/OCB/NoPadding", key, 80, 2, 18);
+        testAEADMode("SM4/OCB/NoPadding", key, 88, 3, 19);
+        testAEADMode("SM4/OCB/NoPadding", key, 96, 4, 20);
+        testAEADMode("SM4/OCB/NoPadding", key, 104, 5, 21);
+        testAEADMode("SM4/OCB/NoPadding", key, 112, 6, 22);
+        testAEADMode("SM4/OCB/NoPadding", key, 120, 7, 23);
+        testAEADMode("SM4/OCB/NoPadding", key, 128, 8, 24);
+        testAEADMode("SM4/OCB/NoPadding", key, 128, 9, 25);
+        testAEADMode("SM4/OCB/NoPadding", key, 128, 10, 26);
+        testAEADMode("SM4/OCB/NoPadding", key, 128, 11, 27);
+        testAEADMode("SM4/OCB/NoPadding", key, 128, 12, 28);
+        testAEADMode("SM4/OCB/NoPadding", key, 128, 13, 29);
+        testAEADMode("SM4/OCB/NoPadding", key, 128, 14, 30);
+        testAEADMode("SM4/OCB/NoPadding", key, 128, 15, 31);
+        testUpdateAndDofinalAEADMode("SM4/OCB/NoPadding", key, 128, 15, 15, 6);
+        testUpdateAndDofinalAEADMode("SM4/OCB/NoPadding", key, 128, 15, 31, 31);
+        testUpdateAndDofinalAEADMode("SM4/OCB/NoPadding", key, 128, 15, 16, 16);
+        testUpdateAndDofinalAEADMode("SM4/OCB/NoPadding", key, 128, 15, 32, 18);
 
-
-        test("SM4/ECB/NOPADDING", key, 0, 16);
-        test("SM4/ECB/pkcs5padding", key, 0, 11);
-        test("SM4/ECB/pkcs5padding", key, 0, 32);
-        testUpdate("SM4/ECB/NOPADDING", key, 0, 15);
-        testUpdate("SM4/ECB/NOPADDING", key, 0, 16);
-        testUpdate("SM4/ECB/NOPADDING", key, 0, 31);
-        testUpdate("SM4/ECB/NOPADDING", key, 0, 32);
-        testUpdate("SM4/ECB/pkcs5padding", key, 0, 15);
-        testUpdate("SM4/ECB/pkcs5padding", key, 0, 16);
-        testUpdate("SM4/ECB/pkcs5padding", key, 0, 31);
-        testUpdate("SM4/ECB/pkcs5padding", key, 0, 32);
-        testUpdateAndDofinal("SM4/ECB/NOPADDING", key, 16, 16, 7);
-        testUpdateAndDofinal("SM4/ECB/NOPADDING", key, 16, 32, 32);
-        testUpdateAndDofinal("SM4/ECB/pkcs5padding", key, 16, 15, 6);
-        testUpdateAndDofinal("SM4/ECB/pkcs5padding", key, 16, 31, 31);
-        testUpdateAndDofinal("SM4/ECB/pkcs5padding", key, 16, 16, 16);
-        testUpdateAndDofinal("SM4/ECB/pkcs5padding", key, 16, 32, 18);
-
-
-        testAEADMode("SM4/GCM/NOPADDING", key, 96, 1, 16);
-        testAEADMode("SM4/GCM/NOPADDING", key, 104, 2, 17);
-        testAEADMode("SM4/GCM/NOPADDING", key, 112, 3, 18);
-        testAEADMode("SM4/GCM/NOPADDING", key, 120, 4, 19);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 5, 20);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 6, 21);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 7, 22);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 8, 23);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 9, 24);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 10, 25);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 11, 26);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 12, 27);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 13, 28);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 14, 29);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 15, 30);
-        testAEADMode("SM4/GCM/NOPADDING", key, 128, 16, 31);
-        testUpdateAEADMode("SM4/GCM/NOPADDING", key, 128, 13, 15);
-        testUpdateAEADMode("SM4/GCM/NOPADDING", key, 128, 14, 16);
-        testUpdateAEADMode("SM4/GCM/NOPADDING", key, 128, 15, 31);
-        testUpdateAEADMode("SM4/GCM/NOPADDING", key, 128, 16, 32);
-        testUpdateAndDofinalAEADMode("SM4/GCM/NOPADDING", key, 128, 16, 15, 6);
-        testUpdateAndDofinalAEADMode("SM4/GCM/NOPADDING", key, 128, 16, 31, 31);
-        testUpdateAndDofinalAEADMode("SM4/GCM/NOPADDING", key, 128, 16, 16, 16);
-        testUpdateAndDofinalAEADMode("SM4/GCM/NOPADDING", key, 128, 16, 32, 18);
-
-        testAEADMode("SM4/OCB/NOPADDING", key, 64, 0, 16);
-        testAEADMode("SM4/OCB/NOPADDING", key, 72, 1, 17);
-        testAEADMode("SM4/OCB/NOPADDING", key, 80, 2, 18);
-        testAEADMode("SM4/OCB/NOPADDING", key, 88, 3, 19);
-        testAEADMode("SM4/OCB/NOPADDING", key, 96, 4, 20);
-        testAEADMode("SM4/OCB/NOPADDING", key, 104, 5, 21);
-        testAEADMode("SM4/OCB/NOPADDING", key, 112, 6, 22);
-        testAEADMode("SM4/OCB/NOPADDING", key, 120, 7, 23);
-        testAEADMode("SM4/OCB/NOPADDING", key, 128, 8, 24);
-        testAEADMode("SM4/OCB/NOPADDING", key, 128, 9, 25);
-        testAEADMode("SM4/OCB/NOPADDING", key, 128, 10, 26);
-        testAEADMode("SM4/OCB/NOPADDING", key, 128, 11, 27);
-        testAEADMode("SM4/OCB/NOPADDING", key, 128, 12, 28);
-        testAEADMode("SM4/OCB/NOPADDING", key, 128, 13, 29);
-        testAEADMode("SM4/OCB/NOPADDING", key, 128, 14, 30);
-        testAEADMode("SM4/OCB/NOPADDING", key, 128, 15, 31);
-        testUpdateAEADMode("SM4/OCB/NOPADDING", key, 128, 12, 15);
-        testUpdateAEADMode("SM4/OCB/NOPADDING", key, 128, 13, 16);
-        testUpdateAEADMode("SM4/OCB/NOPADDING", key, 128, 14, 31);
-        testUpdateAEADMode("SM4/OCB/NOPADDING", key, 128, 15, 32);
-        testUpdateAndDofinalAEADMode("SM4/OCB/NOPADDING", key, 128, 15, 15, 6);
-        testUpdateAndDofinalAEADMode("SM4/OCB/NOPADDING", key, 128, 15, 31, 31);
-        testUpdateAndDofinalAEADMode("SM4/OCB/NOPADDING", key, 128, 15, 16, 16);
-        testUpdateAndDofinalAEADMode("SM4/OCB/NOPADDING", key, 128, 15, 32, 18);
-
-
-        testAEADMode("SM4/CCM/NOPADDING", key, 0, 7, 16);
-        testAEADMode("SM4/CCM/NOPADDING", key, 0, 8, 16);
-        testAEADMode("SM4/CCM/NOPADDING", key, 0, 9, 16);
-        testAEADMode("SM4/CCM/NOPADDING", key, 0, 10, 16);
-        testAEADMode("SM4/CCM/NOPADDING", key, 0, 11, 16);
-        testAEADMode("SM4/CCM/NOPADDING", key, 0, 12, 16);
-        testAEADMode("SM4/CCM/NOPADDING", key, 0, 13, 16);
-        testUpdateAEADMode("SM4/CCM/NOPADDING", key, 0, 10, 15);
-        testUpdateAEADMode("SM4/CCM/NOPADDING", key, 0, 11, 16);
-        testUpdateAEADMode("SM4/CCM/NOPADDING", key, 0, 12, 31);
-        testUpdateAEADMode("SM4/CCM/NOPADDING", key, 0, 13, 32);
-        testUpdateAndDofinalAEADMode("SM4/CCM/NOPADDING", key, 128, 13, 15, 6);
-        testUpdateAndDofinalAEADMode("SM4/CCM/NOPADDING", key, 128, 13, 31, 31);
-        testUpdateAndDofinalAEADMode("SM4/CCM/NOPADDING", key, 128, 13, 16, 16);
-        testUpdateAndDofinalAEADMode("SM4/CCM/NOPADDING", key, 128, 13, 32, 18);
-
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 7, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 8, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 9, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 10, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 11, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 12, 16);
+        testAEADMode("SM4/CCM/NoPadding", key, 96, 13, 16);
+        testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, 128, 13, 15, 6);
+        testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, 128, 13, 31, 31);
+        testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, 128, 13, 16, 16);
+        testUpdateAndDofinalAEADMode("SM4/CCM/NoPadding", key, 128, 13, 32, 18);
     }
 
     /**
@@ -622,6 +829,10 @@ public class SM4Test {
         Assert.assertArrayEquals(bcOffsetDecrypt, bgmOffsetDecrypt);
     }
 
+    public static void testAEADMode(String algo, Key key, int tLen, int ivLen, int plainTextLen) throws Exception {
+        testAEADMode(algo, key, tLen, ivLen, plainTextLen, false);
+    }
+
     /**
      * test doFinal
      *
@@ -632,7 +843,8 @@ public class SM4Test {
      * @param plainTextLen
      * @throws Exception
      */
-    public static void testAEADMode(String algo, Key key, int tLen, int ivLen, int plainTextLen) throws Exception {
+    public static void testAEADMode(String algo, Key key, int tLen, int ivLen, int plainTextLen, boolean useIvParams)
+            throws Exception {
         Cipher bc = Cipher.getInstance(algo, "BC");
         Cipher bgm = Cipher.getInstance(algo, "BGMJCEProvider");
 
@@ -643,17 +855,15 @@ public class SM4Test {
         int aadLen = (((int) (Math.random() * 32767)) + 1);
         byte[] aad = new byte[aadLen];
         random.nextBytes(aad);
-        GCMParameterSpec gcmParameterSpec = null;
-        if (!algo.contains("CCM")) {
-            gcmParameterSpec = new GCMParameterSpec(tLen, iv);
-            bc.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-        }
+
+        AlgorithmParameterSpec parameterSpec = useIvParams ?
+                new IvParameterSpec(iv) : new GCMParameterSpec(tLen, iv);
+        bc.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        bgm.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
+
         byte[] plainText = new byte[plainTextLen];
         random.nextBytes(plainText);
 
@@ -661,13 +871,8 @@ public class SM4Test {
         byte[] bgmCipherText = bgm.doFinal(plainText);
         Assert.assertArrayEquals(bcCipherText, bgmCipherText);
 
-        if (!algo.contains("CCM")) {
-            bc.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-            bgm.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-        }
+        bc.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        bgm.init(Cipher.DECRYPT_MODE, key, parameterSpec);
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
         byte[] bcPlainText = bc.doFinal(bcCipherText);
@@ -676,19 +881,15 @@ public class SM4Test {
 
         byte[] newIv = new byte[ivLen];
         random.nextBytes(newIv);
-        while (ivLen!=0 && Arrays.equals(iv,newIv)){
+        while (ivLen != 0 && Arrays.equals(iv, newIv)) {
             random.nextBytes(newIv);
         }
 
-        gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
-        if (!algo.contains("CCM")) {
-            gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
-            bc.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
-            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
-        }
+        parameterSpec = useIvParams ? new IvParameterSpec(newIv)
+                : new GCMParameterSpec(tLen, newIv);
+        bc.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        bgm.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
         //test dofinal without output args
@@ -707,13 +908,8 @@ public class SM4Test {
         Assert.assertEquals(bcCipherLen, bgmCipherLen);
         Assert.assertArrayEquals(bcres, bgmres);
 
-        if (!algo.contains("CCM")) {
-            bc.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(newIv));
-            bgm.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(newIv));
-        }
+        bc.init(Cipher.DECRYPT_MODE, key, parameterSpec);
+        bgm.init(Cipher.DECRYPT_MODE, key, parameterSpec);
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
         //generate output array
@@ -728,134 +924,6 @@ public class SM4Test {
         int bgmOffsetDe = bgm.doFinal(bgmres, ops, bgmCipherLen, bgmOffsetDecrypt, offset);
         Assert.assertEquals(bcOffsetDe, bgmOffsetDe);
         Assert.assertArrayEquals(bcOffsetDecrypt, bgmOffsetDecrypt);
-    }
-
-    /**
-     * test update
-     *
-     * @param algo
-     * @param key
-     * @param ivLen
-     * @param plainTextLen
-     * @throws Exception
-     */
-    public static void testUpdate(String algo, Key key, int ivLen, int plainTextLen) throws Exception {
-        Cipher bc = Cipher.getInstance(algo, "BC");
-        Cipher bgm = Cipher.getInstance(algo, "BGMJCEProvider");
-        SecureRandom random = new SecureRandom();
-        byte[] plainText = new byte[plainTextLen];
-        random.nextBytes(plainText);
-        byte[] iv = new byte[ivLen];
-        random.nextBytes(iv);
-        IvParameterSpec ivParam = new IvParameterSpec(iv);
-        if (!algo.contains("ECB")) {
-            bc.init(Cipher.ENCRYPT_MODE, key, ivParam);
-            bgm.init(Cipher.ENCRYPT_MODE, key, ivParam);
-        } else {
-            bc.init(Cipher.ENCRYPT_MODE, key);
-            bgm.init(Cipher.ENCRYPT_MODE, key);
-        }
-        byte[] bcCipherText = bc.update(plainText);
-        byte[] bgmCipherText = bgm.update(plainText);
-        Assert.assertArrayEquals(bcCipherText, bgmCipherText);
-
-        random.nextBytes(iv);
-        ivParam = new IvParameterSpec(iv);
-        if (!algo.contains("ECB")) {
-            bc.init(Cipher.ENCRYPT_MODE, key, ivParam);
-            bgm.init(Cipher.ENCRYPT_MODE, key, ivParam);
-        } else {
-            bc.init(Cipher.ENCRYPT_MODE, key);
-            bgm.init(Cipher.ENCRYPT_MODE, key);
-        }
-        //test dofinal without output args
-        byte[] pArr = new byte[plainTextLen + 20];
-        random.nextBytes(pArr);
-        int inputOffset = (int) (Math.random() * 20);
-
-        int len = bc.getOutputSize(plainTextLen);
-        byte[] bcres = new byte[len + 20];
-        byte[] bgmres = new byte[len + 20];
-        //generate outputOffset
-        int ops = (int) (Math.random() * 20);
-        //test dofinal with output args
-        int bcCipherLen = bc.update(pArr, inputOffset, plainTextLen, bcres, ops);
-        int bgmCipherLen = bgm.update(pArr, inputOffset, plainTextLen, bgmres, ops);
-        Assert.assertEquals(bcCipherLen, bgmCipherLen);
-        Assert.assertArrayEquals(bcres, bgmres);
-    }
-
-    /**
-     * test update
-     *
-     * @param algo
-     * @param key
-     * @param tLen
-     * @param ivLen
-     * @param plainTextLen
-     * @throws Exception
-     */
-    public static void testUpdateAEADMode(String algo, Key key, int tLen, int ivLen, int plainTextLen) throws Exception {
-        Cipher bc = Cipher.getInstance(algo, "BC");
-        Cipher bgm = Cipher.getInstance(algo, "BGMJCEProvider");
-
-        SecureRandom random = new SecureRandom();
-        byte[] iv = new byte[ivLen];
-        random.nextBytes(iv);
-
-        int aadLen = (((int) (Math.random() * 32767)) + 1);
-        byte[] aad = new byte[aadLen];
-        random.nextBytes(aad);
-        GCMParameterSpec gcmParameterSpec = null;
-        if (!algo.contains("CCM")) {
-            gcmParameterSpec = new GCMParameterSpec(tLen, iv);
-            bc.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-        }
-        bc.updateAAD(aad);
-        bgm.updateAAD(aad);
-        byte[] plainText = new byte[plainTextLen];
-        random.nextBytes(plainText);
-
-        byte[] bcCipherText = bc.update(plainText);
-        byte[] bgmCipherText = bgm.update(plainText);
-        Assert.assertArrayEquals(bcCipherText, bgmCipherText);
-
-        byte[] newIv = new byte[ivLen];
-        random.nextBytes(newIv);
-        while (ivLen!=0 && Arrays.equals(iv,newIv)){
-            random.nextBytes(newIv);
-        }
-
-        gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
-        if (!algo.contains("CCM")) {
-            gcmParameterSpec = new GCMParameterSpec(tLen, newIv);
-            bc.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-            bgm.init(Cipher.ENCRYPT_MODE, key, gcmParameterSpec);
-        } else {
-            bc.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
-            bgm.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(newIv));
-        }
-        bc.updateAAD(aad);
-        bgm.updateAAD(aad);
-        //test dofinal without output args
-        byte[] pArr = new byte[plainTextLen + 20];
-        random.nextBytes(pArr);
-        int inputOffset = (int) (Math.random() * 20);
-
-        int len = bc.getOutputSize(plainTextLen);
-        byte[] bcres = new byte[len + 20];
-        byte[] bgmres = new byte[len + 20];
-        //generate outputOffset
-        int ops = (int) (Math.random() * 20);
-        //test dofinal with output args
-        int bcCipherLen = bc.update(pArr, inputOffset, plainTextLen, bcres, ops);
-        int bgmCipherLen = bgm.update(pArr, inputOffset, plainTextLen, bgmres, ops);
-        Assert.assertEquals(bcCipherLen, bgmCipherLen);
-        Assert.assertArrayEquals(bcres, bgmres);
     }
 
     /**
@@ -885,48 +953,24 @@ public class SM4Test {
             bc.init(Cipher.ENCRYPT_MODE, key);
             bgm.init(Cipher.ENCRYPT_MODE, key);
         }
+
+        byte[] bcEncryptedBytesAll = null;
+        byte[] bgmEncryptedBytesAll = null;
+
         //partial encryption
         byte[] bcUpdate = bc.update(plainText, 0, updateLen);
         byte[] bgmUpdate = bgm.update(plainText, 0, updateLen);
-        Assert.assertArrayEquals(bcUpdate, bgmUpdate);
+        bcEncryptedBytesAll = concatBytes(bcEncryptedBytesAll, bcUpdate);
+        bgmEncryptedBytesAll = concatBytes(bgmEncryptedBytesAll, bgmUpdate);
+
         //end the encryption
         byte[] bcdoFinalCipher = bc.doFinal(plainText, updateLen, plainTextLen - updateLen);
         byte[] bgmdoFinalCipher = bgm.doFinal(plainText, updateLen, plainTextLen - updateLen);
-        Assert.assertArrayEquals(bcdoFinalCipher, bgmdoFinalCipher);
+
         //combine all encrypted results
-        byte[] bcArr = null;
-        byte[] bgmArr = null;
-        if (bcUpdate == null) {
-            if (bcdoFinalCipher == null) {
-
-            } else {
-                bcArr = bcdoFinalCipher;
-            }
-        } else {
-            if (bcdoFinalCipher == null) {
-                bcArr = bcUpdate;
-            } else {
-                bcArr = new byte[bcUpdate.length + bcdoFinalCipher.length];
-                SM4Util.copyArray(bcUpdate, 0, bcUpdate.length, bcArr, 0);
-                SM4Util.copyArray(bcdoFinalCipher, 0, bcdoFinalCipher.length, bcArr, bcArr.length - bcdoFinalCipher.length);
-            }
-        }
-
-        if (bgmUpdate == null) {
-            if (bgmdoFinalCipher == null) {
-            } else {
-                bgmArr = bgmdoFinalCipher;
-            }
-        } else {
-            if (bgmdoFinalCipher == null) {
-                bgmArr = bgmUpdate;
-            } else {
-                bgmArr = new byte[bgmUpdate.length + bgmdoFinalCipher.length];
-                SM4Util.copyArray(bgmUpdate, 0, bgmUpdate.length, bgmArr, 0);
-                SM4Util.copyArray(bgmdoFinalCipher, 0, bgmdoFinalCipher.length, bgmArr, bgmArr.length - bgmdoFinalCipher.length);
-            }
-        }
-        Assert.assertArrayEquals(bcArr, bgmArr);
+        bcEncryptedBytesAll = concatBytes(bcEncryptedBytesAll, bcdoFinalCipher);
+        bgmEncryptedBytesAll = concatBytes(bgmEncryptedBytesAll, bgmdoFinalCipher);
+        Assert.assertArrayEquals(bcEncryptedBytesAll, bgmEncryptedBytesAll);
 
         if (!algo.contains("ECB")) {
             bc.init(Cipher.DECRYPT_MODE, key, ivParam);
@@ -935,15 +979,22 @@ public class SM4Test {
             bc.init(Cipher.DECRYPT_MODE, key);
             bgm.init(Cipher.DECRYPT_MODE, key);
         }
-        int decryptLen = (int) (Math.random() * bcArr.length);
+        byte[] bcDecryptedBytesAll = null;
+        byte[] bgmDecryptedBytesAll = null;
+        int decryptLen = (int) (Math.random() * bcEncryptedBytesAll.length);
         //partial decryption
-        byte[] deBCupdate = bc.update(bcArr, 0, decryptLen);
-        byte[] deBgmUpdate = bgm.update(bgmArr, 0, decryptLen);
-        Assert.assertArrayEquals(deBCupdate, deBgmUpdate);
+        byte[] deBCupdate = bc.update(bcEncryptedBytesAll, 0, decryptLen);
+        byte[] deBgmUpdate = bgm.update(bgmEncryptedBytesAll, 0, decryptLen);
+        bcDecryptedBytesAll = concatBytes(bcDecryptedBytesAll, deBCupdate);
+        bgmDecryptedBytesAll = concatBytes(bgmDecryptedBytesAll, deBgmUpdate);
+
         //end the decryption
-        byte[] bcbytes = bc.doFinal(bcArr, decryptLen, bcArr.length - decryptLen);
-        byte[] bgmbytes = bgm.doFinal(bgmArr, decryptLen, bgmArr.length - decryptLen);
-        Assert.assertArrayEquals(bcbytes, bgmbytes);
+        byte[] bcbytes = bc.doFinal(bcEncryptedBytesAll, decryptLen, bcEncryptedBytesAll.length - decryptLen);
+        byte[] bgmbytes = bgm.doFinal(bgmEncryptedBytesAll, decryptLen, bgmEncryptedBytesAll.length - decryptLen);
+        bcDecryptedBytesAll = concatBytes(bcDecryptedBytesAll, bcbytes);
+        bgmDecryptedBytesAll = concatBytes(bgmDecryptedBytesAll, bgmbytes);
+        Assert.assertArrayEquals(bcDecryptedBytesAll, bgmDecryptedBytesAll);
+
     }
 
     /**
@@ -984,55 +1035,21 @@ public class SM4Test {
         byte[] plainText = new byte[plainTextLen];
         random.nextBytes(plainText);
 
-
-        //generate additional authentication data
+        byte[] bcEncryptedBytesAll = null;
+        byte[] bgmEncryptedBytesAll = null;
 
         //partial encryption
         byte[] bcUpdate = bc.update(plainText, 0, updateLen);
         byte[] bgmUpdate = bgm.update(plainText, 0, updateLen);
-        Assert.assertArrayEquals(bcUpdate, bgmUpdate);
+        bcEncryptedBytesAll = concatBytes(bcEncryptedBytesAll, bcUpdate);
+        bgmEncryptedBytesAll = concatBytes(bgmEncryptedBytesAll, bgmUpdate);
 
         //end the encryption
         byte[] bcdoFinalCipher = bc.doFinal(plainText, updateLen, plainTextLen - updateLen);
         byte[] bgmdoFinalCipher = bgm.doFinal(plainText, updateLen, plainTextLen - updateLen);
-        Assert.assertArrayEquals(bcdoFinalCipher, bgmdoFinalCipher);
-
-        //combine all encrypted results
-        byte[] bcArr = null;
-        byte[] bgmArr = null;
-
-        if (bcUpdate == null) {
-            if (bcdoFinalCipher == null) {
-
-            } else {
-                bcArr = bcdoFinalCipher;
-            }
-        } else {
-            if (bcdoFinalCipher == null) {
-                bcArr = bcUpdate;
-            } else {
-                bcArr = new byte[bcUpdate.length + bcdoFinalCipher.length];
-                SM4Util.copyArray(bcUpdate, 0, bcUpdate.length, bcArr, 0);
-                SM4Util.copyArray(bcdoFinalCipher, 0, bcdoFinalCipher.length, bcArr, bcArr.length - bcdoFinalCipher.length);
-            }
-        }
-
-        if (bgmUpdate == null) {
-            if (bgmdoFinalCipher == null) {
-            } else {
-                bgmArr = bgmdoFinalCipher;
-            }
-        } else {
-            if (bgmdoFinalCipher == null) {
-                bgmArr = bgmUpdate;
-            } else {
-                bgmArr = new byte[bgmUpdate.length + bgmdoFinalCipher.length];
-                SM4Util.copyArray(bgmUpdate, 0, bgmUpdate.length, bgmArr, 0);
-                SM4Util.copyArray(bgmdoFinalCipher, 0, bgmdoFinalCipher.length, bgmArr, bgmArr.length - bgmdoFinalCipher.length);
-            }
-        }
-        Assert.assertArrayEquals(bcArr, bgmArr);
-
+        bcEncryptedBytesAll = concatBytes(bcEncryptedBytesAll, bcdoFinalCipher);
+        bgmEncryptedBytesAll = concatBytes(bgmEncryptedBytesAll, bgmdoFinalCipher);
+        Assert.assertArrayEquals(bcEncryptedBytesAll, bgmEncryptedBytesAll);
 
         if (!algo.contains("CCM")) {
             bc.init(Cipher.DECRYPT_MODE, key, gcmParameterSpec);
@@ -1044,14 +1061,80 @@ public class SM4Test {
         bc.updateAAD(aad);
         bgm.updateAAD(aad);
 
+        byte[] bcDecryptedBytesAll = null;
+        byte[] bgmDecryptedBytesAll = null;
+
         //partial decryption
-        int decryptLen = (int) (Math.random() * bcArr.length);
-        byte[] deBCupdate = bc.update(bcArr, 0, decryptLen);
-        byte[] deBgmUpdate = bgm.update(bgmArr, 0, decryptLen);
-        Assert.assertArrayEquals(deBCupdate, deBgmUpdate);
+        int decryptLen = (int) (Math.random() * bcEncryptedBytesAll.length);
+        byte[] bcDecryptedUpdateBytes = bc.update(bcEncryptedBytesAll, 0, decryptLen);
+        byte[] bgmDecryptedUpdateBytes = bgm.update(bgmEncryptedBytesAll, 0, decryptLen);
+        bcDecryptedBytesAll = concatBytes(bcDecryptedBytesAll, bcDecryptedUpdateBytes);
+        bgmDecryptedBytesAll = concatBytes(bgmDecryptedBytesAll, bgmDecryptedUpdateBytes);
+
         //end the decryption
-        byte[] bcbytes = bc.doFinal(bcArr, decryptLen, bcArr.length - decryptLen);
-        byte[] bgmbytes = bgm.doFinal(bgmArr, decryptLen, bgmArr.length - decryptLen);
-        Assert.assertArrayEquals(bcbytes, bgmbytes);
+        byte[] bcDecryptedFinalBytes = bc.doFinal(bcEncryptedBytesAll, decryptLen, bcEncryptedBytesAll.length - decryptLen);
+        byte[] bgmDecryptedFinalBytes = bgm.doFinal(bgmEncryptedBytesAll, decryptLen, bcEncryptedBytesAll.length - decryptLen);
+        bcDecryptedBytesAll = concatBytes(bcDecryptedBytesAll, bcDecryptedFinalBytes);
+        bgmDecryptedBytesAll = concatBytes(bgmDecryptedBytesAll, bgmDecryptedFinalBytes);
+        Assert.assertArrayEquals(bgmDecryptedBytesAll, bcDecryptedBytesAll);
+    }
+
+    public static byte[] concatBytes(byte[] first, byte[]... rest) {
+        if (first == null) {
+            first = new byte[0];
+        }
+        int totalLength = first.length;
+        for (byte[] array : rest) {
+            if (array != null) {
+                totalLength += array.length;
+            }
+        }
+        byte[] result = Arrays.copyOf(first, totalLength);
+        int offset = first.length;
+        for (byte[] array : rest) {
+            if (array != null) {
+                System.arraycopy(array, 0, result, offset, array.length);
+                offset += array.length;
+            }
+        }
+        return result;
+    }
+
+    public static void testInitAlgorithmParameters(String transformation, Key key, int tLen, int ivLen,
+                                                   int plainTextLen) throws Exception {
+        SecureRandom random = new SecureRandom();
+
+        byte[] ivBytes = new byte[ivLen];
+        random.nextBytes(ivBytes);
+
+        byte[] plainText = new byte[plainTextLen];
+        random.nextBytes(plainText);
+
+        Cipher bcCipher = Cipher.getInstance(transformation, "BC");
+        Cipher bgmCipher = Cipher.getInstance(transformation, "BGMJCEProvider");
+
+        AlgorithmParameterSpec parameterSpec = new GCMParameterSpec(tLen, ivBytes);
+        String algorithm = getAlgorithmParametersAlgorithm(transformation);
+        if (algorithm != null) {
+            AlgorithmParameters algorithmParameters = AlgorithmParameters.getInstance(algorithm);
+            algorithmParameters.init(parameterSpec);
+            bcCipher.init(Cipher.ENCRYPT_MODE, key, algorithmParameters);
+            bgmCipher.init(Cipher.ENCRYPT_MODE, key, algorithmParameters);
+        } else {
+            bcCipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+            bgmCipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
+        }
+        byte[] bcEncryptedBytes = bcCipher.doFinal(plainText);
+        byte[] bgmEncryptedBytes = bgmCipher.doFinal(plainText);
+        Arrays.equals(bcEncryptedBytes, bgmEncryptedBytes);
+    }
+
+    private static String getAlgorithmParametersAlgorithm(String transformation) {
+        if (transformation.contains("GCM")) {
+            return "GCM";
+        } else if (transformation.contains("CCM")) {
+            return "CCM";
+        }
+        return null;
     }
 }

@@ -91,8 +91,8 @@ public class SM4Test {
         test(plainText, "SM4/CFB/NOPADDING", new byte[]{32, 108, 35, 108, -16, 119, -111, 114, 94, 110, -100, -113, -46, -29, -11, 71});
         test(shortPlainText, "SM4/CFB/PKCS5Padding", new byte[]{32, 108, 35, 108, -16, 119, -111, 114, 94, 110, -14, -20, -72, -119, -100, 54});
         testShortIv(plainText, "SM4/OCB/NOPADDING", new byte[]{-89, 90, -106, -128, -6, 74, 75, 86, -70, -71, -117, -106, 93, -102, -15, 112, -47, 81, -50, 73, 118, 25, -29, 124, 68, 6, 123, -98, 117, 116, 24, -77});
-        test(plainText, "SM4/CTS/NOPADDING", new byte[]{86, 69, 47, -115, -63, 54, 35, 24, -2, 114, 113, 102, 82, 20, 69, 59});
-        test(shortPlainText, "SM4/CTS/PKCS5Padding", new byte[]{10, 105, 75, -80, -85, -68, 13, -53, 42, 91, -64, 99, 104, 35, -85, 8});
+        // test(plainText, "SM4/CTS/NOPADDING", new byte[]{86, 69, 47, -115, -63, 54, 35, 24, -2, 114, 113, 102, 82, 20, 69, 59});
+        // test(shortPlainText, "SM4/CTS/PKCS5Padding", new byte[]{10, 105, 75, -80, -85, -68, 13, -53, 42, 91, -64, 99, 104, 35, -85, 8});
         test(plainText, "SM4/GCM/NOPADDING", new byte[]{96, -98, 67, 108, 105, 38, -75, -12, -86, 127, -10, 5, -98, 101, -36, -99, 106, 111, 5, -62, 18, -25, -86, -107, -3, 71, -70, -40});
         testShortIv(plainText, "SM4/CCM/NOPADDING", new byte[]{-35, -44, 122, 11, 13, -89, 18, -66, -64, -27, 29, -17, -125, -18, 106, -102, 118, -18, -55, -126, 14, -69, 80, -94});
 

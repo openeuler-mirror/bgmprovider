@@ -64,6 +64,10 @@ public class Util {
         bs[++off] = (byte) (n);
     }
 
+    public static void shortToBigEndian(short n, byte[] bs, int off) {
+        bs[off] = (byte) ((n >>> 8) & 0xFF);
+        bs[off + 1] = (byte) (n & 0xFF);
+    }
 
     public static int bigEndianToInt(byte[] bs, int off) {
         int n = bs[off] << 24;

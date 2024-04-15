@@ -115,13 +115,17 @@ class BGMJCEEntries extends AbstractEntries {
 
     private void putSM4(Provider provider) {
         add(provider, "Cipher", "SM4",
-                "org.openeuler.sm4.SM4Cipher");
+                "org.openeuler.com.sun.crypto.provider.SM4Cipher$General");
         add(provider, "AlgorithmParameters", "SM4",
                 "org.openeuler.sm4.SM4Parameters");
         add(provider, "AlgorithmParameterGenerator", "SM4",
                 "org.openeuler.sm4.SM4ParameterGenerator");
         add(provider, "KeyGenerator", "SM4",
                 "org.openeuler.sm4.SM4KeyGenerator");
+        add(provider, "AlgorithmParameters", "CCM",
+                "org.openeuler.com.sun.crypto.provider.CCMParameters");
+        add(provider, "AlgorithmParameters", "OCB",
+                "org.openeuler.com.sun.crypto.provider.OCBParameters");
     }
 
     private void putPBES2(Provider provider) {
