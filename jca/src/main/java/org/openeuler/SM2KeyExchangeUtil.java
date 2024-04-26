@@ -24,6 +24,7 @@
 
 package org.openeuler;
 
+import org.openeuler.commons.GMJCEConstants;
 import org.openeuler.util.GMUtil;
 import sun.security.util.ECUtil;
 
@@ -40,18 +41,17 @@ import java.util.Arrays;
  * SM2 KeyExchange util
  */
 public class SM2KeyExchangeUtil {
-    private static final byte[] DEFAULT_ID = "1234567812345678".getBytes();
     private static boolean DEBUG = false;
 
-    public static byte[] generateSharedSecret(ECPublicKey localPublicKey, ECPrivateKey localPrivateKey,
-                                              BigInteger localRandom, byte[] localId,
-                                              ECPublicKey peerPublicKey, byte[] peerRBytes, byte[] peerId,
+    public static byte[] generateSharedSecret(byte[] localId, ECPrivateKey localPrivateKey, ECPublicKey localPublicKey,
+                                              ECPrivateKey localTempPrivateKey, ECPublicKey localTempPublicKey,
+                                              byte[] peerId, ECPublicKey peerPublicKey, ECPublicKey peerTempPublicKey,
                                               int secretLen, boolean active)
             throws IOException, NoSuchAlgorithmException {
-        BigInteger rA = localRandom;
+        BigInteger rA = localTempPrivateKey.getS();
 
         // RA = [rA]*G
-        ECPoint RA = generateR(localPublicKey, rA);
+        ECPoint RA = localTempPublicKey.getW();
         BigInteger n = localPublicKey.getParams().getOrder();
 
         // w = ceil(ceil(log2(n)/2) -1
@@ -67,7 +67,7 @@ public class SM2KeyExchangeUtil {
         BigInteger tA = dA.add(x1.multiply(rA)).mod(n);
 
         // x2 = 2^w + (x2 & (2^w - 1))
-        ECPoint RB = ECUtil.decodePoint(peerRBytes, peerPublicKey.getParams().getCurve());
+        ECPoint RB = peerTempPublicKey.getW();
         BigInteger x2 = RB.getAffineX();
         x2 = wk.add(x2.and(wk.subtract(BigInteger.ONE)));
 
@@ -152,7 +152,7 @@ public class SM2KeyExchangeUtil {
      */
     public static byte[] generateZ(byte[] idBytes, ECPublicKey publicKey, MessageDigest messageDigest) {
         if (idBytes == null) {
-            idBytes = DEFAULT_ID;
+            idBytes = GMJCEConstants.DEFAULT_ID;
         }
         int idBitsLen = idBytes.length * 8;
         EllipticCurve curve = publicKey.getParams().getCurve();

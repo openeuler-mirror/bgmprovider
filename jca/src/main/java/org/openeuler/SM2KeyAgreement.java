@@ -29,8 +29,11 @@ import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
@@ -39,26 +42,24 @@ import java.security.spec.AlgorithmParameterSpec;
  * SM2 KeyAgreement
  */
 public class SM2KeyAgreement extends KeyAgreementSpi {
-    // local public key
-    private ECPublicKey localPublicKey;
-
-    // local private key
-    private ECPrivateKey localPrivateKey;
-
     // local id
     private byte[] localId;
-
-    // local random
-    private BigInteger localRandom;
-
-    // peer public key
-    private ECPublicKey peerPublicKey;
-
-    // peer R point , R = r*G
-    private byte[] peerRBytes;
+    // local private key
+    private ECPrivateKey localPrivateKey;
+    // local public key
+    private ECPublicKey localPublicKey;
+    // local temp private key (local random)
+    private ECPrivateKey localTempPrivateKey;
+    // local temp public key
+    private ECPublicKey localTempPublicKey;
 
     // peer Id
     private byte[] peerId;
+    // peer public key
+    private ECPublicKey peerPublicKey;
+    // peer temp public key (R point , R = r*G)
+    private ECPublicKey peerTempPublicKey;
+
 
     // length of the secret to be derived
     private int secretLen;
@@ -81,19 +82,20 @@ public class SM2KeyAgreement extends KeyAgreementSpi {
         this.localPrivateKey = (ECPrivateKey) key;
 
         SM2KeyExchangeParameterSpec parameterSpec = checkParams(params);
+        this.localId = parameterSpec.getLocalId();
 
         // generate localPublicKey
         if (parameterSpec.getLocalPublicKey() == null) {
             this.localPublicKey = SM2KeyExchangeUtil.generatePublicKey(this.localPrivateKey);
         } else {
-            this.localPublicKey = (ECPublicKey) parameterSpec.getLocalPublicKey();
+            this.localPublicKey = parameterSpec.getLocalPublicKey();
         }
 
-        this.localId = parameterSpec.getLocalId();
-        this.localRandom = parameterSpec.getLocalRandom();
+        this.localTempPrivateKey = parameterSpec.getLocalTempPrivateKey();
+        this.localTempPublicKey = parameterSpec.getLocalTempPublicKey();
 
         this.peerId = parameterSpec.getPeerId();
-        this.peerRBytes = parameterSpec.getPeerRBytes();
+        this.peerTempPublicKey = parameterSpec.getPeerTempPublicKey();
 
         this.secretLen = parameterSpec.getSecretLen();
         this.useClientMode = parameterSpec.isUseClientMode();
@@ -107,19 +109,19 @@ public class SM2KeyAgreement extends KeyAgreementSpi {
         SM2KeyExchangeParameterSpec parameterSpec = (SM2KeyExchangeParameterSpec) params;
         if (parameterSpec.getLocalPublicKey() != null &
                 !(parameterSpec.getLocalPublicKey() instanceof ECPublicKey)) {
-            throw new InvalidAlgorithmParameterException("The localPublicKey must be ECPublicKey");
+            throw new InvalidAlgorithmParameterException("The local public key must be ECPublicKey");
         }
         if (parameterSpec.getLocalId() == null) {
             throw new InvalidAlgorithmParameterException("The localId cannot be null");
         }
-        if (parameterSpec.getLocalRandom() == null) {
-            throw new InvalidAlgorithmParameterException("The localRandom cannot be null");
+        if (parameterSpec.getLocalTempPrivateKey() == null) {
+            throw new InvalidAlgorithmParameterException("The local temp private key cannot be null");
         }
         if (parameterSpec.getPeerId() == null) {
             throw new InvalidAlgorithmParameterException("The peerId cannot be null");
         }
-        if (parameterSpec.getPeerRBytes() == null) {
-            throw new InvalidAlgorithmParameterException("The peerRBytes cannot be null");
+        if (parameterSpec.getPeerTempPublicKey() == null) {
+            throw new InvalidAlgorithmParameterException("The peer temp public key cannot be null");
         }
         if (parameterSpec.getSecretLen() < 0) {
             throw new InvalidAlgorithmParameterException("The keyLength cannot be less than 0");
@@ -148,10 +150,11 @@ public class SM2KeyAgreement extends KeyAgreementSpi {
         }
         byte[] sharedSecretKey;
         try {
-            sharedSecretKey = SM2KeyExchangeUtil.generateSharedSecret(localPublicKey, localPrivateKey,
-                    localRandom, localId, peerPublicKey, peerRBytes, peerId, secretLen, useClientMode);
+            sharedSecretKey = SM2KeyExchangeUtil.generateSharedSecret(localId, localPrivateKey, localPublicKey,
+                    localTempPrivateKey, localTempPublicKey,
+                    peerId, peerPublicKey, peerTempPublicKey, secretLen, useClientMode);
         } catch (IOException | NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e.getMessage());
+            throw new IllegalStateException(e);
         }
         return sharedSecretKey;
     }

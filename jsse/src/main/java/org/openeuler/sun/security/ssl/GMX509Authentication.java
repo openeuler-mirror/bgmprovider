@@ -143,8 +143,10 @@ enum GMX509Authentication implements SSLAuthentication {
                                                         X509ExtendedKeyManager km, HandshakeContext shc ,
                                                         boolean isClientMode) {
             PrivateKey signPrivateKey = null;
+            PublicKey signPublicKey = null;
             X509Certificate[] signCerts = null;
             PrivateKey encPrivateKey = null;
+            PublicKey encPublicKey = null;
             X509Certificate[] encCerts = null;
             boolean isValid = false;
             for (String serverAlias : serverAliases) {
@@ -183,9 +185,11 @@ enum GMX509Authentication implements SSLAuthentication {
                 // Choose signing and encryption
                 if (GMTlsUtil.isSignCert(serverCerts[0]) && signCerts == null) {
                     signPrivateKey = serverPrivateKey;
+                    signPublicKey = serverPublicKey;
                     signCerts = serverCerts;
                 } else if (GMTlsUtil.isEncCert(serverCerts[0]) && encCerts == null) {
                     encPrivateKey = serverPrivateKey;
+                    encPublicKey = serverPublicKey;
                     encCerts = serverCerts;
                 } else {
                     continue;
@@ -198,7 +202,8 @@ enum GMX509Authentication implements SSLAuthentication {
                 }
             }
 
-            return isValid ? new GMX509Possession(signPrivateKey, signCerts, encPrivateKey, encCerts) : null;
+            return isValid ? new GMX509Possession(signPrivateKey, signPublicKey, signCerts,
+                    encPrivateKey, encPublicKey, encCerts) : null;
         }
 
         // Determine whether NamedGroup is valid
@@ -242,22 +247,29 @@ enum GMX509Authentication implements SSLAuthentication {
     static final class GMX509Possession implements SSLPossession {
         // sign private key
         final PrivateKey popSignPrivateKey;
+        final PublicKey popSignPublicKey;
+
+        // sign public key
 
         // sign certificates
         final X509Certificate[] popSignCerts;
 
         // enc private key
         final PrivateKey popEncPrivateKey;
+        final PublicKey popEncPublicKey;
 
         // enc certificates
         final X509Certificate[] popEncCerts;
 
-        GMX509Possession(PrivateKey popSignPrivateKey, X509Certificate[] popSignCerts,
-                         PrivateKey popEncPrivateKey, X509Certificate[] popEncCerts) {
-            this.popSignCerts = popSignCerts;
+        GMX509Possession(PrivateKey popSignPrivateKey, PublicKey popSignPublicKey, X509Certificate[] popSignCerts,
+                         PrivateKey popEncPrivateKey, PublicKey popEncPublicKey, X509Certificate[] popEncCerts) {
             this.popSignPrivateKey = popSignPrivateKey;
-            this.popEncCerts = popEncCerts;
+            this.popSignPublicKey = popSignPublicKey;
+            this.popSignCerts = popSignCerts;
+
             this.popEncPrivateKey = popEncPrivateKey;
+            this.popEncPublicKey = popEncPublicKey;
+            this.popEncCerts = popEncCerts;
         }
     }
 
