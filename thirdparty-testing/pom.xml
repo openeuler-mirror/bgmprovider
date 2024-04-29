@@ -45,6 +45,15 @@
             <version>1.7.36</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- Netty -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-handler</artifactId>
+            <version>4.1.109.Final</version>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <profiles>
