@@ -25,9 +25,8 @@
 
 package org.openeuler.com.sun.crypto.provider;
 
-import org.bouncycastle.util.Arrays;
-
 import java.security.InvalidKeyException;
+import java.util.Arrays;
 
 /**
  * This class represents ciphers in counter (CTR) mode.
