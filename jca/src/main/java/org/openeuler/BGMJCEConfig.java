@@ -47,7 +47,7 @@ public class BGMJCEConfig {
         enableSM4 = Config.enable("jce.sm4");
         enableSM3withSM2 = Config.enable("jce.signatureSM3withSM2");
         enablePBES2 = Config.enable("jce.pbes2");
-        useLegacy = Config.enable("jce.useLegacy", "false");
+        useLegacy = Config.useLegacyJCE();
         enableRFC8998 = Config.enable("bgmprovider.tls.enableRFC8998", "false");
     }
 

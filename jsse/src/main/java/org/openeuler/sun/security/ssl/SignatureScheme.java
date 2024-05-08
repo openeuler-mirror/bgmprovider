@@ -46,7 +46,7 @@ import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroupType;
 import org.openeuler.sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 import org.openeuler.sun.security.ssl.X509Authentication.X509Possession;
-import org.openeuler.util.GMUtil;
+import org.openeuler.util.SM2Util;
 import sun.security.util.KeyUtil;
 import sun.security.util.SignatureUtil;
 
@@ -478,7 +478,7 @@ enum SignatureScheme {
         if (version.useTLS13PlusSpec() &&
                 namedGroup != null && NamedGroup.curveSM2.oid.equals(namedGroup.oid)) {
             Signature signer = SignatureScheme.SM2SIG_SM3.getSigner(signingKey,
-                    GMUtil.createSM2ParameterSpec(GMConstants.TLS13_GM_ID));
+                    SM2Util.createSM2ParameterSpec(GMConstants.TLS13_GM_ID));
             return new SimpleImmutableEntry<>(SignatureScheme.SM2SIG_SM3, signer);
         }
 

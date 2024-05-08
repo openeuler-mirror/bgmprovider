@@ -24,8 +24,7 @@
 
 package org.openeuler;
 
-import org.openeuler.commons.GMJCEConstants;
-import org.openeuler.util.GMUtil;
+import org.openeuler.constant.GMConstants;
 
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -77,8 +76,8 @@ public class SM2KeyExchangeParameterSpec implements AlgorithmParameterSpec {
                                        ECPublicKey peerTempPublicKey,
                                        int secretLen, boolean useClientMode) {
 
-        this(GMJCEConstants.DEFAULT_ID, localPublicKey, localTempPrivateKey, localTempPublicKey,
-                GMJCEConstants.DEFAULT_ID, peerTempPublicKey, secretLen, useClientMode);
+        this(GMConstants.DEFAULT_ID, localPublicKey, localTempPrivateKey, localTempPublicKey,
+                GMConstants.DEFAULT_ID, peerTempPublicKey, secretLen, useClientMode);
     }
 
     public SM2KeyExchangeParameterSpec(byte[] localId,

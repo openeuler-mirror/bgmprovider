@@ -35,13 +35,17 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Properties;
 
-class Config {
+public class Config {
     private static final Debug debug = Debug.getInstance("provider");
 
     private static final Properties config = new Properties();
 
+    private static boolean useLegacyJCE = false;
+
+
     static {
         initConfig();
+        useLegacyJCE = Config.enable("jce.useLegacy", "false");
     }
 
     private Config() {
@@ -107,5 +111,9 @@ class Config {
             }
         }
         return Boolean.parseBoolean(value);
+    }
+
+    public static boolean useLegacyJCE() {
+        return useLegacyJCE;
     }
 }
