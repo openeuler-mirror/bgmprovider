@@ -63,7 +63,6 @@ import javax.crypto.Mac;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.x500.X500Principal;
 
-import org.openeuler.JavaVersion;
 import org.openeuler.gm.PKCS12KeyStoreHandler;
 import sun.security.action.GetPropertyAction;
 import sun.security.util.Debug;

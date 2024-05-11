@@ -43,7 +43,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.text.MessageFormat;
 import java.util.Locale;
 
-import org.openeuler.SM2KeyExchangeUtil;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Credentials;
 import org.openeuler.sun.security.ssl.SM2KeyExchange.SM2Possession;
 import org.openeuler.sun.security.ssl.SSLHandshake.HandshakeMessage;
@@ -51,7 +50,6 @@ import org.openeuler.sun.security.ssl.SupportedGroupsExtension.NamedGroup;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Possession;
 import org.openeuler.sun.misc.HexDumpEncoder;
-import sun.security.util.ECUtil;
 
 /**
  * Pack of the ServerKeyExchange handshake message.

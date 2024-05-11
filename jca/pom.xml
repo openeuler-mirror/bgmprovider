@@ -21,6 +21,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.openeuler</groupId>
+            <artifactId>commons</artifactId>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>

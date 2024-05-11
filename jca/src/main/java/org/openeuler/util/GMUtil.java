@@ -24,11 +24,8 @@
 
 package org.openeuler.util;
 
-import org.openeuler.BGMJCEConfig;
 import org.openeuler.SM2P256V1Point;
 import org.openeuler.SM2PreComputeInfo;
-import org.openeuler.legacy.LegacyGMUtil;
-import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 
 import java.math.BigInteger;
 import java.security.spec.AlgorithmParameterSpec;
@@ -66,13 +63,6 @@ public class GMUtil {
 
     public static boolean isSM2Curve(EllipticCurve curve) {
         return SM2_CURVE.equals(curve);
-    }
-
-    public static AlgorithmParameterSpec createSM2ParameterSpec(byte[] idBytes) {
-        return BGMJCEConfig.useLegacy() ?
-                LegacyGMUtil.createSM2ParameterSpec(idBytes) :
-                new SM2ParameterSpec(idBytes);
-
     }
 
     /**

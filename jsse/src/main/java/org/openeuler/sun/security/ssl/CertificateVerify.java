@@ -41,7 +41,7 @@ import org.openeuler.sun.security.ssl.X509Authentication.X509Possession;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Possession;
 import org.openeuler.sun.security.ssl.GMX509Authentication.GMX509Credentials;
 import org.openeuler.sun.misc.HexDumpEncoder;
-import org.openeuler.util.GMUtil;
+import org.openeuler.util.SM2Util;
 
  /**
  * Pack of the CertificateVerify handshake message.
@@ -1335,7 +1335,7 @@ final class CertificateVerify {
 
             AlgorithmParameterSpec parameterSpec = null;
             if (this.signatureScheme == SignatureScheme.SM2SIG_SM3) {
-                parameterSpec = GMUtil.createSM2ParameterSpec(GMConstants.TLS13_GM_ID);
+                parameterSpec = SM2Util.createSM2ParameterSpec(GMConstants.TLS13_GM_ID);
             }
 
             try {

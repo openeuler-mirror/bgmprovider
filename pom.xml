@@ -14,6 +14,7 @@
         <module>bgmprovider</module>
         <module>tomcat-adaptor</module>
         <module>thirdparty-testing</module>
+        <module>commons</module>
     </modules>
 
     <name>gmssl</name>
@@ -36,6 +37,11 @@
             <dependency>
                 <groupId>org.openeuler</groupId>
                 <artifactId>jsse</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openeuler</groupId>
+                <artifactId>commons</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
