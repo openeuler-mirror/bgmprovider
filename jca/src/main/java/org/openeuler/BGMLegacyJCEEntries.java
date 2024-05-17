@@ -24,11 +24,13 @@
 
 package org.openeuler;
 
+import org.openeuler.provider.AbstractEntries;
+
 import java.security.Provider;
 
-class BGMLegacyJCEEntries extends AbstractEntries {
+public class BGMLegacyJCEEntries extends AbstractEntries {
 
-    public BGMLegacyJCEEntries(Provider provider) {
+    protected BGMLegacyJCEEntries(Provider provider) {
         super(provider);
     }
 

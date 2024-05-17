@@ -22,7 +22,7 @@
  * information or have any questions.
  */
 
-package org.openeuler;
+package org.openeuler.spec;
 
 import org.openeuler.constant.GMConstants;
 

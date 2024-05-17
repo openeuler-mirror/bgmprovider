@@ -24,7 +24,7 @@
 
 package org.openeuler.tomcat;
 
-import org.openeuler.JavaVersion;
+import org.openeuler.util.JavaVersionUtil;
 
 import java.util.Arrays;
 
@@ -160,16 +160,16 @@ public class TomcatVersion implements Comparable<TomcatVersion> {
         if (!isSupportedVersion()) {
             return false;
         }
-        if (JavaVersion.isJava8()) {
+        if (JavaVersionUtil.isJava8()) {
             return true;
-        } else if (JavaVersion.isJava11PlusSpec()) {
+        } else if (JavaVersionUtil.isJava11PlusSpec()) {
             if (equals(V8_5_24)) {
                 return false;
             }
             return compareTo(V9_0_0_M17) <=0 || compareTo(V9_0_3) >= 0;
         } else {
             throw new IllegalStateException("Unsupported jre version : "
-                    + JavaVersion.current());
+                    + JavaVersionUtil.current());
         }
     }
 

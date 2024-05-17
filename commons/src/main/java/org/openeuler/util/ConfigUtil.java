@@ -22,7 +22,7 @@
  * information or have any questions.
  */
 
-package org.openeuler;
+package org.openeuler.util;
 
 import sun.security.util.Debug;
 
@@ -35,7 +35,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Properties;
 
-public class Config {
+public class ConfigUtil {
     private static final Debug debug = Debug.getInstance("provider");
 
     private static final Properties config = new Properties();
@@ -45,10 +45,10 @@ public class Config {
 
     static {
         initConfig();
-        useLegacyJCE = Config.enable("jce.useLegacy", "false");
+        useLegacyJCE = ConfigUtil.enable("jce.useLegacy", "false");
     }
 
-    private Config() {
+    private ConfigUtil() {
 
     }
 
@@ -90,11 +90,11 @@ public class Config {
      * @param key
      * @return
      */
-    static boolean enable(String key) {
+    public static boolean enable(String key) {
         return enable(key, "true");
     }
 
-    static boolean enable(String key, String defaultValue) {
+    public static boolean enable(String key, String defaultValue) {
         String value = AccessController.doPrivileged(new PrivilegedAction<String>() {
             @Override
             public String run() {

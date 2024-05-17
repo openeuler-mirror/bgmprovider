@@ -24,6 +24,8 @@
 
 package org.openeuler;
 
+import org.openeuler.spec.SM2KeyExchangeParameterSpec;
+
 import javax.crypto.KeyAgreementSpi;
 import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;

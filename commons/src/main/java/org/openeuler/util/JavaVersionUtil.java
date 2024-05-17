@@ -22,12 +22,12 @@
  * information or have any questions.
  */
 
-package org.openeuler;
+package org.openeuler.util;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-public class JavaVersion {
+public class JavaVersionUtil {
     private static class JavaVersionHolder {
         private static final JavaVersion CURRENT_VERSION = getCurrentJavaVersion();
         private static final String CURRENT_VENDOR = getCurrentJavaVendor();
@@ -86,44 +86,58 @@ public class JavaVersion {
         });
     }
 
-    private final int majorVersion;
+    private static class JavaVersion {
 
-    private final int minorVersion;
+        private final int majorVersion;
 
-    private final int[] versions;
+        private final int minorVersion;
 
-    private JavaVersion(int majorVersion, int minorVersion, int[] versions) {
-        this.majorVersion = majorVersion;
-        this.minorVersion = minorVersion;
-        this.versions = versions;
-    }
+        private final int[] versions;
 
-    private JavaVersion(int majorVersion, int minorVersion) {
-        this(majorVersion, minorVersion, new int[]{majorVersion, 0, minorVersion, 0});
-    }
+        private JavaVersion(int majorVersion, int minorVersion, int[] versions) {
+            this.majorVersion = majorVersion;
+            this.minorVersion = minorVersion;
+            this.versions = versions;
+        }
 
-    @Override
-    public String toString() {
-        StringBuilder stringBuilder = new StringBuilder();
-        if (this.majorVersion <= 8) {
-            stringBuilder.append("1");
-            for (int i = 0; i < versions.length - 2; i++) {
-                stringBuilder.append(".");
-                stringBuilder.append(versions[i]);
+        private JavaVersion(int majorVersion, int minorVersion) {
+            this(majorVersion, minorVersion, new int[]{majorVersion, 0, minorVersion, 0});
+        }
+
+        public int compare(JavaVersion javaVersion) {
+            for (int i = 0; i < versions.length; i++) {
+                if (this.versions[i] > javaVersion.versions[i]) {
+                    return 1;
+                } else if (this.versions[i] < javaVersion.versions[i]) {
+                    return -1;
+                }
             }
-            stringBuilder.append("_");
-            stringBuilder.append(versions[versions.length - 2]);
-            return stringBuilder.toString();
-        } else {
-            for (int i = 0 ; i < versions.length - 1; i++) {
-                stringBuilder.append(".");
-                stringBuilder.append(versions[i]);
+            return 0;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder stringBuilder = new StringBuilder();
+            if (this.majorVersion <= 8) {
+                stringBuilder.append("1");
+                for (int i = 0; i < versions.length - 2; i++) {
+                    stringBuilder.append(".");
+                    stringBuilder.append(versions[i]);
+                }
+                stringBuilder.append("_");
+                stringBuilder.append(versions[versions.length - 2]);
+                return stringBuilder.toString();
+            } else {
+                for (int i = 0 ; i < versions.length - 1; i++) {
+                    stringBuilder.append(".");
+                    stringBuilder.append(versions[i]);
+                }
+                if (versions[versions.length - 1] != 0) {
+                    stringBuilder.append(".");
+                    stringBuilder.append(versions[versions.length - 1]);
+                }
+                return stringBuilder.substring(1);
             }
-            if (versions[versions.length - 1] != 0) {
-                stringBuilder.append(".");
-                stringBuilder.append(versions[versions.length - 1]);
-            }
-            return stringBuilder.substring(1);
         }
     }
 
@@ -159,16 +173,6 @@ public class JavaVersion {
         return JavaVersionHolder.CURRENT_VERSION;
     }
 
-    public int compare(JavaVersion javaVersion) {
-        for (int i = 0; i < versions.length; i++) {
-            if (this.versions[i] > javaVersion.versions[i]) {
-                return 1;
-            } else if (this.versions[i] < javaVersion.versions[i]) {
-                return -1;
-            }
-        }
-        return 0;
-    }
     public static boolean higherThanOrEquals(JavaVersion javaVersion) {
         return current().compare(javaVersion) >= 0;
     }

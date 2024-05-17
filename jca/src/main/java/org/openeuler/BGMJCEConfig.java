@@ -24,6 +24,8 @@
 
 package org.openeuler;
 
+import org.openeuler.util.ConfigUtil;
+
 public class BGMJCEConfig {
     private static boolean enableSM2 = true;
     private static boolean enableEC = true;
@@ -41,14 +43,14 @@ public class BGMJCEConfig {
     }
 
     private static void initConfig() {
-        enableSM2 = Config.enable("jce.sm2");
-        enableEC = Config.enable("jce.ec");
-        enableSM3 = Config.enable("jce.sm3");
-        enableSM4 = Config.enable("jce.sm4");
-        enableSM3withSM2 = Config.enable("jce.signatureSM3withSM2");
-        enablePBES2 = Config.enable("jce.pbes2");
-        useLegacy = Config.useLegacyJCE();
-        enableRFC8998 = Config.enable("bgmprovider.tls.enableRFC8998", "false");
+        enableSM2 = ConfigUtil.enable("jce.sm2");
+        enableEC = ConfigUtil.enable("jce.ec");
+        enableSM3 = ConfigUtil.enable("jce.sm3");
+        enableSM4 = ConfigUtil.enable("jce.sm4");
+        enableSM3withSM2 = ConfigUtil.enable("jce.signatureSM3withSM2");
+        enablePBES2 = ConfigUtil.enable("jce.pbes2");
+        useLegacy = ConfigUtil.useLegacyJCE();
+        enableRFC8998 = ConfigUtil.enable("bgmprovider.tls.enableRFC8998", "false");
     }
 
     private BGMJCEConfig() {

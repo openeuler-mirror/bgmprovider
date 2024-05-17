@@ -24,6 +24,8 @@
 
 package org.openeuler;
 
+import org.openeuler.util.ConfigUtil;
+
 public class BGMJSSEConfig {
     private static boolean enableKeyManagerFactory = true;
     private static boolean enableTrustManagerFactory = true;
@@ -39,12 +41,12 @@ public class BGMJSSEConfig {
     }
 
     private static void initConfig() {
-        enableKeyManagerFactory = Config.enable("jsse.keyManagerFactory");
-        enableTrustManagerFactory = Config.enable("jsse.trustManagerFactory");
-        enableKeyGenerator = Config.enable("jsse.keyGenerator");
-        enableSSLContext = Config.enable("jsse.sslContext");
-        enableKeyStore = Config.enable("jsse.keystore");
-        enableRFC8998 = Config.enable("bgmprovider.tls.enableRFC8998", "false");
+        enableKeyManagerFactory = ConfigUtil.enable("jsse.keyManagerFactory");
+        enableTrustManagerFactory = ConfigUtil.enable("jsse.trustManagerFactory");
+        enableKeyGenerator = ConfigUtil.enable("jsse.keyGenerator");
+        enableSSLContext = ConfigUtil.enable("jsse.sslContext");
+        enableKeyStore = ConfigUtil.enable("jsse.keystore");
+        enableRFC8998 = ConfigUtil.enable("bgmprovider.tls.enableRFC8998", "false");
     }
 
     private BGMJSSEConfig() {

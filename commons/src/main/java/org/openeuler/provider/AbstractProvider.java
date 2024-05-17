@@ -22,14 +22,16 @@
  * information or have any questions.
  */
 
-package org.openeuler;
+package org.openeuler.provider;
+
+import org.openeuler.adaptor.CompatibleOracleJdkHandler;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.security.Provider;
 import java.util.Iterator;
 
-abstract class AbstractProvider extends Provider {
+public abstract class AbstractProvider extends Provider {
 
     protected AbstractProvider(String name, double version, String info) {
         super(name, version, info);

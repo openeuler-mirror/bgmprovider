@@ -75,7 +75,7 @@ import sun.security.util.SecurityProperties;
 import sun.security.x509.AlgorithmId;
 import sun.security.pkcs.EncryptedPrivateKeyInfo;
 
-import static org.openeuler.ObjectIdentifierHandler.newObjectIdentifier;
+import static org.openeuler.adaptor.ObjectIdentifierHandler.newObjectIdentifier;
 
 
 /**

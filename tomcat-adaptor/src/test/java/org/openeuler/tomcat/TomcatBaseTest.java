@@ -38,7 +38,7 @@ import org.apache.tomcat.util.net.SSLHostConfigCertificate;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.openeuler.BGMProvider;
-import org.openeuler.JavaVersion;
+import org.openeuler.util.JavaVersionUtil;
 
 import javax.net.ssl.*;
 import java.io.BufferedInputStream;
@@ -151,7 +151,7 @@ public abstract class TomcatBaseTest {
 
     public static void init() throws IOException {
         if (!TestUtils.isSupportTLS()) {
-            throw new IllegalStateException("Jre " + JavaVersion.current() + "," +
+            throw new IllegalStateException("Jre " + JavaVersionUtil.current() + "," +
                     " unsupported tomcat " + TestUtils.getTomcatVersion());
         }
         initTempDir();

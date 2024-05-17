@@ -24,6 +24,8 @@
 
 package org.openeuler;
 
+import org.openeuler.provider.AbstractEntries;
+import org.openeuler.provider.AbstractProvider;
 import sun.security.util.Debug;
 import sun.security.util.ObjectIdentifier;
 import sun.security.x509.AlgorithmId;
@@ -35,7 +37,7 @@ import java.security.Provider;
 import java.security.SecureRandom;
 import java.util.Map;
 
-import static org.openeuler.ObjectIdentifierHandler.newObjectIdentifier;
+import static org.openeuler.adaptor.ObjectIdentifierHandler.newObjectIdentifier;
 
 public class BGMJCEProvider extends AbstractProvider {
     private static final String NAME = "BGMJCEProvider";

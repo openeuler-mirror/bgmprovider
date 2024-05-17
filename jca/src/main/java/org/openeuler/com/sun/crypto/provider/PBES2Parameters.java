@@ -38,7 +38,7 @@ import javax.crypto.spec.PBEParameterSpec;
 
 import sun.security.util.*;
 
-import static org.openeuler.ObjectIdentifierHandler.newObjectIdentifier;
+import static org.openeuler.adaptor.ObjectIdentifierHandler.newObjectIdentifier;
 
 /**
  * This class implements the parameter set used with GM password-based

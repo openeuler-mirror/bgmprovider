@@ -22,7 +22,9 @@
  * information or have any questions.
  */
 
-package org.openeuler;
+package org.openeuler.adaptor;
+
+import org.openeuler.util.JavaVersionUtil;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -73,7 +75,7 @@ public class CompatibleOracleJdkHandler {
     @SuppressWarnings("unchecked")
     private static void init() {
         // Not oracle jdk, return directly.
-        if (!JavaVersion.isOracleJdk()) {
+        if (!JavaVersionUtil.isOracleJdk()) {
             return;
         }
 
