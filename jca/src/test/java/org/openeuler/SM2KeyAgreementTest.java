@@ -29,16 +29,13 @@ import java.security.interfaces.ECPublicKey;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import sun.security.util.ECUtil;
+import org.openeuler.spec.SM2KeyExchangeParameterSpec;
 
 import javax.crypto.KeyAgreement;
-import java.math.BigInteger;
 import java.security.*;
 
-import java.security.spec.ECPoint;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Arrays;
 
 /**
  * SM2KeyAgreement test

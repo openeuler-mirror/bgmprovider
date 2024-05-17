@@ -24,11 +24,12 @@
 
 package org.openeuler;
 
+import org.openeuler.provider.AbstractEntries;
 import java.security.Provider;
 
 public class BGMEntries extends AbstractEntries {
 
-    BGMEntries(Provider provider) {
+    protected BGMEntries(Provider provider) {
         super(provider);
     }
 

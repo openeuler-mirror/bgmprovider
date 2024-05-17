@@ -25,7 +25,6 @@
 
 package org.openeuler.util;
 
-import org.openeuler.Config;
 import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 
 import java.lang.reflect.Constructor;
@@ -62,7 +61,7 @@ public class SM2Util {
     }
 
     public static AlgorithmParameterSpec createSM2ParameterSpec(byte[] idBytes) {
-        return Config.useLegacyJCE() ?
+        return ConfigUtil.useLegacyJCE() ?
                 createBCSM2ParameterSpec(idBytes) :
                 new SM2ParameterSpec(idBytes);
     }

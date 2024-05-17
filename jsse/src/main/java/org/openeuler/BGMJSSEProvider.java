@@ -24,6 +24,9 @@
 
 package org.openeuler;
 
+import org.openeuler.provider.AbstractEntries;
+import org.openeuler.provider.AbstractProvider;
+
 import java.security.Provider;
 
 public class BGMJSSEProvider extends AbstractProvider {

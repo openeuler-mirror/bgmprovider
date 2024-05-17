@@ -26,10 +26,8 @@
 
 package org.openeuler.sun.security.util;
 
-import org.openeuler.ObjectIdentifierHandler;
+import org.openeuler.adaptor.ObjectIdentifierHandler;
 import sun.security.util.DerOutputStream;
-import sun.security.util.NamedCurve;
-import sun.security.util.ObjectIdentifier;
 
 import java.io.IOException;
 import java.math.BigInteger;

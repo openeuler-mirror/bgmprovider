@@ -22,7 +22,7 @@
  * information or have any questions.
  */
 
-package org.openeuler;
+package org.openeuler.provider;
 
 import java.security.Provider;
 import java.util.*;
@@ -30,7 +30,7 @@ import java.util.*;
 public abstract class AbstractEntries {
     private final LinkedHashSet<Provider.Service> services;
 
-    AbstractEntries(Provider provider) {
+    protected AbstractEntries(Provider provider) {
         this.services = new LinkedHashSet<>();
         putServices(provider);
     }
