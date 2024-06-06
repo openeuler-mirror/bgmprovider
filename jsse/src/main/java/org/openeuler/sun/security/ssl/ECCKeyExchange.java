@@ -27,21 +27,15 @@ package org.openeuler.sun.security.ssl;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
+import javax.crypto.*;
+import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLHandshakeException;
 
-import sun.security.internal.spec.TlsRsaPremasterSecretParameterSpec;
-import sun.security.util.KeyUtil;
+import org.openeuler.sun.security.internal.spec.TlsECCKeyAgreementParameterSpec;
 
 final class ECCKeyExchange {
     static final SSLPossessionGenerator poGenerator =
@@ -80,132 +74,35 @@ final class ECCKeyExchange {
         @SuppressWarnings("deprecation")
         static ECCPremasterSecret createPremasterSecret(
                 ClientHandshakeContext chc) throws GeneralSecurityException {
-            String algorithm = "SunTlsRsaPremasterSecret";
-            KeyGenerator kg = JsseJce.getKeyGenerator(algorithm);
-            TlsRsaPremasterSecretParameterSpec spec =
-                    new TlsRsaPremasterSecretParameterSpec(
+            String algorithm = "GmTlsEccPremasterSecret";
+            KeyAgreement keyAgreement = JsseJce.getKeyAgreement(algorithm);
+
+            TlsECCKeyAgreementParameterSpec spec =
+                    new TlsECCKeyAgreementParameterSpec(
                             chc.clientHelloVersion,
                             chc.negotiatedProtocol.id);
-            kg.init(spec, chc.sslContext.getSecureRandom());
+            keyAgreement.init(null, spec, chc.sslContext.getSecureRandom());
 
-            return new ECCPremasterSecret(kg.generateKey());
+            return new ECCPremasterSecret(keyAgreement.generateSecret("TlsEccPremasterSecret"));
         }
 
         @SuppressWarnings("deprecation")
         static ECCPremasterSecret decode(ServerHandshakeContext shc,
                 PrivateKey privateKey,
                 byte[] encrypted) throws GeneralSecurityException {
+            String algorithm = "GmTlsEccPremasterSecret";
+            KeyAgreement keyAgreement = JsseJce.getKeyAgreement(algorithm);
 
-            byte[] encoded = null;
-            boolean needFailover = false;
-            Cipher cipher = JsseJce.getCipher(JsseJce.CIPHER_SM2);
-            try {
-                // Try UNWRAP_MODE mode firstly.
-                cipher.init(Cipher.UNWRAP_MODE, privateKey,
-                        new TlsRsaPremasterSecretParameterSpec(
-                                shc.clientHelloVersion,
-                                shc.negotiatedProtocol.id),
-                                shc.sslContext.getSecureRandom());
-
-                // The provider selection can be delayed, please don't call
-                // any Cipher method before the call to Cipher.init().
-                String providerName = cipher.getProvider().getName();
-                needFailover = !(KeyUtil.isOracleJCEProvider(
-                        providerName) || providerName.equals("BGMJCEProvider"));
-            } catch (InvalidKeyException | UnsupportedOperationException iue) {
-                if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                    SSLLogger.warning("The Cipher provider "
-                            + safeProviderName(cipher)
-                            + " caused exception: " + iue.getMessage());
-                }
-
-                needFailover = true;
-            }
-
-            SecretKey preMaster;
-            if (needFailover) {
-                // The cipher might be spoiled by unsuccessful call to init(),
-                // so request a fresh instance
-                cipher = JsseJce.getCipher(JsseJce.CIPHER_SM2);
-
-                // Use DECRYPT_MODE and dispose the previous initialization.
-                cipher.init(Cipher.DECRYPT_MODE, privateKey);
-                boolean failed = false;
-                try {
-                    encoded = cipher.doFinal(encrypted);
-                } catch (BadPaddingException bpe) {
-                    // Note: encoded == null
-                    failed = true;
-                }
-                encoded = KeyUtil.checkTlsPreMasterSecretKey(
-                        shc.clientHelloVersion, shc.negotiatedProtocol.id,
-                        shc.sslContext.getSecureRandom(), encoded, failed);
-                preMaster = generatePremasterSecret(
-                        shc.clientHelloVersion, shc.negotiatedProtocol.id,
-                        encoded, shc.sslContext.getSecureRandom());
-            } else {
-                // the cipher should have been initialized
-                preMaster = (SecretKey)cipher.unwrap(encrypted,
-                        "TlsRsaPremasterSecret", Cipher.SECRET_KEY);
-            }
+            TlsECCKeyAgreementParameterSpec spec =
+                    new TlsECCKeyAgreementParameterSpec(
+                            encrypted,
+                            shc.clientHelloVersion,
+                            shc.negotiatedProtocol.id,
+                            false);
+            keyAgreement.init(privateKey, spec);
+            SecretKey preMaster = new SecretKeySpec(keyAgreement.generateSecret(), "TlsEccPremasterSecret");
 
             return new ECCPremasterSecret(preMaster);
-        }
-
-        /*
-         * Retrieving the cipher's provider name for the debug purposes
-         * can throw an exception by itself.
-         */
-        private static String safeProviderName(Cipher cipher) {
-            try {
-                return cipher.getProvider().toString();
-            } catch (Exception e) {
-                if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                    SSLLogger.fine("Retrieving The Cipher provider name" +
-                            " caused exception ", e);
-                }
-            }
-            try {
-                return cipher.toString() + " (provider name not available)";
-            } catch (Exception e) {
-                if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                    SSLLogger.fine("Retrieving The Cipher name" +
-                            " caused exception ", e);
-                }
-            }
-
-            return "(cipher/provider names not available)";
-        }
-
-        // generate a premaster secret with the specified version number
-        @SuppressWarnings("deprecation")
-        private static SecretKey generatePremasterSecret(
-                int clientVersion, int serverVersion, byte[] encodedSecret,
-                SecureRandom generator) throws GeneralSecurityException {
-
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                SSLLogger.fine("Generating a premaster secret");
-            }
-
-            try {
-                String s = ((clientVersion >= ProtocolVersion.TLS12.id) ?
-                    "SunTls12RsaPremasterSecret" : "SunTlsRsaPremasterSecret");
-                KeyGenerator kg = JsseJce.getKeyGenerator(s);
-                kg.init(new TlsRsaPremasterSecretParameterSpec(
-                        clientVersion, serverVersion, encodedSecret),
-                        generator);
-                return kg.generateKey();
-            } catch (InvalidAlgorithmParameterException |
-                    NoSuchAlgorithmException iae) {
-                // unlikely to happen, otherwise, must be a provider exception
-                if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                    SSLLogger.fine("ECC premaster secret generation error:");
-                    iae.printStackTrace(System.out);
-                }
-
-                throw new GeneralSecurityException(
-                        "Could not generate premaster secret", iae);
-            }
         }
     }
 
