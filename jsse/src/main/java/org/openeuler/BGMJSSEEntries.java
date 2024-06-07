@@ -95,6 +95,9 @@ class BGMJSSEEntries extends AbstractEntries {
                 "org.openeuler.gm.GMTlsMasterSecretGenerator");
         add(provider, "KeyGenerator", "GMTlsKeyMaterial",
                 "org.openeuler.gm.GMTlsKeyMaterialGenerator");
+
+        add(provider, "KeyAgreement", "GmTlsEccPremasterSecret",
+                "org.openeuler.sun.security.ssl.ECCKeyAgreement");
     }
 
     private void putSSLContext(Provider provider) {
