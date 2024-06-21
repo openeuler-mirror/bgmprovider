@@ -115,7 +115,7 @@ public class SM2KeyAgreementTest {
     public void testGenerateSecret() throws Exception {
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(
                 localId, localPublicKey, localTempPrivateKey, localTempPublicKey,
-                peerId, peerTempPublicKey, secretLen, true);
+                peerId, peerTempPublicKey, secretLen, false);
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.init(localPrivateKey, parameterSpec, null);
@@ -125,7 +125,7 @@ public class SM2KeyAgreementTest {
 
         SM2KeyExchangeParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(
                 peerId, peerPublicKey, peerTempPrivateKey, peerTempPublicKey,
-                localId, localTempPublicKey, secretLen, false);
+                localId, localTempPublicKey, secretLen, true);
         KeyAgreement peerKeyAgreement = KeyAgreement.getInstance("SM2");
         peerKeyAgreement.init(peerPrivateKey, peerParameterSpec, null);
         peerKeyAgreement.doPhase(localPublicKey, true);
@@ -137,17 +137,17 @@ public class SM2KeyAgreementTest {
     public void testNoneLocalPublic() throws Exception {
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(
                 localId, localPublicKey, localTempPrivateKey, localTempPublicKey,
-                peerId, peerTempPublicKey, secretLen, true);
+                peerId, peerTempPublicKey, secretLen, false);
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.init(localPrivateKey, parameterSpec, null);
-        keyAgreement.doPhase(peerPublicKey, true);
+        keyAgreement.doPhase(peerPublicKey, false);
         byte[] sharedSecret = keyAgreement.generateSecret();
         Assert.assertArrayEquals(EXPECTED_SHARED_KEY, sharedSecret);
 
         SM2KeyExchangeParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(
                 peerId, peerPublicKey, peerTempPrivateKey, peerTempPublicKey,
-                localId, localTempPublicKey, secretLen, false);
+                localId, localTempPublicKey, secretLen, true);
         KeyAgreement peerKeyAgreement = KeyAgreement.getInstance("SM2");
         peerKeyAgreement.init(peerPrivateKey, peerParameterSpec, null);
         peerKeyAgreement.doPhase(localPublicKey, true);
