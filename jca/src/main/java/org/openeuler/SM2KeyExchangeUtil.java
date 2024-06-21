@@ -46,7 +46,7 @@ public class SM2KeyExchangeUtil {
     public static byte[] generateSharedSecret(byte[] localId, ECPrivateKey localPrivateKey, ECPublicKey localPublicKey,
                                               ECPrivateKey localTempPrivateKey, ECPublicKey localTempPublicKey,
                                               byte[] peerId, ECPublicKey peerPublicKey, ECPublicKey peerTempPublicKey,
-                                              int secretLen, boolean active)
+                                              int secretLen, boolean useClientMode)
             throws IOException, NoSuchAlgorithmException {
         BigInteger rA = localTempPrivateKey.getS();
 
@@ -88,7 +88,7 @@ public class SM2KeyExchangeUtil {
         byte[] ZB = generateZ(peerId, peerPublicKey, messageDigest);
 
         // xv || yv || ZA || ZB
-        byte[] bytes = concat(xV, yV, ZA, ZB, active);
+        byte[] bytes = concat(xV, yV, ZA, ZB, useClientMode);
         byte[] sharedSecret = KDF(bytes, secretLen, messageDigest);
 
         if (DEBUG) {
@@ -219,17 +219,17 @@ public class SM2KeyExchangeUtil {
         iBytes[0] = (byte) ((num >> 24) & 0xff);
     }
 
-    private static byte[] concat(BigInteger xV, BigInteger yV, byte[] ZA, byte[] ZB, boolean active)
+    private static byte[] concat(BigInteger xV, BigInteger yV, byte[] ZA, byte[] ZB, boolean useClientMode)
             throws IOException {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         outputStream.write(convertToBytes(xV));
         outputStream.write(convertToBytes(yV));
-        if (active) {
-            outputStream.write(ZA);
-            outputStream.write(ZB);
-        } else {
+        if (useClientMode) { // client is receiver
             outputStream.write(ZB);
             outputStream.write(ZA);
+        } else { // server is sender
+            outputStream.write(ZA);
+            outputStream.write(ZB);
         }
         return outputStream.toByteArray();
     }
