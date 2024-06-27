@@ -151,7 +151,7 @@ final class ECCClientKeyExchange {
             ECCPremasterSecret premaster;
             ECCClientKeyExchangeMessage ckem;
             try {
-                premaster = ECCPremasterSecret.createPremasterSecret(chc);
+                premaster = ECCPremasterSecret.createPremasterSecret(publicKey, chc);
                 chc.handshakePossessions.add(premaster);
                 ckem = new ECCClientKeyExchangeMessage(
                         chc, premaster, publicKey);
