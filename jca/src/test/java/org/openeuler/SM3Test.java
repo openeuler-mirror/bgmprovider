@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2024, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,20 +24,31 @@
 
 package org.openeuler;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.Provider;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.util.Arrays;
-import java.util.Random;
 
 public class SM3Test {
-    private static String plainText = "helloworldhello";
-    private static String algo = "SM3";
-    private static byte[] expectRes = new byte[]{40, -103, -71, 4, -80, -49, 94, 112, 11, -75, -66, 121, 63, 80, 62, -14, -45, -75, -34, 66, -77, -34, -26, 26, 33, -23, 45, 52, -74, 67, -18, 118};
+    private static final String PLAIN_TEXT = "helloworldhello";
+    private static final String ALGO = "SM3";
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final byte[] EXPECTED_DIGEST = new byte[]{
+            40, -103, -71, 4, -80, -49, 94, 112, 11, -75, -66, 121, 63, 80, 62, -14,
+            -45, -75, -34, 66, -77, -34, -26, 26, 33, -23, 45, 52, -74, 67, -18, 118
+    };
+
+    private static final Provider bgmJCEProvider = new BGMJCEProvider();
+    private static final Provider bcProvider = new BouncyCastleProvider();
+    private static final int max_random_byte_len = 1024;
+    private static final int testLoop = 10;
 
     @BeforeClass
     public static void beforeClass() {
@@ -46,61 +57,128 @@ public class SM3Test {
 
     @Test
     public void test() throws Exception {
-        MessageDigest md = MessageDigest.getInstance(algo);
-        md.update(plainText.getBytes(StandardCharsets.UTF_8));
+        MessageDigest md = MessageDigest.getInstance(ALGO, bgmJCEProvider);
+        md.update(PLAIN_TEXT.getBytes(StandardCharsets.UTF_8));
         MessageDigest md2 = (MessageDigest) md.clone();
         byte[] res = md2.digest("w".getBytes(StandardCharsets.UTF_8));
-        if (!Arrays.equals(res, expectRes)) {
+        if (!Arrays.equals(res, EXPECTED_DIGEST)) {
             throw new RuntimeException("sm3 failed");
         }
     }
 
     @Test
-    public  void randTest() throws Exception {
-        String[] randResult = {
-                "bb372719ca7e1f9bb4f671aa23310c8aeef3896ccb1974f8e827aed5c143b51",
-                "8025d533e91c706091e12d5a70ae1ebf2fd374cfab59715e5c44374eadcbeeb8",
-                "4f93d8a65b7042fa32f5002aae0767031781aab9c12fe9ea1aaeeec97831ee84",
-                "dc6161b7a44c54d4d58866936a9a9285b1277008a59ad23b03e43abc83a153e5",
-                "c128a4b67287a406e13c1188e598ee29b5c030c39f0ee6ef6b11633f671a6204",
-                "8fedd713e8fcaa4b4a7c6c723528d4078dc6079a80fd8157776b01d63b4a11d3",
-                "d95e309157a6566c0c25354fe775383bcc1e282b83cba88d8dd8460b0203a470",
-                "a386e798f3d7c20aadfb0edf4398f2350b29efdce8d8cd306d55cc06bb6dca2e",
-                "4b46088bacfc5c34a34507f3e1dfec8499543e0bb0627acbff852a1e5a19e6e1",
-                "7e648ed453916e4386971843f4c1f0bced78c5e1594d515d91c08addc549f78e",
-                "6f278f6d2092e20bc462aa1a5cd1b7fc2b094210fe088bf0e28d500ca989238a",
-                "379effbea490204a903aeaaffa670313857252f88d90a2cf3cff10b2abbe85",
-                "9e2b29269c4595d7da99a2510890566c70e46dc34fdccb7db65e88364714d8fb",
-                "9dfd9c557ccc664cba5ecfb7407e443467113dd3e12439a37c8a930d2672be84",
-                "1bcbe5b6f709deda3cbe72367fa173d3f87fb96b747e86cc2fa2fb0e81f3ab23",
-                "58e55da9c229ff374f1d9bf2996b12862b9e9d4b8cc2a9b4a44011864c22f524",
-                "6f0d9f308ec113f35d0a04c32edaa8b21d9a35b1811b62850e89f21f3112c382",
-                "3f8e2c0985ecb8944a8692af9c5b45510c30d08a5a7721923ecbcf2aa03b8181",
-                "a020a69ae6c9f98aa8cdf5545d7830df4af739eaef89ecd85cc9a268f505cea3",
-                "b4f2c073896cca2468448917a641ea4aac641cee1b819eb02024cc1ae325005d"
-        };
-        Random rnd = new Random();
-        rnd.setSeed(1); // Don't change the random number seed
-        MessageDigest md = MessageDigest.getInstance("SM3");
-        for (int i=0; i < 20; i++) {
-            String str = getRandomString(rnd.nextInt(999999), rnd);
-            md.update(str.getBytes(StandardCharsets.UTF_8));
-            byte[] res = md.digest();
-            String resStr = (new BigInteger(1, res)).toString(16);
-            if (!resStr.equals(randResult[i])) {
-                throw new RuntimeException("sm3 failed");
-            }
+    public void testDigestReuse() throws Exception {
+        for (int i = 0; i < testLoop; i++) {
+            byte[] randomBytes = getRandomBytes();
+            // first digest
+            MessageDigest md = MessageDigest.getInstance(ALGO, bgmJCEProvider);
+            md.update(randomBytes);
+            byte[] firstDigestBytes = md.digest();
+
+            // second digest
+            md.update(randomBytes);
+            byte[] secondDigestBytes = md.digest();
+
+            Assert.assertArrayEquals(firstDigestBytes, secondDigestBytes);
         }
     }
 
-    public static String getRandomString(int length, Random random){
-        String str;
-        str = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        StringBuffer sb=new StringBuffer();
-        for(int i=0;i<length;i++){
-            int number=random.nextInt(62);
-            sb.append(str.charAt(number));
+    @Test
+    public void testReset() throws Exception {
+        MessageDigest md = MessageDigest.getInstance(ALGO, bgmJCEProvider);
+
+        // digest empty message
+        byte[] emptyDigest = md.digest();
+        md.reset();
+
+        // update message and reset
+        byte[] randomBytes = getRandomBytes();
+        md.update(randomBytes);
+        md.reset();
+        byte[] digestBytes = md.digest();
+
+        Assert.assertArrayEquals(emptyDigest, digestBytes);
+    }
+
+    @Test
+    public void testUpdateDataAndDigestRandomly() throws Exception {
+        for (int i = 0; i < testLoop; i++) {
+            byte[] randomBytes = getRandomBytes();
+
+            MessageDigest bgmMD = MessageDigest.getInstance(ALGO, bgmJCEProvider);
+            bgmMD.update(randomBytes);
+            byte[] bgmDigestBytes = bgmMD.digest();
+
+            MessageDigest bcMD = MessageDigest.getInstance(ALGO, bcProvider);
+            bcMD.update(randomBytes);
+            byte[] bcDigestBytes = bcMD.digest();
+
+            Assert.assertArrayEquals(bgmDigestBytes, bcDigestBytes);
         }
-        return sb.toString();
+    }
+
+    @Test
+    public void testOnlyDigestDataRandomly() throws Exception {
+        for (int i = 0; i < testLoop; i++) {
+            byte[] randomBytes = getRandomBytes();
+
+            MessageDigest bgmMD = MessageDigest.getInstance(ALGO, bgmJCEProvider);
+            byte[] bgmDigestBytes = bgmMD.digest(randomBytes);
+
+            MessageDigest bcMD = MessageDigest.getInstance(ALGO, bcProvider);
+            byte[] bcDigestBytes = bcMD.digest(randomBytes);
+
+            Assert.assertArrayEquals(bgmDigestBytes, bcDigestBytes);
+        }
+    }
+
+    @Test
+    public void testUpdateDataAndDigestDataRandomly() throws Exception {
+        for (int i = 0; i < testLoop; i++) {
+            byte[] randomBytes = getRandomBytes();
+
+            MessageDigest bgmMD = MessageDigest.getInstance(ALGO, bgmJCEProvider);
+            bgmMD.update(randomBytes);
+            byte[] bgmDigestBytes = bgmMD.digest(randomBytes);
+
+            MessageDigest bcMD = MessageDigest.getInstance(ALGO, bcProvider);
+            bcMD.update(randomBytes);
+            byte[] bcDigestBytes = bcMD.digest(randomBytes);
+
+            Assert.assertArrayEquals(bgmDigestBytes, bcDigestBytes);
+        }
+    }
+
+    @Test
+    public void testClone() throws Exception {
+        byte[] randomBytes = getRandomBytes();
+        MessageDigest md = MessageDigest.getInstance(ALGO, bgmJCEProvider);
+        md.update(randomBytes);
+
+        // clone before digest
+        MessageDigest cloneMD = (MessageDigest) md.clone();
+        md.update(randomBytes);
+        byte[] digestBytes = md.digest();
+        cloneMD.update(randomBytes);
+        byte[] cloneDigestBytes = cloneMD.digest();
+        Assert.assertArrayEquals(digestBytes, cloneDigestBytes);
+
+        // clone after digest
+        cloneMD = (MessageDigest) md.clone();
+        cloneMD.update(randomBytes);
+        cloneMD.update(randomBytes);
+        cloneDigestBytes = cloneMD.digest();
+        Assert.assertArrayEquals(digestBytes, cloneDigestBytes);
+    }
+
+    private static byte[] getRandomBytes() {
+        int len = RANDOM.nextInt(max_random_byte_len);
+        return getRandomBytes(len);
+    }
+
+    private static byte[] getRandomBytes(int len) {
+        byte[] randomBytes = new byte[len];
+        RANDOM.nextBytes(randomBytes);
+        return randomBytes;
     }
 }
