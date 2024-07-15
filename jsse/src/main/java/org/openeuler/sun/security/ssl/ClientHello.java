@@ -1246,7 +1246,8 @@ final class ClientHello {
 
                 // Validate the required client authentication.
                 if (resumingSession &&
-                    (shc.sslConfig.clientAuthType == CLIENT_AUTH_REQUIRED)) {
+                    (shc.sslConfig.clientAuthType == CLIENT_AUTH_REQUIRED ||
+                            previous.getSuite().needClientAuth())) {
                     try {
                         previous.getPeerPrincipal();
                     } catch (SSLPeerUnverifiedException e) {

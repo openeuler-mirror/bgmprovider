@@ -1122,6 +1122,11 @@ enum CipherSuite {
         return fragSize;
     }
 
+    // the cipher suite is need to request client authentication
+    boolean needClientAuth() {
+        return this.keyExchange == K_SM2_SM2;
+    }
+
     /**
      * An SSL/TLS key exchange algorithm.
      */
