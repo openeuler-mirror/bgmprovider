@@ -396,7 +396,8 @@ final class CertificateMessage {
                 shc.handshakeConsumers.remove(
                         SSLHandshake.CERTIFICATE_VERIFY.id);
                 if (shc.sslConfig.clientAuthType !=
-                        ClientAuthType.CLIENT_AUTH_REQUESTED) {
+                        ClientAuthType.CLIENT_AUTH_REQUESTED ||
+                        shc.negotiatedCipherSuite.needClientAuth()) {
                     // unexpected or require client authentication
                     throw shc.conContext.fatal(Alert.BAD_CERTIFICATE,
                         "Empty server certificate chain");
@@ -1704,7 +1705,8 @@ final class CertificateMessage {
                 shc.handshakeConsumers.remove(
                         SSLHandshake.CERTIFICATE_VERIFY.id);
                 if (shc.sslConfig.clientAuthType !=
-                        ClientAuthType.CLIENT_AUTH_REQUESTED) {
+                        ClientAuthType.CLIENT_AUTH_REQUESTED
+                        || shc.negotiatedCipherSuite.needClientAuth()) {
                     // unexpected or require client authentication
                     throw shc.conContext.fatal(Alert.BAD_CERTIFICATE,
                         "Empty server certificate chain");

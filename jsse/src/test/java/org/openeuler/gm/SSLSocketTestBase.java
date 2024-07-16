@@ -883,6 +883,15 @@ public class SSLSocketTestBase {
 
     protected void test(String serverContextProtocol, String[] serverEnableProtocols, String[] serverEnableCipherSuites,
                         String clientContextProtocol, String[] clientEnableProtocols, String[] clientEnableCipherSuites,
+                        Status status, boolean clientAuthType) {
+        test(null, null, serverContextProtocol,
+                serverEnableProtocols, serverEnableCipherSuites,
+                clientContextProtocol, clientEnableProtocols, clientEnableCipherSuites, status, KMF_ALGORITHM,
+                clientAuthType, null, null);
+    }
+
+    protected void test(String serverContextProtocol, String[] serverEnableProtocols, String[] serverEnableCipherSuites,
+                        String clientContextProtocol, String[] clientEnableProtocols, String[] clientEnableCipherSuites,
                         String kmfAlgorithm) {
         test(serverContextProtocol, serverEnableProtocols, serverEnableCipherSuites,
                 clientContextProtocol, clientEnableProtocols, clientEnableCipherSuites, Status.NORMAL, kmfAlgorithm);

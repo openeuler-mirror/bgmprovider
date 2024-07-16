@@ -827,7 +827,8 @@ final class ServerHello {
 
                 if ((ke != null) &&
                         (shc.sslConfig.clientAuthType !=
-                                ClientAuthType.CLIENT_AUTH_NONE) &&
+                                ClientAuthType.CLIENT_AUTH_NONE ||
+                                shc.negotiatedCipherSuite.needClientAuth()) &&
                         !shc.negotiatedCipherSuite.isAnonymous()) {
                     for (SSLHandshake hs :
                             ke.getRelatedHandshakers(shc)) {

@@ -44,6 +44,14 @@ public class SSLSocketTest extends SSLSocketTestBase {
                 "GMTLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"}, true);
         test("GMTLS", null, null,
                 "GMTLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_GCM_SM3"}, true);
+        test("GMTLS", null, null,
+                "GMTLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"});
+        test("GMTLS", null, null,
+                "GMTLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_GCM_SM3"});
+        test("GMTLS", null, null,
+                "GMTLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"}, false);
+        test("GMTLS", null, null,
+                "GMTLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_GCM_SM3"}, false);
     }
 
     @Test
@@ -99,7 +107,7 @@ public class SSLSocketTest extends SSLSocketTestBase {
     }
 
     @Test
-    public void testTLSGMCipherSuite() {
+    public void testTLS12WithGMCipherSuite() {
         System.setProperty("bgmprovider.t12gmciphersuite", "true");
         test("TLS", null, null,
                 "TLS", new String[]{"TLSv1.2"}, new String[]
@@ -116,11 +124,38 @@ public class SSLSocketTest extends SSLSocketTestBase {
         System.setProperty("bgmprovider.t12gmciphersuite", "false");
     }
 
+
+    @Test
+    public void testTLS12WithGMCipherSuiteWithNoNeedClient() {
+        System.setProperty("bgmprovider.t12gmciphersuite", "true");
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.2"}, new String[]
+                        {"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA", "ECDHE_SM4_CBC_SM3"},
+                false, "TLSv1.2", "ECDHE_SM4_CBC_SM3");
+        System.setProperty("bgmprovider.t12gmciphersuite", "false");
+    }
+
     @Test
     public void testServerRenegotiate() {
         test("TLS", null, null,
                 "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
                 Status.SERVER_RENEGOTIATE);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"},
+                Status.SERVER_RENEGOTIATE, false);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"},
+                Status.SERVER_RENEGOTIATE, true);
+
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"},
+                Status.SERVER_RENEGOTIATE);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"},
+                Status.SERVER_RENEGOTIATE, false);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"},
+                Status.SERVER_RENEGOTIATE, true);
     }
 
     @Test
@@ -128,6 +163,12 @@ public class SSLSocketTest extends SSLSocketTestBase {
         test("TLS", null, null,
                 "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
                 Status.CLIENT_RENEGOTIATE);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
+                Status.CLIENT_RENEGOTIATE, false);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
+                Status.CLIENT_RENEGOTIATE, true);
     }
 
     @Test
@@ -135,6 +176,12 @@ public class SSLSocketTest extends SSLSocketTestBase {
         test("TLS", null, null,
                 "TLS", new String[]{"TLSv1.2"}, new String[]{"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"},
                 Status.SERVER_RENEGOTIATE);
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.2"}, new String[]{"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"},
+                Status.SERVER_RENEGOTIATE, true);
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.2"}, new String[]{"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"},
+                Status.SERVER_RENEGOTIATE, false);
     }
 
     @Test
@@ -142,6 +189,12 @@ public class SSLSocketTest extends SSLSocketTestBase {
         test("TLS", null, null,
                 "TLS", new String[]{"TLSv1.2"}, new String[]{"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"},
                 Status.CLIENT_RENEGOTIATE);
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.2"}, new String[]{"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"},
+                Status.CLIENT_RENEGOTIATE, false);
+        test("TLS", null, null,
+                "TLS", new String[]{"TLSv1.2"}, new String[]{"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA"},
+                Status.CLIENT_RENEGOTIATE, true);
     }
 
     @Test
@@ -162,6 +215,22 @@ public class SSLSocketTest extends SSLSocketTestBase {
         test("TLS", null, null,
                 "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
                 Status.SESSION_RESUMPTION_START);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
+                Status.SESSION_RESUMPTION_START, false);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECC_SM4_CBC_SM3"},
+                Status.SESSION_RESUMPTION_START, true);
+
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"},
+                Status.SESSION_RESUMPTION_START);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"},
+                Status.SESSION_RESUMPTION_START, false);
+        test("TLS", null, null,
+                "TLS", new String[]{"GMTLS"}, new String[]{"ECDHE_SM4_CBC_SM3"},
+                Status.SESSION_RESUMPTION_START, true);
     }
 
     @Test
