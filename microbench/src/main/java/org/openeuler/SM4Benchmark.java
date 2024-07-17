@@ -45,7 +45,6 @@ public class SM4Benchmark extends BaseBenchmark {
             "SM4/CTR/NoPadding",
             "SM4/OFB/NoPadding", "SM4/OFB/PKCS5Padding",
             "SM4/CCM/NoPadding",
-            "SM4/GCM/NoPadding",
             "SM4/OCB/NoPadding",
             "SM4/CFB/NoPadding","SM4/CFB/PKCS5Padding",
             "SM4/CTS/NoPadding"
