@@ -24,19 +24,16 @@
 
 package org.openeuler;
 
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Setup;
-import sun.security.util.ECUtil;
+import org.openeuler.spec.SM2KeyExchangeParameterSpec;
+import org.openjdk.jmh.annotations.*;
 
 import javax.crypto.KeyAgreement;
-import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECPoint;
+import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 
 public class SM2KeyAgreementBenchmark extends BaseBenchmark {
@@ -89,35 +86,48 @@ public class SM2KeyAgreementBenchmark extends BaseBenchmark {
 
     @Benchmark
     public void generateSecretLocal() throws Exception {
+        index = nextIndex(index);
         generateSecretLocalTest();
     }
 
     @Benchmark
     @Fork(jvmArgsAppend = {"-Djce.useLegacy=true"})
     public void generateSecretLocalLegacy() throws Exception {
+        index = nextIndex(index);
         generateSecretLocalTest();
     }
 
     @Benchmark
     public void generateSecretPeer() throws Exception {
+        index = nextIndex(index);
         generateSecretPeerTest();
     }
 
     @Benchmark
     @Fork(jvmArgsAppend = {"-Djce.useLegacy=true"})
     public void generateSecretPeerLegacy() throws Exception {
+        index = nextIndex(index);
         generateSecretPeerTest();
     }
 
     @Benchmark
     public void generateSecretLocalAndPeer() throws Exception {
+        index = nextIndex(index);
         generateSecretLocalAndPeerTest();
     }
 
     @Benchmark
     @Fork(jvmArgsAppend = {"-Djce.useLegacy=true"})
     public void generateSecretLocalAndPeerLegacy() throws Exception {
+        index = nextIndex(index);
         generateSecretLocalAndPeerTest();
+    }
+
+    private int nextIndex(int index) {
+        if (index - 4 < SIZE) {
+            return index;
+        }
+        return 0;
     }
 
     public void generateSecretLocalAndPeerTest() throws Exception{
@@ -134,53 +144,52 @@ public class SM2KeyAgreementBenchmark extends BaseBenchmark {
         ECPrivateKey localPrivateKey = localTestParam.privateKey;
         ECPublicKey localPublicKey = localTestParam.publicKey;
 
+        TestParam localTmpTestParam = localTestParams[index + 1];
+        ECPrivateKey localTmpPrivateKey = localTmpTestParam.privateKey;
+        ECPublicKey localTmpPublicKey = localTmpTestParam.publicKey;
         byte[] localId = "1234567812345678".getBytes();
-        BigInteger localRandom = SM2KeyExchangeUtil.generateRandom(
-                localPublicKey.getParams().getOrder(), random);
 
-        TestParam peerTestParam = peerTestParams[index];
+        TestParam peerTestParam = peerTestParams[index + 2];
         ECPublicKey peerPublicKey = peerTestParam.publicKey;
-        byte[] peerId = "1234567812345678".getBytes();
-        BigInteger peerRandom = SM2KeyExchangeUtil.generateRandom(
-                peerPublicKey.getParams().getOrder(), random);
-        ECPoint peerR = SM2KeyExchangeUtil.generateR(peerPublicKey, peerRandom);
 
-        SM2KeyExchangeParameterSpec localParameterSpec = new SM2KeyExchangeParameterSpec(localPublicKey,
-                localId, localRandom, ECUtil.encodePoint(peerR, peerPublicKey.getParams().getCurve()),
-                peerId, secretLen, true);
+        TestParam peerTmpTestParam = peerTestParams[index + 3];
+        ECPublicKey peerTmpPublicKey = peerTmpTestParam.publicKey;
+        byte[] peerId = "1234567812345678".getBytes();
+
+        AlgorithmParameterSpec localParameterSpec = new SM2KeyExchangeParameterSpec(
+                localId, localPublicKey, localTmpPrivateKey, localTmpPublicKey,
+                peerId, peerTmpPublicKey, secretLen, false);
 
         KeyAgreement localKeyAgreement = KeyAgreement.getInstance("SM2");
-        localKeyAgreement.init(localPrivateKey, localParameterSpec, null);
+        localKeyAgreement.init(localPrivateKey, localParameterSpec, random);
         localKeyAgreement.doPhase(peerPublicKey, true);
-        byte[] localSharedSecret = localKeyAgreement.generateSecret();
-        index = index % SIZE;
-        return localSharedSecret;
+        return localKeyAgreement.generateSecret();
     }
 
     public byte[] generateSecretPeerTest() throws Exception {
-        TestParam localTestParam = localTestParams[index];
-        ECPublicKey localPublicKey = localTestParam.publicKey;
-        byte[] localId = "1234567812345678".getBytes();
-        BigInteger localRandom = SM2KeyExchangeUtil.generateRandom(
-                localPublicKey.getParams().getOrder(), random);
-        ECPoint localR = SM2KeyExchangeUtil.generateR(localPublicKey, localRandom);
-
         TestParam peerTestParam = peerTestParams[index];
         ECPrivateKey peerPrivateKey = peerTestParam.privateKey;
         ECPublicKey peerPublicKey = peerTestParam.publicKey;
+
+        TestParam peerTmpTestParam = peerTestParams[index + 1];
+        ECPrivateKey peerTmpPrivateKey = peerTmpTestParam.privateKey;
+        ECPublicKey peerTmpPublicKey = peerTmpTestParam.publicKey;
         byte[] peerId = "1234567812345678".getBytes();
-        BigInteger peerRandom = SM2KeyExchangeUtil.generateRandom(
-                peerPublicKey.getParams().getOrder(), random);
 
-        SM2KeyExchangeParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(peerPublicKey,
-                peerId, peerRandom, ECUtil.encodePoint(localR, localPublicKey.getParams().getCurve()),
-                localId, secretLen, false);
+        TestParam localTestParam = localTestParams[index + 2];
+        ECPublicKey localPublicKey = localTestParam.publicKey;
 
-        KeyAgreement peerKeyAgreement = KeyAgreement.getInstance("SM2");
-        peerKeyAgreement.init(peerPrivateKey, peerParameterSpec, null);
-        peerKeyAgreement.doPhase(localPublicKey, true);
-        byte[] peerSharedSecret = peerKeyAgreement.generateSecret();
-        index = index % SIZE;
-        return peerSharedSecret;
+        TestParam localTmpTestParam = localTestParams[index + 3];
+        ECPublicKey localTmpPublicKey = localTmpTestParam.publicKey;
+        byte[] localId = "1234567812345678".getBytes();
+
+        AlgorithmParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(
+                peerId, peerPublicKey, peerTmpPrivateKey, peerTmpPublicKey,
+                localId, localTmpPublicKey, secretLen, true);
+
+        KeyAgreement localKeyAgreement = KeyAgreement.getInstance("SM2");
+        localKeyAgreement.init(peerPrivateKey, peerParameterSpec, random);
+        localKeyAgreement.doPhase(localPublicKey, true);
+        return localKeyAgreement.generateSecret();
     }
 }

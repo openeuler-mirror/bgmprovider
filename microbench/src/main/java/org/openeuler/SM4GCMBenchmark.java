@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023, Huawei Technologies Co., Ltd. All rights reserved.
+ * Copyright (c) 2024, Huawei Technologies Co., Ltd. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,32 +29,21 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Setup;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class SM4Benchmark extends BaseBenchmark {
+public class SM4GCMBenchmark extends BaseBenchmark {
 
     private static final int SET_SIZE = 1024;
     private byte[][] data;
     private int index = 0;
 
-    @Param({"SM4/ECB/NoPadding", "SM4/ECB/PKCS5Padding",
-            "SM4/CBC/NoPadding", "SM4/CBC/PKCS5Padding",
-            "SM4/CTR/NoPadding",
-            "SM4/OFB/NoPadding", "SM4/OFB/PKCS5Padding",
-            "SM4/CCM/NoPadding",
-            "SM4/OCB/NoPadding",
-            "SM4/CFB/NoPadding","SM4/CFB/PKCS5Padding",
-            "SM4/CTS/NoPadding"
-            // "SM4/CTS/PKCS5Padding"
-    })
+    @Param({"SM4/GCM/NoPadding"})
     private String algorithm;
 
     @Param({"128"})
     private int keyLength;
-
 
     @Param({"" + 1024,
             "" + 10 * 1024,
@@ -62,62 +51,74 @@ public class SM4Benchmark extends BaseBenchmark {
             "" + 1024 * 1024})
     private int dataSize;
 
+    private byte[][] ivData;
+
     private byte[][] encryptedData;
-    private Cipher encryptCipher;
+
     private Cipher decryptCipher;
+
+    private SecretKeySpec ks;
 
     @Setup
     public void setup() throws Exception {
         super.setUp();
 
         byte[] keyBytes = fillRandom(new byte[keyLength / 8]);
-        SecretKeySpec ks = new SecretKeySpec(keyBytes, "SM4");
-
-        encryptCipher = (provider == null) ? Cipher.getInstance(algorithm) : Cipher.getInstance(algorithm, provider);
-        encryptCipher.init(Cipher.ENCRYPT_MODE, ks);
-        decryptCipher = (provider == null) ? Cipher.getInstance(algorithm) : Cipher.getInstance(algorithm, provider);
-        decryptCipher.init(Cipher.DECRYPT_MODE, ks, encryptCipher.getParameters());
-
+        ks = new SecretKeySpec(keyBytes, "SM4");
+        ivData = new byte[SET_SIZE][dataSize];
         data = fillRandom(new byte[SET_SIZE][dataSize]);
-        encryptedData = fillEncrypted(data, encryptCipher);
+        encryptedData = new byte[SET_SIZE][dataSize];
+        fillEncrypted(data, ivData, encryptedData);
     }
 
     @Benchmark
-    public byte[] encrypt() throws IllegalBlockSizeException, BadPaddingException {
-        byte[] d = data[index];
-        index = (index + 1) % SET_SIZE;
-        return encryptCipher.doFinal(d);
-    }
-
-    @Benchmark
-    @Fork(jvmArgsPrepend = {"-Djce.useLegacy=true"})
-    public byte[] encryptLegacy() throws IllegalBlockSizeException, BadPaddingException {
-        byte[] d = data[index];
-        index = (index + 1) % SET_SIZE;
-        return encryptCipher.doFinal(d);
-    }
-
-    @Benchmark
-    public byte[] decrypt() throws IllegalBlockSizeException, BadPaddingException {
-        byte[] e = encryptedData[index];
-        index = (index + 1) % SET_SIZE;
-        return decryptCipher.doFinal(e);
+    public void encrypt() throws Exception {
+        encryptTest();
     }
 
     @Benchmark
     @Fork(jvmArgsPrepend = {"-Djce.useLegacy=true"})
-    public byte[] decryptLegacy() throws IllegalBlockSizeException, BadPaddingException {
-        byte[] e = encryptedData[index];
+    public void encryptLegacy() throws Exception {
+        encryptTest();
+    }
+
+    @Benchmark
+    public void decrypt() throws Exception {
+        decryptTest();
+    }
+
+    @Benchmark
+    @Fork(jvmArgsPrepend = {"-Djce.useLegacy=true"})
+    public void decryptLegacy() throws Exception {
+        decryptTest();
+    }
+
+    private void encryptTest() throws Exception {
+        byte[] d = data[index];
         index = (index + 1) % SET_SIZE;
+        Cipher encryptCipher = (provider == null) ? Cipher.getInstance(algorithm) : Cipher.getInstance(algorithm, provider);
+        encryptCipher.init(Cipher.ENCRYPT_MODE, ks);
+        encryptCipher.doFinal(d);
+    }
+
+    public byte[] decryptTest() throws Exception {
+        byte[] e = encryptedData[index];
+        byte[] iv = ivData[index];
+        index = (index + 1) % SET_SIZE;
+        Cipher decryptCipher = (provider == null) ? Cipher.getInstance(algorithm) : Cipher.getInstance(algorithm, provider);
+        decryptCipher.init(Cipher.DECRYPT_MODE, ks, new IvParameterSpec(iv));
         return decryptCipher.doFinal(e);
     }
 
-    private byte[][] fillEncrypted(byte[][] data, Cipher encryptCipher)
-            throws IllegalBlockSizeException, BadPaddingException {
-        byte[][] encryptedData = new byte[data.length][];
+
+    private void fillEncrypted(byte[][] data, byte[][] ivData, byte[][] encryptedData)
+            throws Exception {
         for (int i = 0; i < encryptedData.length; i++) {
+            Cipher encryptCipher = (provider == null) ? Cipher.getInstance(algorithm)
+                    : Cipher.getInstance(algorithm, provider);
+            encryptCipher.init(Cipher.ENCRYPT_MODE, ks);
+            ivData[i] = encryptCipher.getIV();
             encryptedData[i] = encryptCipher.doFinal(data[i]);
         }
-        return encryptedData;
     }
 }
