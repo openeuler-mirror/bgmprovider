@@ -32,9 +32,9 @@ import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import javax.crypto.*;
-import javax.crypto.spec.SecretKeySpec;
 import javax.net.ssl.SSLHandshakeException;
 
+import org.openeuler.spec.ECCPremasterSecretKeySpec;
 import org.openeuler.sun.security.internal.spec.TlsECCKeyAgreementParameterSpec;
 
 final class ECCKeyExchange {
@@ -58,21 +58,20 @@ final class ECCKeyExchange {
 
     static final
             class ECCPremasterSecret implements SSLPossession, SSLCredentials {
-        final SecretKey premasterSecret;
+        final ECCPremasterSecretKeySpec premasterSecret;
 
-        ECCPremasterSecret(SecretKey premasterSecret) {
+        ECCPremasterSecret(ECCPremasterSecretKeySpec premasterSecret) {
             this.premasterSecret = premasterSecret;
         }
 
         byte[] getEncoded(PublicKey publicKey,
                 SecureRandom secureRandom) throws GeneralSecurityException {
-            Cipher cipher = JsseJce.getCipher(JsseJce.CIPHER_SM2);
-            cipher.init(Cipher.WRAP_MODE, publicKey, secureRandom);
-            return cipher.wrap(premasterSecret);
+            return premasterSecret.getEncryptedKey();
         }
 
         @SuppressWarnings("deprecation")
         static ECCPremasterSecret createPremasterSecret(
+                PublicKey publicKey,
                 ClientHandshakeContext chc) throws GeneralSecurityException {
             String algorithm = "GmTlsEccPremasterSecret";
             KeyAgreement keyAgreement = JsseJce.getKeyAgreement(algorithm);
@@ -81,9 +80,10 @@ final class ECCKeyExchange {
                     new TlsECCKeyAgreementParameterSpec(
                             chc.clientHelloVersion,
                             chc.negotiatedProtocol.id);
-            keyAgreement.init(null, spec, chc.sslContext.getSecureRandom());
+            keyAgreement.init(publicKey, spec, chc.sslContext.getSecureRandom());
+            ECCPremasterSecretKeySpec preMaster = (ECCPremasterSecretKeySpec) keyAgreement.generateSecret("TlsEccPremasterSecret");
 
-            return new ECCPremasterSecret(keyAgreement.generateSecret("TlsEccPremasterSecret"));
+            return new ECCPremasterSecret(preMaster);
         }
 
         @SuppressWarnings("deprecation")
@@ -100,7 +100,7 @@ final class ECCKeyExchange {
                             shc.negotiatedProtocol.id,
                             false);
             keyAgreement.init(privateKey, spec);
-            SecretKey preMaster = new SecretKeySpec(keyAgreement.generateSecret(), "TlsEccPremasterSecret");
+            ECCPremasterSecretKeySpec preMaster = (ECCPremasterSecretKeySpec) keyAgreement.generateSecret("TlsEccPremasterSecret");
 
             return new ECCPremasterSecret(preMaster);
         }

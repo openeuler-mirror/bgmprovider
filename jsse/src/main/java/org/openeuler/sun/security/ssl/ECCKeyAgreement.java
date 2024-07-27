@@ -24,6 +24,7 @@
 
 package org.openeuler.sun.security.ssl;
 
+import org.openeuler.spec.ECCPremasterSecretKeySpec;
 import org.openeuler.sun.security.internal.spec.TlsECCKeyAgreementParameterSpec;
 import sun.security.internal.spec.TlsRsaPremasterSecretParameterSpec;
 import sun.security.util.KeyUtil;
@@ -42,7 +43,8 @@ public class ECCKeyAgreement extends KeyAgreementSpi {
 
     private SecureRandom random;
 
-    private PrivateKey key;
+    // creat need publicKey, decode need privateKey.
+    private Key key;
 
     private static final int ECC_PREMASTER_KEY_LEN = 48;
 
@@ -56,7 +58,7 @@ public class ECCKeyAgreement extends KeyAgreementSpi {
         if (!(params instanceof TlsECCKeyAgreementParameterSpec)) {
             throw new InvalidAlgorithmParameterException(MSG);
         }
-        this.key = (PrivateKey) key;
+        this.key = key;
         this.spec = (TlsECCKeyAgreementParameterSpec) params;
         this.random = random;
     }
@@ -68,56 +70,73 @@ public class ECCKeyAgreement extends KeyAgreementSpi {
 
     @Override
     protected byte[] engineGenerateSecret() throws IllegalStateException {
-        if (spec == null) {
-            throw new IllegalStateException(
-                    "ECCKeyAgreement.TlsECCKeyAgreementParameterSpec must be initialized");
-        }
-        if (spec.isClient()) {
-            return creat();
-        }
-        try {
-            return decode();
-        } catch (GeneralSecurityException e) {
-            throw new IllegalStateException(e.getMessage(), e.getCause());
-        }
+        throw new UnsupportedOperationException("ECCKeyAgreement.engineGenerateSecret not support the return byte[].");
     }
 
     @Override
-    protected int engineGenerateSecret(byte[] sharedSecret, int offset) throws IllegalStateException, ShortBufferException {
-        if (offset + ECC_PREMASTER_KEY_LEN > sharedSecret.length) {
-            throw new ShortBufferException("Need " + ECC_PREMASTER_KEY_LEN
-                    + " bytes, only " + (sharedSecret.length - offset)
-                    + " available");
-        }
-        byte[] secret = engineGenerateSecret();
-        System.arraycopy(secret, 0, sharedSecret, offset, secret.length);
-        return secret.length;
+    protected int engineGenerateSecret(byte[] sharedSecret, int offset) throws IllegalStateException {
+        throw new UnsupportedOperationException("ECCKeyAgreement.engineGenerateSecret not support the return int.");
     }
 
     @Override
     protected SecretKey engineGenerateSecret(String algorithm) throws IllegalStateException, NoSuchAlgorithmException, InvalidKeyException {
-        return new SecretKeySpec(engineGenerateSecret(),"TlsEccPremasterSecret");
+        byte[] premasterSecret;
+        byte[] encryptedKey;
+        if (spec == null) {
+            throw new IllegalStateException(
+                    "ECCKeyAgreement.TlsECCKeyAgreementParameterSpec must be initialized");
+        }
+        try {
+            if (spec.isClient()) {
+                premasterSecret = generatePreMasterSecret(spec.getMajorVersion(), spec.getMinorVersion(), null);
+                encryptedKey = encryptSecret(premasterSecret);
+                return new ECCPremasterSecretKeySpec(premasterSecret,"TlsEccPremasterSecret", encryptedKey);
+            }
+            premasterSecret = decryptSecret();
+            encryptedKey = spec.getEncryptedSecret();
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException(e.getMessage(), e.getCause());
+        }
+
+        return new ECCPremasterSecretKeySpec(premasterSecret,"TlsEccPremasterSecret", encryptedKey);
     }
 
-    private byte[] creat() {
-        byte[] b = spec.getEncryptedSecret();
-        if (b == null) {
+    private byte[] encryptSecret(byte[] premasterSecret) throws NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        if (key == null) {
+            throw new IllegalStateException(
+                    "Key must be initialized");
+        }
+        if(!(key instanceof PublicKey)) {
+            throw new IllegalStateException(
+                    "decode need PublicKey");
+        }
+        Cipher cipher = JsseJce.getCipher(JsseJce.CIPHER_SM2);
+        cipher.init(Cipher.ENCRYPT_MODE, key, random);
+        return cipher.doFinal(premasterSecret);
+    }
+
+    private byte[] generatePreMasterSecret(int clientVersion, int serverVersion, byte[] encodedSecret) {
+        if (encodedSecret == null) {
             if (random == null) {
                 random = new SecureRandom();
             }
-            b = new byte[ECC_PREMASTER_KEY_LEN];
-            random.nextBytes(b);
+            encodedSecret = new byte[ECC_PREMASTER_KEY_LEN];
+            random.nextBytes(encodedSecret);
         }
-        b[0] = (byte)spec.getMajorVersion();
-        b[1] = (byte)spec.getMinorVersion();
+        encodedSecret[0] = (byte)clientVersion;
+        encodedSecret[1] = (byte)serverVersion;
 
-        return b;
+        return encodedSecret;
     }
 
-    private byte[] decode() throws GeneralSecurityException {
+    private byte[] decryptSecret() throws GeneralSecurityException {
         if (key == null) {
             throw new IllegalStateException(
-                    "PrivateKey must be initialized");
+                    "Key must be initialized");
+        }
+        if(!(key instanceof PrivateKey)) {
+            throw new IllegalStateException(
+                    "decode need PrivateKey");
         }
         if (spec.getEncryptedSecret() == null) {
             throw new IllegalStateException(
@@ -125,35 +144,9 @@ public class ECCKeyAgreement extends KeyAgreementSpi {
         }
 
         byte[] encoded = null;
-        boolean needFailover = false;
+        byte[] preMaster = null;
         Cipher cipher = JsseJce.getCipher(JsseJce.CIPHER_SM2);
         try {
-            // Try UNWRAP_MODE mode firstly.
-            cipher.init(Cipher.UNWRAP_MODE, key,
-                    spec,
-                    random);
-
-            // The provider selection can be delayed, please don't call
-            // any Cipher method before the call to Cipher.init().
-            String providerName = cipher.getProvider().getName();
-            needFailover = !(KeyUtil.isOracleJCEProvider(
-                    providerName) || providerName.equals("BGMJCEProvider"));
-        } catch (InvalidKeyException | UnsupportedOperationException | InvalidAlgorithmParameterException iue) {
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                SSLLogger.warning("The Cipher provider "
-                        + safeProviderName(cipher)
-                        + " caused exception: " + iue.getMessage());
-            }
-
-            needFailover = true;
-        }
-
-        byte[] preMaster;
-        if (needFailover) {
-            // The cipher might be spoiled by unsuccessful call to init(),
-            // so request a fresh instance
-            cipher = JsseJce.getCipher(JsseJce.CIPHER_SM2);
-
             // Use DECRYPT_MODE and dispose the previous initialization.
             cipher.init(Cipher.DECRYPT_MODE, key);
             boolean failed = false;
@@ -166,11 +159,13 @@ public class ECCKeyAgreement extends KeyAgreementSpi {
             encoded = KeyUtil.checkTlsPreMasterSecretKey(
                     spec.getClientVersion(), spec.getServerVersion(),
                     random, encoded, failed);
-            preMaster = generatePremasterSecret(encoded);
-        } else {
-            // the cipher should have been initialized
-            preMaster = cipher.unwrap(spec.getEncryptedSecret(),
-                    "TlsEccPremasterSecret", Cipher.SECRET_KEY).getEncoded();
+            preMaster = generatePreMasterSecret(spec.getClientVersion(), spec.getServerVersion(), encoded);
+        } catch (InvalidKeyException | UnsupportedOperationException iue) {
+            if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
+                SSLLogger.warning("The Cipher provider "
+                        + safeProviderName(cipher)
+                        + " caused exception: " + iue.getMessage());
+            }
         }
         return preMaster;
     }
@@ -198,35 +193,5 @@ public class ECCKeyAgreement extends KeyAgreementSpi {
         }
 
         return "(cipher/provider names not available)";
-    }
-
-    // generate a premaster secret with the specified version number
-    @SuppressWarnings("deprecation")
-    private byte[] generatePremasterSecret(byte[] encodedSecret) throws GeneralSecurityException {
-
-        if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-            SSLLogger.fine("Generating a premaster secret");
-        }
-
-        try {
-            // ProtocolVersion.TLS12.id : 0x0303
-            String s = ((spec.getClientVersion() >= 0x0303) ?
-                    "SunTls12RsaPremasterSecret" : "SunTlsRsaPremasterSecret");
-            KeyGenerator kg = JsseJce.getKeyGenerator(s);
-            kg.init(new TlsRsaPremasterSecretParameterSpec(
-                            spec.getClientVersion(), spec.getServerVersion(), encodedSecret),
-                    random);
-            return kg.generateKey().getEncoded();
-        } catch (InvalidAlgorithmParameterException |
-                NoSuchAlgorithmException iae) {
-            // unlikely to happen, otherwise, must be a provider exception
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                SSLLogger.fine("ECC premaster secret generation error:");
-                iae.printStackTrace(System.out);
-            }
-
-            throw new GeneralSecurityException(
-                    "Could not generate premaster secret", iae);
-        }
     }
 }
