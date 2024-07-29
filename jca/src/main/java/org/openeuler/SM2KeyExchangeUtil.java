@@ -24,9 +24,8 @@
 
 package org.openeuler;
 
-import org.openeuler.commons.GMJCEConstants;
+import org.openeuler.constant.GMConstants;
 import org.openeuler.util.GMUtil;
-import sun.security.util.ECUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -152,7 +151,7 @@ public class SM2KeyExchangeUtil {
      */
     public static byte[] generateZ(byte[] idBytes, ECPublicKey publicKey, MessageDigest messageDigest) {
         if (idBytes == null) {
-            idBytes = GMJCEConstants.DEFAULT_ID;
+            idBytes = GMConstants.DEFAULT_ID;
         }
         int idBitsLen = idBytes.length * 8;
         EllipticCurve curve = publicKey.getParams().getCurve();

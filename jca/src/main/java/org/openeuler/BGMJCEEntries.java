@@ -111,7 +111,7 @@ public class BGMJCEEntries extends AbstractEntries {
 
     private void putSM3withSM2(Provider provider) {
         add(provider, "Signature", "SM3withSM2",
-                "org.openeuler.SM2SignatureSpi$sm3WithSM2",
+                "org.openeuler.SM2Signature$SM3withSM2",
                 createAliasesWithOid("1.2.156.10197.1.501"));
     }
 

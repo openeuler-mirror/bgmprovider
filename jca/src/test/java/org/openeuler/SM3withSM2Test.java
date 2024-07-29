@@ -24,11 +24,11 @@
 
 package org.openeuler;
 
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openeuler.org.bouncycastle.SM2ParameterSpec;
-import sun.security.x509.AlgorithmId;
 
 import java.security.*;
 import java.security.interfaces.ECPrivateKey;
@@ -36,12 +36,12 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
-import static org.junit.Assert.assertTrue;
-
 /**
  * SM3withSM2 signature test
  */
 public class SM3withSM2Test {
+    private static final SecureRandom RANDOM = new SecureRandom();
+    private static final int MAX_RANDOM_BYTE_LEN = 1024;
     private static final byte[] INFO = "SM3withSM2 test".getBytes();
 
     private static final byte[] PUBLIC_KEY_BYTES = new byte[]{
@@ -77,9 +77,6 @@ public class SM3withSM2Test {
 
     private static PublicKey publicKey;
 
-    /**
-     * Init private key and public key
-     */
     @BeforeClass
     public static void beforeClass() throws Exception {
         Security.insertProviderAt(new BGMJCEProvider(), 1);
@@ -88,38 +85,46 @@ public class SM3withSM2Test {
         privateKey = keyFactory.generatePrivate(new PKCS8EncodedKeySpec(PRIVATE_KEY_BYTES));
     }
 
-    /**
-     * Test sign and verify
-     */
     @Test
     public void testVerify() throws Exception {
         boolean verify = verify(SIGN_BYTES);
-        assertTrue(verify);
+        Assert.assertTrue(verify);
     }
 
     @Test
     public void testSignAndVerify() throws Exception {
         byte[] signBytes = sign();
         boolean verify = verify(signBytes);
-        assertTrue(verify);
-    }
-
-    private byte[] sign() throws Exception {
-        Signature signature = Signature.getInstance("SM3withSM2");
-        signature.initSign(privateKey);
-        signature.update(INFO);
-        return signature.sign();
-    }
-
-    private boolean verify(byte[] signBytes) throws Exception {
-        Signature signature = Signature.getInstance("SM3withSM2");
-        signature.initVerify(publicKey);
-        signature.update(INFO);
-        return signature.verify(signBytes);
+        Assert.assertTrue(verify);
     }
 
     @Test
-    public void getParameters() throws Exception{
+    public void testSignAndVerifyEmpty() throws Exception {
+        testSignAndVerifyRandomly(null);
+    }
+
+    @Test
+    public void testSignAndVerifyRandomly() throws Exception {
+        byte[] data = getRandomBytes();
+        testSignAndVerifyRandomly(data);
+    }
+
+    @Test
+    public void testSignByBCVerifyByBGM() throws Exception {
+        byte[] data = getRandomBytes();
+        testSignByBCVerifyByBGM(data);
+        testSignByBCVerifyByBGM(null);
+    }
+
+    @Test
+    public void testSignByBGMVerifyByBC() throws Exception {
+        byte[] data = getRandomBytes();
+        testSignByBGMVerifyByBC(data);
+        testSignByBGMVerifyByBC(null);
+    }
+
+    @Test
+    public void getParameters() throws Exception {
         if (BGMJCEConfig.useLegacy()) {
             return;
         }
@@ -133,5 +138,77 @@ public class SM3withSM2Test {
         ECParameterSpec parameterSpec = ((ECPrivateKey) privateKey).getParams();
         signature.setParameter(new SM2ParameterSpec("1234567812345678".getBytes(), parameterSpec));
         Assert.assertNotNull(signature.getParameters());
+    }
+
+    private byte[] sign() throws Exception {
+        Signature signature = Signature.getInstance("SM3withSM2");
+        return sign(signature, privateKey, INFO);
+    }
+
+    private byte[] sign(Signature signature, PrivateKey privateKey, byte[] data)
+            throws Exception {
+        signature.initSign(privateKey);
+        if (data != null) {
+            signature.update(data);
+        }
+        return signature.sign();
+    }
+
+    private boolean verify(byte[] signBytes) throws Exception {
+        Signature signature = Signature.getInstance("SM3withSM2");
+        return verify(signature, publicKey, INFO, signBytes);
+    }
+
+    private boolean verify(Signature signature, PublicKey publicKey, byte[] data, byte[] sigBytes)
+            throws Exception {
+        signature.initVerify(publicKey);
+        if (data != null) {
+            signature.update(data);
+        }
+        return signature.verify(sigBytes);
+    }
+
+    private void testSignAndVerifyRandomly(byte[] data) throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        Signature signature = Signature.getInstance("SM3withSM2");
+        byte[] signBytes = sign(signature, keyPair.getPrivate(), data);
+        boolean verify = verify(signature, keyPair.getPublic(), data, signBytes);
+        Assert.assertTrue(verify);
+    }
+
+    private void testSignByBCVerifyByBGM(byte[] data) throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        Provider bcProvider = new BouncyCastleProvider();
+        Signature bcSignature = Signature.getInstance("SM3withSM2", bcProvider);
+        byte[] signBytes = sign(bcSignature, keyPair.getPrivate(), data);
+        Signature bgmSignature = Signature.getInstance("SM3withSM2");
+        boolean verify = verify(bgmSignature, keyPair.getPublic(), data, signBytes);
+        Assert.assertTrue(verify);
+    }
+
+    public void testSignByBGMVerifyByBC(byte[] data) throws Exception {
+        KeyPair keyPair = generateKeyPair();
+        Provider bcProvider = new BouncyCastleProvider();
+        Signature bgmSignature = Signature.getInstance("SM3withSM2");
+        byte[] signBytes = sign(bgmSignature, keyPair.getPrivate(), data);
+        Signature bcSignature = Signature.getInstance("SM3withSM2", bcProvider);
+        boolean verify = verify(bcSignature, keyPair.getPublic(), data, signBytes);
+        Assert.assertTrue(verify);
+    }
+
+    private static byte[] getRandomBytes() {
+        int len = RANDOM.nextInt(MAX_RANDOM_BYTE_LEN);
+        return getRandomBytes(len);
+    }
+
+    private static byte[] getRandomBytes(int len) {
+        byte[] randomBytes = new byte[len];
+        RANDOM.nextBytes(randomBytes);
+        return randomBytes;
+    }
+
+    private static KeyPair generateKeyPair() throws Exception {
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("SM2");
+        return keyPairGenerator.generateKeyPair();
     }
 }
