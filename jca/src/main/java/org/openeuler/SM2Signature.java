@@ -24,6 +24,7 @@
 
 package org.openeuler;
 
+import org.openeuler.constant.GMConstants;
 import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 import org.openeuler.sun.security.ec.ECKeyFactory;
 import org.openeuler.util.GMUtil;
@@ -33,10 +34,8 @@ import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
 import sun.security.util.ECUtil;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
@@ -44,7 +43,7 @@ import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.ECPoint;
 
-public class SM2SignatureSpi extends SignatureSpi {
+public class SM2Signature extends SignatureSpi {
 
     // message digest implementation we use
     private final MessageDigest digest;
@@ -60,15 +59,12 @@ public class SM2SignatureSpi extends SignatureSpi {
 
     private ECPoint pubPoint;
 
-    private ByteArrayOutputStream byteBuf = new ByteArrayOutputStream();
-    private byte[] z;
-
-    public SM2SignatureSpi() throws NoSuchAlgorithmException {
-        this(MessageDigest.getInstance("SM3"));
-    }
-
-    public SM2SignatureSpi(MessageDigest digest) {
-        this.digest = digest;
+    SM2Signature(String algorithm) {
+        try {
+            digest = MessageDigest.getInstance(algorithm);
+        } catch (NoSuchAlgorithmException e) {
+            throw new ProviderException(e);
+        }
     }
 
 
@@ -85,18 +81,10 @@ public class SM2SignatureSpi extends SignatureSpi {
         if (!isCompatible(this.sigParams, this.publicKey.getParams())) {
             throw new InvalidKeyException("Key params does not match signature params");
         }
-        byte[] ID = getID();
-        byte[] entLen = new byte[2];
-
-        // id bit length
-        entLen[0] = (byte) (((ID.length * 8) >> 8) & 0xFF);
-        entLen[1] = (byte) ((ID.length * 8) & 0xFF);
-
-        pubPoint = ((ECPublicKey) publicKey).getW();
-
+        this.pubPoint = ((ECPublicKey) publicKey).getW();
         ECParameterSpec ecParams = this.publicKey.getParams();
-        z = getZ(ecParams, entLen, ID);
-        byteBuf.reset();
+
+        initZ(ecParams);
     }
 
     /**
@@ -112,41 +100,10 @@ public class SM2SignatureSpi extends SignatureSpi {
         if (!isCompatible(this.sigParams, this.privateKey.getParams())) {
             throw new InvalidKeyException("Key params does not match signature params");
         }
-        byte[] ID = getID();
-        byte[] entLen = new byte[2];
-
-        // id bit length
-        entLen[0] = (byte) (((ID.length * 8) >> 8) & 0xFF);
-        entLen[1] = (byte) ((ID.length * 8) & 0xFF);
-
         ECParameterSpec ecParams = this.privateKey.getParams();
-        pubPoint = GMUtil.multiply(ecParams.getGenerator(), this.privateKey.getS(), ecParams.getCurve());
-        z = getZ(ecParams, entLen, ID);
-        byteBuf.reset();
-    }
+        this.pubPoint = GMUtil.multiply(ecParams.getGenerator(), this.privateKey.getS(), ecParams.getCurve());
 
-    /**
-     * Get user ID
-     *
-     * @return ID
-     */
-    protected byte[] getID() {
-        byte[] ID;
-
-        if (this.appRandom == null) {
-            this.appRandom = new SecureRandom();
-        }
-
-        if (sigParams == null || sigParams.getId() == null) {
-            // default value
-            ID = "1234567812345678".getBytes(StandardCharsets.UTF_8);
-        } else {
-            ID = sigParams.getId();
-            if (ID.length >= 8192) {
-                throw new IllegalArgumentException("SM2 user ID must be less than 2^16 bits long");
-            }
-        }
-        return ID;
+        initZ(ecParams);
     }
 
     /**
@@ -159,7 +116,7 @@ public class SM2SignatureSpi extends SignatureSpi {
      */
     @Override
     protected void engineUpdate(byte b) throws SignatureException {
-        byteBuf.write(b);
+        digest.update(b);
     }
 
     /**
@@ -174,7 +131,7 @@ public class SM2SignatureSpi extends SignatureSpi {
      */
     @Override
     protected void engineUpdate(byte[] b, int off, int len) throws SignatureException {
-        byteBuf.write(b, off, len);
+        digest.update(b, off, len);
     }
 
     /**
@@ -191,11 +148,6 @@ public class SM2SignatureSpi extends SignatureSpi {
     @Override
     protected byte[] engineSign() throws SignatureException {
         try {
-            byte[] m = byteBuf.toByteArray();
-            byteBuf.reset();
-
-            digest.update(z);
-            digest.update(m);
             byte[] eHash = digest.digest();
             //  e = H(Z || M)
             BigInteger e = new BigInteger(1, eHash);
@@ -227,13 +179,8 @@ public class SM2SignatureSpi extends SignatureSpi {
                 s = d.add(BigInteger.ONE).modInverse(n).multiply(k.subtract(r.multiply(d).mod(n)).mod(n)).mod(n);
             }
             while (s.equals(BigInteger.ZERO));
-
-            try {
-                return encodeSignature(n, r, s);
-            } catch (Exception ex) {
-                throw new SignatureException("unable to encode signature: " + ex.getMessage(), ex);
-            }
-        } catch (SignatureException e) {
+            return encodeSignature(r, s);
+        } catch (Exception e) {
             throw new SignatureException("unable to create signature: " + e.getMessage());
         }
     }
@@ -267,11 +214,6 @@ public class SM2SignatureSpi extends SignatureSpi {
                 return false;
             }
 
-            byte[] m = byteBuf.toByteArray();
-            byteBuf.reset();
-
-            digest.update(z);
-            digest.update(m);
             byte[] eHash = digest.digest();
             // e = H(Z || m)
             BigInteger e = new BigInteger(1, eHash);
@@ -310,7 +252,7 @@ public class SM2SignatureSpi extends SignatureSpi {
     @Override
     protected void engineSetParameter(AlgorithmParameterSpec params)
             throws InvalidAlgorithmParameterException {
-        if (params == null || !(params instanceof SM2ParameterSpec)) {
+        if (!(params instanceof SM2ParameterSpec)) {
             throw new InvalidAlgorithmParameterException("only SM2ParameterSpec supported");
         }
 
@@ -340,25 +282,62 @@ public class SM2SignatureSpi extends SignatureSpi {
         }
     }
 
-    private byte[] getZ(ECParameterSpec ecParams, byte[] entLen, byte[] ID) {
-        digest.reset();
+    // id
+    private byte[] getId() {
+        if (this.appRandom == null) {
+            this.appRandom = new SecureRandom();
+        }
 
+        byte[] id;
+        if (sigParams == null || sigParams.getId() == null) {
+            // default value
+            id = GMConstants.DEFAULT_ID;
+        } else {
+            id = sigParams.getId();
+            if (id.length >= 8192) {
+                throw new IllegalArgumentException("SM2 user ID must be less than 2^16 bits long");
+            }
+        }
+        return id;
+    }
+
+    // entLen
+    private byte[] getEntLen() {
+        byte[] ID = getId();
+        byte[] entLen = new byte[2];
+        entLen[0] = (byte) (((ID.length * 8) >> 8) & 0xFF);
+        entLen[1] = (byte) ((ID.length * 8) & 0xFF);
+        return entLen;
+    }
+
+    // Z = H(entLen || id || a || b || xG || yG || xA || yA)
+    private byte[] getZ(ECParameterSpec ecParams) {
+        byte[] entLen = getEntLen();
+        byte[] id = getId();
         int curveLen = (ecParams.getCurve().getField().getFieldSize() + 7) / 8;
 
-        // Z = H(entLen || ID || a || b || xG || yG || xA || yA)
         digest.update(entLen);
-        digest.update(ID);
+        digest.update(id);
         digest.update(Util.asUnsignedByteArray(curveLen, ecParams.getCurve().getA()));
         digest.update(Util.asUnsignedByteArray(curveLen, ecParams.getCurve().getB()));
         digest.update(Util.asUnsignedByteArray(curveLen, ecParams.getGenerator().getAffineX()));
         digest.update(Util.asUnsignedByteArray(curveLen, ecParams.getGenerator().getAffineY()));
         digest.update(Util.asUnsignedByteArray(curveLen, pubPoint.getAffineX()));
         digest.update(Util.asUnsignedByteArray(curveLen, pubPoint.getAffineY()));
-
         return digest.digest();
     }
 
-    private byte[] encodeSignature(BigInteger n, BigInteger r, BigInteger s) throws IOException {
+    private void initZ(ECParameterSpec ecParams) {
+        // compute Z
+        digest.reset();
+        byte[] z = getZ(ecParams);
+
+        // update Z
+        digest.reset();
+        digest.update(z);
+    }
+
+    private byte[] encodeSignature(BigInteger r, BigInteger s) throws IOException {
         DerOutputStream out = new DerOutputStream();
         out.putInteger(r);
         out.putInteger(s);
@@ -407,10 +386,10 @@ public class SM2SignatureSpi extends SignatureSpi {
         return ECUtil.equals(sigParams.getParams(), keyParams);
     }
 
-    static public class sm3WithSM2
-            extends SM2SignatureSpi {
-        public sm3WithSM2() throws NoSuchAlgorithmException {
-            super(MessageDigest.getInstance("SM3"));
+    // Nested class for SM3withSM2 signatures
+    public static final class SM3withSM2 extends SM2Signature {
+        public SM3withSM2() throws NoSuchAlgorithmException {
+            super("SM3");
         }
     }
 }
