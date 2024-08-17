@@ -24,7 +24,7 @@
  * questions.
  */
 
-package org.openeuler;
+package org.openeuler.com.sun.crypto.provider;
 
 import java.security.Key;
 import java.security.PublicKey;

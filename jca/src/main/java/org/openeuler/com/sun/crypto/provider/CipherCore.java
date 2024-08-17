@@ -26,7 +26,6 @@
 package org.openeuler.com.sun.crypto.provider;
 
 import org.openeuler.BGMJCEProvider;
-import org.openeuler.ConstructKeys;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;

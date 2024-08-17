@@ -36,7 +36,7 @@ import org.bouncycastle.crypto.params.ParametersWithRandom;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.GMCipherSpi;
 import org.bouncycastle.math.ec.ECPoint;
 import org.bouncycastle.util.Arrays;
-import org.openeuler.ConstructKeys;
+import org.openeuler.com.sun.crypto.provider.ConstructKeys;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;

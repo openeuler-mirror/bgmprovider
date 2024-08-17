@@ -26,6 +26,7 @@ package org.openeuler;
 
 import org.openeuler.sun.security.ec.BGECPrivateKey;
 import org.openeuler.sun.security.ec.BGECPublicKey;
+import org.openeuler.com.sun.crypto.provider.ConstructKeys;
 import org.openeuler.util.GMUtil;
 import org.openeuler.util.Util;
 import sun.security.util.DerInputStream;
