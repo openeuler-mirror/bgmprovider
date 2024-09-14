@@ -29,10 +29,9 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Setup;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.NoSuchAlgorithmException;
 
 public class SM4Benchmark extends BaseBenchmark {
 
@@ -52,6 +51,9 @@ public class SM4Benchmark extends BaseBenchmark {
     })
     private String algorithm;
 
+    @Param("SM4")
+    private String keyAlgorithm;
+
     @Param({"128"})
     private int keyLength;
 
@@ -70,8 +72,7 @@ public class SM4Benchmark extends BaseBenchmark {
     public void setup() throws Exception {
         super.setUp();
 
-        byte[] keyBytes = fillRandom(new byte[keyLength / 8]);
-        SecretKeySpec ks = new SecretKeySpec(keyBytes, "SM4");
+        SecretKey ks = generateKey(keyAlgorithm);
 
         encryptCipher = (provider == null) ? Cipher.getInstance(algorithm) : Cipher.getInstance(algorithm, provider);
         encryptCipher.init(Cipher.ENCRYPT_MODE, ks);
@@ -80,6 +81,12 @@ public class SM4Benchmark extends BaseBenchmark {
 
         data = fillRandom(new byte[SET_SIZE][dataSize]);
         encryptedData = fillEncrypted(data, encryptCipher);
+    }
+
+    private SecretKey generateKey(String keyAlgorithm) throws NoSuchAlgorithmException {
+        KeyGenerator keyGenerator = KeyGenerator.getInstance(keyAlgorithm);
+        keyGenerator.init(keyLength);
+        return keyGenerator.generateKey();
     }
 
     @Benchmark
