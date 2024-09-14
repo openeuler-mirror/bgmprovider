@@ -768,9 +768,7 @@ final class CipherCore {
             output = new byte[getOutputSizeByOperation(inputLen, false)];
             int len = update(input, inputOffset, inputLen, output,
                              0);
-            if (len == 0) {
-                return null;
-            } else if (len == output.length) {
+            if (len == output.length) {
                 return output;
             } else {
                 byte[] copy = Arrays.copyOf(output, len);
