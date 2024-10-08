@@ -165,7 +165,7 @@ public class SDFEntries extends AbstractEntries {
 
         add(provider, "Cipher", "SM7/ECB/PKCS5Padding",
                 "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_ECB_PKCS5Padding",
-                createAliases("SM4"));
+                createAliases("SM7"));
         add(provider, "Cipher", "SM7/ECB/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_ECB_NoPadding");
 

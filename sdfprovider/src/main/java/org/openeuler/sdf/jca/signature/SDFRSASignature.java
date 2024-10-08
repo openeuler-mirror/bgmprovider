@@ -197,7 +197,7 @@ public abstract class SDFRSASignature extends SignatureSpi {
             byte[] padded = padding.pad(encoded);
             byte[] encrypted = SDFRSACore.rsa(padded, privateKey);
             return encrypted;
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new SignatureException("Could not encode data", e);
         }
     }
@@ -220,7 +220,7 @@ public abstract class SDFRSASignature extends SignatureSpi {
             byte[] unpadded = padding.unpad(decrypted);
             byte[] decodedDigest = decodeSignature(digestOID, unpadded);
             return MessageDigest.isEqual(digest, decodedDigest);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new SignatureException("Signature encoding error", e);
         }
     }

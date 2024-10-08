@@ -97,7 +97,6 @@
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
-                    <finalName>${project.artifactId}-${project.version}</finalName>
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
@@ -271,6 +270,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <configuration>
+                    <finalName>${project.artifactId}</finalName>
                     <classifier>${project.version}</classifier>
                 </configuration>
             </plugin>
@@ -299,6 +299,5 @@
                 </executions>
             </plugin>
         </plugins>
-        <finalName>${project.artifactId}</finalName>
     </build>
 </project>
