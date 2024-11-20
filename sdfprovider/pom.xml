@@ -81,6 +81,7 @@
                     --add-opens=java.base/sun.security.pkcs12=ALL-UNNAMED
                     --add-exports=java.base/sun.security.jca=ALL-UNNAMED
                     --add-exports=jdk.crypto.cryptoki/sun.security.pkcs11.wrapper=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.rsa=ALL-UNNAMED
                 </surefire.argLine>
             </properties>
         </profile>

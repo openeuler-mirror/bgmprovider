@@ -24,8 +24,10 @@
 
 package org.openeuler.sdf.jsse.util;
 
+import com.sun.org.apache.xml.internal.security.utils.JavaUtils;
 import org.junit.Assert;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
+import org.openeuler.util.JavaVersionUtil;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -54,6 +56,24 @@ import static org.openeuler.sdf.commons.constant.SDFTestConstant.STORE_TYPE;
 
 public class SDFGMTLTestUtil {
     public static final int SERVER_PORT = 29527;
+    private static final String JDK_17_OPTS =
+            "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED " +
+            "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.security.x509=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.security.action=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.security.provider=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.security.provider.certpath=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.net.util=ALL-UNNAMED " +
+            "--add-opens=java.base/sun.security.util=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.security.pkcs=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.security.internal.spec=ALL-UNNAMED " +
+            "--add-opens=java.base/sun.security.ssl=ALL-UNNAMED " +
+            "--add-opens=java.base/javax.crypto=ALL-UNNAMED " +
+            "--add-opens=java.base/sun.security.x509=ALL-UNNAMED " +
+            "--add-opens=java.base/sun.security.pkcs12=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.security.jca=ALL-UNNAMED " +
+            "--add-exports=jdk.crypto.cryptoki/sun.security.pkcs11.wrapper=ALL-UNNAMED " +
+            "--add-exports=java.base/sun.security.rsa=ALL-UNNAMED ";
 
     private static SSLContext getSSLContext(String keyStorePath, String keyStoreType, String keyStorePassword,
                                            String trustStorePath, String trustStoreType, String trustStorePassword)
@@ -152,6 +172,12 @@ public class SDFGMTLTestUtil {
                     new String(SDFTestUtil.getTestRegionId()),
                     new String(SDFTestUtil.getTestCdpId()));
         }
+
+        // adapt jdk 17 or higher
+        if (JavaVersionUtil.isJava17PlusSpec()) {
+            args += JDK_17_OPTS;
+        }
+        
         return args;
     }
 
