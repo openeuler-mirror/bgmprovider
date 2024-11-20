@@ -24,8 +24,10 @@
 
 package org.openeuler.sdf.jca.random;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
 import java.security.SecureRandom;
@@ -39,12 +41,23 @@ public class SDFRandomTest {
     }
 
     @Test
-    public void test() {
+    public void testSecureRandom() {
         SecureRandom random = new SecureRandom();
-        byte[] bytes = new byte[10];
-        random.nextBytes(bytes);
-        if (!"SDFProvider".equals(random.getProvider().getName())) {
-            throw new RuntimeException("Provider Name is not SDFProvider");
-        }
+        int randomLen = SDFTestUtil.generateRandomInt();
+        byte[] randomBytes = new byte[randomLen];
+        random.nextBytes(randomBytes);
+        Assert.assertTrue("Provider Name is not SDFProvider",
+                random.getProvider() instanceof SDFProvider);
+    }
+
+    @Test
+    public void testGetInstanceStrong() throws Exception {
+        Security.setProperty("securerandom.strongAlgorithms","SDF:SDFProvider");
+        SecureRandom random = SecureRandom.getInstanceStrong();
+        int randomLen = SDFTestUtil.generateRandomInt();
+        byte[] randomBytes = new byte[randomLen];
+        random.nextBytes(randomBytes);
+        Assert.assertTrue("Provider Name is not SDFProvider",
+                random.getProvider() instanceof SDFProvider);
     }
 }
