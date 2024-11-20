@@ -143,6 +143,7 @@
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFECCKeyAgreementNative</javahClassName>
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFPRFNative</javahClassName>
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFInternalNative</javahClassName>
+                                <javahClassName>org.openeuler.sdf.wrapper.SDFPBKDF2Native</javahClassName>
                             </javahClassNames>
                             <javahOutputDirectory>${project.build.directory}/include</javahOutputDirectory>
                         </configuration>

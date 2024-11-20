@@ -45,6 +45,7 @@ public class SDFEntries extends AbstractEntries {
         putHmac(provider);
         putRandom(provider);
         putKeyExchange(provider);
+        putPBKDF2(provider);
     }
 
     private void putSymmetric(Provider provider) {
@@ -312,5 +313,24 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jsse.SDFGMTlsKeyMaterialGenerator");
         add(provider, "KeyGenerator", "GMTlsPrf",
                 "org.openeuler.sdf.jsse.SDFGMTlsPrfGenerator");
+    }
+
+    private void putPBKDF2(Provider provider) {
+        add(provider, "SecretKeyFactory", "PBKDF2WithHmacSM3",
+                "org.openeuler.sdf.jca.pbkdf.SDFPBKDF2Core$HmacSM3");
+        if (enableNonSM) {
+            add(provider, "SecretKeyFactory", "PBKDF2WithHmacSHA1",
+                    "org.openeuler.sdf.jca.pbkdf.SDFPBKDF2Core$HmacSHA1");
+            add(provider, "SecretKeyFactory", "PBKDF2WithHmacSHA224",
+                    "org.openeuler.sdf.jca.pbkdf.SDFPBKDF2Core$HmacSHA224");
+            add(provider, "SecretKeyFactory", "PBKDF2WithHmacSHA256",
+                    "org.openeuler.sdf.jca.pbkdf.SDFPBKDF2Core$HmacSHA256");
+            add(provider, "SecretKeyFactory", "PBKDF2WithHmacSHA384",
+                    "org.openeuler.sdf.jca.pbkdf.SDFPBKDF2Core$HmacSHA384");
+            
+            // Currently the card interface does not support PBKDF2HmacWithSHA512.
+            /*add(provider, "SecretKeyFactory", "PBKDF2WithHmacSHA512",
+                    "org.openeuler.sdf.jca.pbkdf.SDFPBKDF2Core$HmacSHA512");*/
+        }
     }
 }
