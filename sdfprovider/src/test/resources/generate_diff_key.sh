@@ -39,5 +39,5 @@ fi
 keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid  -genkey -keyalg SM2 -sigalg SM3withSM2 -keysize 256 -ext KeyUsage=keyEncipherment,dataEncipherment,keyAgreement  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -keystore server-enc-key.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias server-enc-key -dname "CN=server/sm2/enc" -validity 3650 -storetype pkcs12
 
 # Generate a keystore with normal key
-keytool -genkey -keyalg SM2 -sigalg SM3withSM2 -keysize 256 -ext KeyUsage=keyEncipherment,dataEncipherment,keyAgreement  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -keystore server-normal-key.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias server-normal-key -dname "CN=server/sm2/normal" -validity 3650 -storetype pkcs12
+#keytool -genkey -keyalg SM2 -sigalg SM3withSM2 -keysize 256 -ext KeyUsage=keyEncipherment,dataEncipherment,keyAgreement  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -keystore server-normal-key.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias server-normal-key -dname "CN=server/sm2/normal" -validity 3650 -storetype pkcs12
 

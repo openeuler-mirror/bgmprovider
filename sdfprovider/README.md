@@ -75,6 +75,7 @@ export SDF_LIBRARY_PATH_AARCH64="/home/user/workspace/v1.1.7_v2/lib/aarch64"
 ```
 
 - Build package
+
 ```
 mvn -Dmaven.test.skip=true clean package
 ```
@@ -88,5 +89,37 @@ use the `compiler.library_path.x86_64`, `compiler.library_path.aarch64` configur
 ```
  mvn -DskipTests -Dcompiler.executable.aarch64=aarch64-linux-gnu-gcc -Dcompiler.library_path.x86_64="/home/user/workspace/v1.1.7_v2/lib/x86_64" -Dcompiler.library_path.aarch64="/home/user/workspace/v1.1.7_v2/lib/aarch64" clean package
 ```
+
+## test
+
+Taking JDK8 as an example, if you wan t to use JDK's keytool tool to generate a public and private key pair, you need to copy the `common-x.jar` and `sdfprovider-x.jar` files to the `jre/lib/ext` directory, then configure the `jre/lib/security` file and set `org.openeuler.sdf.provider.SDFProvider` priority to 1.
+
+```
+security.provider.1=org.openeuler.sdf.provider.SDFProvider
+security.provider.2=sun.security.provider.Sun
+security.provider.3=sun.security.rsa.SunRsaSign
+security.provider.4=sun.security.ec.SunEC
+security.provider.5=com.sun.net.ssl.internal.ssl.Provider
+security.provider.6=com.sun.crypto.provider.SunJCE
+security.provider.7=sun.security.jgss.SunProvider
+security.provider.8=com.sun.security.sasl.Provider
+security.provider.9=org.jcp.xml.dsig.internal.dom.XMLDSigRI
+security.provider.10=sun.security.smartcardio.SunPCSC
+```
+
+- generate ssl keystore and truststore
+
+```
+cd sdfprovider/src/test/resources/gmtls
+bash generate_gmtls_key.sh
+```
+
+- generate keystore for SDFKeyStoreTest.java
+
+```
+cd sdfprovider/src/test/resources
+bash generate_diff_key.sh
+```
+
 
 
