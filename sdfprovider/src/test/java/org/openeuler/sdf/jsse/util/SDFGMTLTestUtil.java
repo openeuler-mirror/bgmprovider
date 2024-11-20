@@ -24,7 +24,6 @@
 
 package org.openeuler.sdf.jsse.util;
 
-import com.sun.org.apache.xml.internal.security.utils.JavaUtils;
 import org.junit.Assert;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.util.JavaVersionUtil;
@@ -177,7 +176,7 @@ public class SDFGMTLTestUtil {
         if (JavaVersionUtil.isJava17PlusSpec()) {
             args += JDK_17_OPTS;
         }
-        
+
         return args;
     }
 
