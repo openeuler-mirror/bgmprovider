@@ -66,7 +66,7 @@ JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNative_nati
     (*env)->GetByteArrayRegion(env, digestArray, 0, uiDataLength, pucData);
 
     // pucSignature
-    if ((pucSignature = malloc(sizeof(ECCSignature))) == NULL) {
+    if ((pucSignature = malloc(sizeof(ECCSignature_HW))) == NULL) {
         SDF_LOG_ERROR("malloc pucSignature failed");
         throwOutOfMemoryError(env, "malloc pucSignature failed");
         goto cleanup;
@@ -169,7 +169,7 @@ JNIEXPORT jboolean JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNative_
 
     if ((rv = SDF_HW_AsymVerify(hSessionHandle, uiKeyType, uiPublicKey, uiPBKLen, pucData, uiDataLength,
             pucSignature, pSNLen)) != SDR_OK) {
-        SDF_LOG_ERROR("SDF_HW_AsymVerify failed, rv=%d", rv);
+        SDF_LOG_ERROR("SDF_HW_AsymVerify failed, rv=%lx", rv);
         goto cleanup;
     }
 
