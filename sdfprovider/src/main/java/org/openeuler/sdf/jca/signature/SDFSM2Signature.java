@@ -244,8 +244,8 @@ public class SDFSM2Signature extends SignatureSpi {
         byte[] signBytes;
         DerOutputStream out = new DerOutputStream();
         try {
-            out.putInteger(new BigInteger(pucSignature.getR()));
-            out.putInteger(new BigInteger(pucSignature.getS()));
+            out.putInteger(new BigInteger(1, pucSignature.getR()));
+            out.putInteger(new BigInteger(1, pucSignature.getS()));
             DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
             signBytes = result.toByteArray();
         } catch (IOException e) {
