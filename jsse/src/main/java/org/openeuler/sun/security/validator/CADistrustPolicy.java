@@ -53,6 +53,38 @@ enum CADistrustPolicy {
             }
             SymantecTLSPolicy.checkDistrust(chain);
         }
+    },
+
+    /**
+     * Distrust TLS Server certificates anchored by an Entrust root CA and
+     * issued after November 11, 2024. If enabled, this policy is currently
+     * enforced by the PKIX and SunX509 TrustManager implementations
+     * of the SunJSSE provider implementation.
+     */
+    ENTRUST_TLS {
+        void checkDistrust(String variant, X509Certificate[] chain)
+                           throws ValidatorException {
+            if (!variant.equals(Validator.VAR_TLS_SERVER)) {
+                return;
+            }
+            EntrustTLSPolicy.checkDistrust(chain);
+        }
+    },
+
+    /**
+     * Distrust TLS Server certificates anchored by a CAMERFIRMA root CA and
+     * issued after April 15, 2025. If enabled, this policy is currently
+     * enforced by the PKIX and SunX509 TrustManager implementations
+     * of the SunJSSE provider implementation.
+     */
+    CAMERFIRMA_TLS {
+        void checkDistrust(String variant, X509Certificate[] chain)
+                           throws ValidatorException {
+            if (!variant.equals(Validator.VAR_TLS_SERVER)) {
+                return;
+            }
+            CamerfirmaTLSPolicy.checkDistrust(chain);
+        }
     };
 
     /**
