@@ -26,6 +26,7 @@
 
 package org.openeuler.sun.security.util;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.adaptor.ObjectIdentifierHandler;
 import sun.security.util.DerOutputStream;
 
@@ -58,7 +59,8 @@ public final class ECNamedCurve extends ECParameterSpec {
         DerOutputStream out = new DerOutputStream();
 
         try {
-            out.putOID(ObjectIdentifierHandler.newObjectIdentifier(oid));
+            DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+            outAdapter.putOID(ObjectIdentifierHandler.newObjectIdentifier(oid));
         } catch (IOException e) {
             throw new RuntimeException("Internal error", e);
         }
