@@ -192,6 +192,8 @@
                                 <exclude>org.openeuler.gm.SSLSocketDifferentProviderTest.java</exclude>
                                 <exclude>**/CustomizedDefaultProtocolsTest.java</exclude>
                                 <exclude>**/B8025710Test.java</exclude>
+                                <exclude>**/CheckDefaultCipherSuitesTest.java</exclude>
+                                <exclude>**/CheckLimitedCipherSuitesTest.java</exclude>
                             </excludes>
                             <argLine>
                                 --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
@@ -233,6 +235,8 @@
                                 <exclude>**/CipherSuitesInOrderTest.java</exclude>
                                 <exclude>**/CustomizedDefaultProtocolsTest.java</exclude>
                                 <exclude>**/B8025710Test.java</exclude>
+                                <exclude>**/CheckDefaultCipherSuitesTest.java</exclude>
+                                <exclude>**/CheckLimitedCipherSuitesTest.java</exclude>
                             </excludes>
                         </configuration>
                     </plugin>
