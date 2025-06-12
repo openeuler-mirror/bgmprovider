@@ -244,7 +244,7 @@ public class SDFSM2Signature extends SignatureSpi {
             out.putInteger(new BigInteger(1, params[1]));
             DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
             signBytes = result.toByteArray();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new SignatureException(e);
         }
         return signBytes;

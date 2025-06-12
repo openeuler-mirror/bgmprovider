@@ -145,7 +145,7 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
             DerValue val =
                     new DerValue(DerValue.tag_Sequence, out.toByteArray());
             key = val.toByteArray();
-        } catch (IOException exc) {
+        } catch (Exception exc) {
             // should never occur
             throw new InvalidKeyException(exc);
         }
@@ -175,7 +175,7 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
             DerValue val =
                     new DerValue(DerValue.tag_Sequence, out.toByteArray());
             key = val.toByteArray();
-        } catch (IOException exc) {
+        } catch (Exception exc) {
             // should never occur
             throw new InvalidKeyException(exc);
         }
