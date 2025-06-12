@@ -26,7 +26,6 @@
 #define SDF_EXCEPTION_H
 
 #include <jni.h>
-#include "sdf.h"
 
 #define CLASS_OUTOFMEMORYERROR "java/lang/OutOfMemoryError"
 #define CLASS_NULLPOINTEREXCEPTION "java/lang/NullPointerException"
@@ -50,7 +49,7 @@ void throwSDFRuntimeException(JNIEnv *env, const char *message);
 void throwIllegalArgumentException(JNIEnv *env, const char *message);
 
 // Throws org.openeuler.sdf.commons.exception.SDFException
-void throwSDFException(JNIEnv *env, SGD_RV errorCode);
+void throwSDFException(JNIEnv *env, int errorCode, const char* funcName);
 
 
 

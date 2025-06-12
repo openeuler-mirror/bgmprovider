@@ -22,118 +22,135 @@
  * information or have any questions.
  */
 
+#include "cryptocard/crypto_sdk_vf.h"
+#include "cryptocard/crypto_sdk_pf.h"
+#include "cryptocard/errno.h"
+
 #include "org_openeuler_sdf_wrapper_SDFECCKeyAgreementNative.h"
-#include "sdf.h"
 #include "sdf_exception.h"
 #include "sdf_util.h"
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFECCKeyAgreementNative
- * Method:    decodeECCPreMasterKey
- * Signature: (J[B[B)[B
- */
 JNIEXPORT jbyteArray JNICALL
 Java_org_openeuler_sdf_wrapper_SDFECCKeyAgreementNative_decodeECCPreMasterKey(JNIEnv *env, jclass cls,
-        jlong sessionHandleAddr, jbyteArray localEncPriKeyArr, jobject encryptedSecret, jint bits) {
-    // sessionHandle
-    SGD_HANDLE sessionHandle = (SGD_HANDLE) sessionHandleAddr;
-    C_SM2Pairs *encPrivateKey = NULL;
-    unsigned char *uiPrivateKey = NULL;
-    unsigned int uiPIKLen;
-    unsigned char encPreMasterKey[SYSCKEY_LEN] = {0};
-    unsigned int encPreMasterKeyLen = 0;
+        jbyteArray priKeyArr, jobjectArray pubEncCmkParams) {
+    int keyType = DATA_KEY_SM2;
+    void *priKeyHandle = NULL;
+    unsigned char *encData = NULL;
+    unsigned int encDataLen;
+    unsigned char *cipherKey = NULL;
+    unsigned int cipherKeyLen = 0;
     jbyteArray keyArr = NULL;
-    unsigned char *pucEncData = NULL;
-    unsigned int pEDLen;
-    SGD_RV rv = 0;
+    SGD_RV rv;
 
-    pucEncData = SDF_NewECCCipherChars(env, encryptedSecret, &pEDLen);
-    // get Enc Key
-    if ((encPrivateKey = SDF_GetEncECCPrivateKeyFromByteArray(env, localEncPriKeyArr)) == NULL) {
-        throwNullPointerException(env, "Unable to convert privateKey.");
+    priKeyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr);
+    if ((*env)->ExceptionCheck(env)) {
         goto cleanup;
     }
 
-    // 0-SM2, 1-RSA
-    uiPrivateKey = (unsigned char *) &encPrivateKey->SM2PriCKey;
-    uiPIKLen = SYSCKEY_LEN;
-    rv = SDF_HW_PreMasterKeyExchange(sessionHandle, SDF_ASYMMETRIC_KEY_TYPE_SM2,
-            uiPrivateKey, uiPIKLen, pucEncData,pEDLen, encPreMasterKey, &encPreMasterKeyLen);
-    if (rv != 0) {
-        throwSDFException(env, rv);
+    encData = (unsigned char *) SDF_ObjectArrayToSM2Cipher(env, pubEncCmkParams, &encDataLen);
+
+    // compute cipherKeyLen
+    if ((rv = CDM_PreMasterKeyExchange(keyType, priKeyHandle, encData, encDataLen, cipherKey, &cipherKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_PreMasterKeyExchange");
+        goto cleanup;
+    }
+
+    if (!(cipherKey = malloc(cipherKeyLen))) {
+        throwOutOfMemoryError(env, "malloc cipherKey failed");
+        goto cleanup;
+    }
+
+    if ((rv = CDM_PreMasterKeyExchange(keyType, priKeyHandle, encData, encDataLen, cipherKey, &cipherKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_PreMasterKeyExchange");
         goto cleanup;
     }
     // new keyArr
-    keyArr = (*env)->NewByteArray(env, encPreMasterKeyLen);
-    (*env)->SetByteArrayRegion(env, keyArr, 0, encPreMasterKeyLen, (jbyte *) encPreMasterKey);
+    keyArr = (*env)->NewByteArray(env, cipherKeyLen);
+    (*env)->SetByteArrayRegion(env, keyArr, 0, cipherKeyLen, (jbyte *) cipherKey);
 cleanup:
-    if (pucEncData != NULL) {
-        SDF_ReleaseECCCipherChars(pucEncData);
+    if (cipherKey) {
+        free(cipherKey);
     }
-    if (encPrivateKey != NULL) {
-        free(encPrivateKey);
+    if (encData) {
+        free(encData);
     }
+    SDF_FreeSM2PriKeyHandle(priKeyHandle);
     return keyArr;
 }
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFECCKeyAgreementNative
- * Method:    generateECCPreMasterKey
- * Signature: (J[B[B[B[BLorg/openeuler/sdf/wrapper/entity/SDFECCrefPublicKey;[BII)Lorg/openeuler/sdf/wrapper/entity/SDFECCCipherEntity;
- */
-JNIEXPORT jobject JNICALL
+
+JNIEXPORT jobjectArray JNICALL
 Java_org_openeuler_sdf_wrapper_SDFECCKeyAgreementNative_generateECCPreMasterKey(JNIEnv *env, jclass cls,
-        jlong sessionHandleAddr, jbyteArray kekIdArr, jbyteArray regionIdArr, jbyteArray cdpIdArr, jbyteArray PINArr,
-        jobject publicKeyObj, jbyteArray preMasterKeyArr, jint preMasterKeyLen, jint clientVersion) {
-    // sessionHandle
-    SGD_HANDLE sessionHandle = (SGD_HANDLE) sessionHandleAddr;
-    ECCrefPublicKey_HW *publicKey = NULL;
-    KEKInfo *kekInfo = NULL;
-    jbyte *PINBytes = NULL;
-    int PinLen = 0;
-    jobject eccCipher_object = NULL;
+        jbyteArray kekIdArr, jbyteArray regionIdArr, jbyteArray cdpIdArr, jbyteArray pinArr,
+        jobjectArray pubKeyArr, jint clientVersion) {
+    int algId = ALG_SM4;
+    unsigned int ivLen = 16;
+    unsigned char iv[ivLen];
+    unsigned int keyType = DATA_KEY_SM2;
+    void *dekParams = NULL;
+    unsigned char *pubKey = NULL;
+    unsigned int pubKeyLen = 0;
+    char *kekEncCmk = NULL;
+    unsigned int kekEncCmkLen = 0;
+    char *pubEncCmk = NULL;
+    unsigned int pubEncCmkLen = 0;
+
+    jclass objectClass = NULL;
+    jobjectArray result = NULL;
+
     SGD_RV rv;
-    // preMaster is CipherKey, encryptedKey is normalKey encrypted by public
-    unsigned int preMasterKeySize = SYSCKEY_LEN;
-    unsigned int encryptedKeySize = sizeof(ECCCipher) + preMasterKeyLen;
-    unsigned char preMasterKey[preMasterKeySize];
-    unsigned char encryptedKey[encryptedKeySize];
 
-    if (PINArr != NULL) {
-        PINBytes = (*env)->GetByteArrayElements(env, PINArr, NULL);
-        PinLen = (*env)->GetArrayLength(env, PINArr);
-    }
-
-    kekInfo = SDF_NewKEKInfo(env, kekIdArr, regionIdArr, cdpIdArr);
-
-    // get publicKey
-    if ((publicKey = SDF_GetECCPublickeyFromObj(env, publicKeyObj)) == NULL) {
-        throwOutOfMemoryError(env, "GenerateECCPreMasterKey malloc failed. Unable to convert publicKey.");
+    // iv
+    if ((rv = CDM_GenRandom(ivLen, iv)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_GenRandom");
         goto cleanup;
     }
-    // uiKeyType 0=SM2, 1=RSA
-    rv = SDF_HW_CreatePreMasterKey(sessionHandle, SGD_SM4_ECB, NULL, 0, PINBytes, PinLen, kekInfo,
-            SDF_ASYMMETRIC_KEY_TYPE_SM2, (unsigned char *) publicKey, sizeof(ECCrefPublicKey_HW), preMasterKey,
-            &preMasterKeyLen, encryptedKey, &encryptedKeySize, clientVersion);
-    if (rv != 0) {
-        throwSDFException(env, rv);
+
+    // DEKParams
+    if (!(dekParams = SDF_CreateDEKParams(env, kekIdArr, regionIdArr, cdpIdArr, pinArr))) {
         goto cleanup;
     }
-    (*env)->SetByteArrayRegion(env, preMasterKeyArr, 0, preMasterKeySize, (jbyte *) preMasterKey);
 
-    eccCipher_object = SDF_GetECCCipherJavaObject(env, encryptedKey, encryptedKeySize);
+    // public key
+    pubKey = SDF_CreateSM2PublicKey(env, pubKeyArr, &pubKeyLen);
+
+    // compute kekEncCmkLen, pubEncCmkLen
+    if ((rv = CDM_CreatePreMasterKey(algId, iv, ivLen, keyType, dekParams, clientVersion, pubKey, pubKeyLen,
+            kekEncCmk, &kekEncCmkLen, pubEncCmk, &pubEncCmkLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_CreatePreMasterKey");
+        goto cleanup;
+    }
+
+    if (!(kekEncCmk = malloc(kekEncCmkLen))) {
+        throwOutOfMemoryError(env, "malloc kekEncCmk failed");
+        goto cleanup;
+    }
+
+    if (!(pubEncCmk = malloc(pubEncCmkLen))) {
+        throwOutOfMemoryError(env, "malloc pubEncCmk failed");
+        goto cleanup;
+    }
+
+    // get kekEncCmk and pubEncCmk
+    if ((rv = CDM_CreatePreMasterKey(algId, iv, ivLen, keyType, dekParams, clientVersion, pubKey, pubKeyLen,
+            kekEncCmk, &kekEncCmkLen, pubEncCmk, &pubEncCmkLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_CreatePreMasterKey");
+        goto cleanup;
+    }
+
+    jbyteArray kekEncCmkArr = (*env)->NewByteArray(env, kekEncCmkLen);
+    (*env)->SetByteArrayRegion(env, kekEncCmkArr, 0, kekEncCmkLen, kekEncCmk);
+    jbyteArray pubEncCmkParams = SDF_SM2CipherToObjectArray(env, (SM2Cipher *) pubEncCmk);
+    objectClass = (*env)->FindClass(env, "java/lang/Object");
+    result = (*env)->NewObjectArray(env, 2, objectClass, NULL);
+    (*env)->SetObjectArrayElement(env, result, 0, kekEncCmkArr);
+    (*env)->SetObjectArrayElement(env, result, 1, pubEncCmkParams);
+
 cleanup:
-    if (PINBytes != NULL) {
-        (*env)->ReleaseByteArrayElements(env, PINArr, PINBytes, 0);
+    SDF_FreeDEKParams(env, dekParams);
+    SDF_FreeSM2PublicKey(pubKey);
+    if (objectClass) {
+        (*env)->DeleteLocalRef(env, objectClass);
     }
-    if (kekInfo != NULL) {
-        SDF_ReleaseKEKInfo(kekInfo);
-    }
-    if (publicKey != NULL) {
-        free(publicKey);
-    }
-    return eccCipher_object;
+    return result;
 }
-
-
-

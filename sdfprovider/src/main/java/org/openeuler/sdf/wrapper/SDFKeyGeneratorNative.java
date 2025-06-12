@@ -28,8 +28,19 @@ import org.openeuler.sdf.commons.exception.SDFException;
 
 public class SDFKeyGeneratorNative {
 
-    // generate symmetric secret key (such as SM1/SM4/SM7/AES)
-    public native static byte[] nativeGenerateSecretKey(long sessionHandleAddr,
-                                                      byte[] kekIdArr, byte[] regionIdArr, byte[] cdpIdArr,
-                                                      byte[] PINArr, int keySize, boolean isHmac) throws SDFException;
+    /**
+     * generate symmetric secret key (such as SM1/SM4/SM7/AES/HmacSM3/HmacSHA1/...)
+     * @param kekIdArr KEK id
+     * @param regionIdArr Region id
+     * @param cdpIdArr Cdp id
+     * @param pinArr PIN
+     * @param algoName algo name , such as SM1,SM4,SM7,HmacSM3 ...
+     * @param keySize  key size in bits
+     * @param isHmac is Hmac
+     * @return Secret key
+     * @throws SDFException
+     */
+    public native static byte[] nativeGenerateSecretKey(byte[] kekIdArr, byte[] regionIdArr, byte[] cdpIdArr,
+                                                        byte[] pinArr, String algoName, int keySize, boolean isHmac)
+            throws SDFException;
 }

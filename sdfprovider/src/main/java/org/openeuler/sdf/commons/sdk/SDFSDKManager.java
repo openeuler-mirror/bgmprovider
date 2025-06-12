@@ -22,53 +22,28 @@
  * information or have any questions.
  */
 
-package org.openeuler.sdf.wrapper.entity;
+package org.openeuler.sdf.commons.sdk;
 
-public class SDFECCCipherEntity {
+import org.openeuler.sdf.commons.exception.SDFException;
+import org.openeuler.sdf.wrapper.SDFSDKNative;
 
-    int cLength;
-    byte[] x;
-    byte[] y;
-    byte[] C;
-    byte[] M;
+/**
+ * SDK manager
+ */
+public class SDFSDKManager {
 
-    public int getcLength() {
-        return cLength;
+    /**
+     * Init SDK
+     * @param configPath SDK config path
+     */
+    public static void init(String configPath) throws SDFException {
+        SDFSDKNative.init(configPath);
     }
 
-    public byte[] getX() {
-        return x;
-    }
-
-    public byte[] getY() {
-        return y;
-    }
-
-    public byte[] getC() {
-        return C;
-    }
-
-    public void setcLength(int cLength) {
-        this.cLength = cLength;
-    }
-
-    public void setX(byte[] x) {
-        this.x = x;
-    }
-
-    public void setY(byte[] y) {
-        this.y = y;
-    }
-
-    public void setC(byte[] c) {
-        C = c;
-    }
-
-    public void setM(byte[] m) {
-        M = m;
-    }
-
-    public byte[] getM() {
-        return M;
+    /**
+     * Destroy SDK
+     */
+    public static void destroy() {
+        SDFSDKNative.destroy();
     }
 }

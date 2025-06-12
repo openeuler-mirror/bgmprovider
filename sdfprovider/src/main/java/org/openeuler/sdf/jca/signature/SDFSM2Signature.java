@@ -4,13 +4,10 @@ import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 import org.openeuler.sdf.commons.constant.SDFConstant;
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
 import org.openeuler.sdf.commons.key.SDFEncryptKey;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECKeyFactory;
 import org.openeuler.sdf.jca.commons.SDFUtil;
 import org.openeuler.sdf.wrapper.SDFSM2KeyPairGeneratorNative;
 import org.openeuler.sdf.wrapper.SDFSM2SignatureNative;
-import org.openeuler.sdf.wrapper.entity.SDFECCSignature;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
@@ -101,36 +98,35 @@ public class SDFSM2Signature extends SignatureSpi {
 
     @Override
     protected byte[] engineSign() throws SignatureException {
-        byte[] uiCipherPriKey = SDFUtil.asUnsignedByteArray(this.privateKey);
-        SDFECCSignature pucSignature = new SDFECCSignature();
-        SDFSession session = SDFSessionManager.getInstance().getSession();
+        byte[] uiCipherPriKey = SDFUtil.getPrivateKeyBytes(this.privateKey);
+        byte[][] signatureParams;
         try {
             byte[] digestBytes = this.digest.digest();
-            SDFSM2SignatureNative.nativeSM2Sign(session.getAddress(),
-                    uiCipherPriKey, this.curveBitLen, digestBytes, pucSignature);
+            signatureParams = SDFSM2SignatureNative.nativeSM2Sign(
+                    uiCipherPriKey, digestBytes);
         } finally {
             this.digest.reset();
-            SDFSessionManager.getInstance().releaseSession(session);
         }
-        return encodeSignature(pucSignature);
+        return encodeSignature(signatureParams);
     }
 
     @Override
     protected boolean engineVerify(byte[] sigBytes) throws SignatureException {
-        ECParameterSpec ecParams = this.publicKey.getParams();
-        SDFECCSignature pucSignature = decodeSignature(ecParams, sigBytes);
-        SDFSession session = SDFSessionManager.getInstance().getSession();
         boolean verify;
         try {
             int curveLen = getCurveLen();
             byte[] digestBytes = this.digest.digest();
             byte[] xArr = SDFUtil.asUnsignedByteArray(curveLen, this.publicKey.getW().getAffineX());
             byte[] yArr = SDFUtil.asUnsignedByteArray(curveLen, this.publicKey.getW().getAffineY());
-            verify = SDFSM2SignatureNative.nativeSM2Verify(session.getAddress(),
-                    xArr, yArr, curveBitLen, digestBytes, pucSignature);
+            byte[][] signatureParams = decodeSignature(this.publicKey.getParams(), sigBytes);
+            Object[] pubKeyArr = {
+                    xArr, yArr
+            };
+            verify = SDFSM2SignatureNative.nativeSM2Verify(pubKeyArr, digestBytes, signatureParams);
+        } catch (Exception e) {
+            throw new SignatureException(e);
         } finally {
             this.digest.reset();
-            SDFSessionManager.getInstance().releaseSession(session);
         }
         return verify;
     }
@@ -174,7 +170,7 @@ public class SDFSM2Signature extends SignatureSpi {
 
         byte[][] keys;
         try {
-            keys = SDFSM2KeyPairGeneratorNative.nativeGeneratePublicKey(SDFUtil.asUnsignedByteArray(this.privateKey));
+            keys = SDFSM2KeyPairGeneratorNative.nativeGeneratePublicKey(SDFUtil.getPrivateKeyBytes(this.privateKey));
         } catch (Exception e) {
             throw new SDFRuntimeException("SDFSM2Signature failed. unable to generate PublicKey", e);
         }
@@ -240,12 +236,12 @@ public class SDFSM2Signature extends SignatureSpi {
         return ECUtil.equals(sigParams.getParams(), keyParams);
     }
 
-    private byte[] encodeSignature(SDFECCSignature pucSignature) throws SignatureException {
+    private byte[] encodeSignature(byte[][] params) throws SignatureException {
         byte[] signBytes;
         DerOutputStream out = new DerOutputStream();
         try {
-            out.putInteger(new BigInteger(1, pucSignature.getR()));
-            out.putInteger(new BigInteger(1, pucSignature.getS()));
+            out.putInteger(new BigInteger(1, params[0]));
+            out.putInteger(new BigInteger(1, params[1]));
             DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
             signBytes = result.toByteArray();
         } catch (IOException e) {
@@ -255,7 +251,7 @@ public class SDFSM2Signature extends SignatureSpi {
     }
 
     // Convert the DER encoding of R and S into a concatenation of R and S
-    private SDFECCSignature decodeSignature(ECParameterSpec ecParams, byte[] sigBytes) throws SignatureException {
+    private byte[][] decodeSignature(ECParameterSpec ecParams, byte[] sigBytes) throws SignatureException {
         BigInteger n = ecParams.getOrder();
         int curveLen = (ecParams.getCurve().getField().getFieldSize() + 7) / 8;
         try {
@@ -270,18 +266,18 @@ public class SDFSM2Signature extends SignatureSpi {
             }
 
             BigInteger r = values[0].getPositiveBigInteger();
-            BigInteger s = values[1].getPositiveBigInteger();
-
             if (r.signum() < 0 || (null != n && r.compareTo(n) >= 0)) {
                 throw new IllegalArgumentException("Value out of range");
             }
+
+            BigInteger s = values[1].getPositiveBigInteger();
             if (s.signum() < 0 || (null != n && s.compareTo(n) >= 0)) {
                 throw new IllegalArgumentException("Value out of range");
             }
-            return new SDFECCSignature(
+            return new byte[][]{
                     SDFUtil.asUnsignedByteArray(curveLen, r),
-                    SDFUtil.asUnsignedByteArray(curveLen, s)
-            );
+                    SDFUtil.asUnsignedByteArray(curveLen, s),
+            };
         } catch (IOException e) {
             throw new SignatureException("Invalid encoding for signature", e);
         }

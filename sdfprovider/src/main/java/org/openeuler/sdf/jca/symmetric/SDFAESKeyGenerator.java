@@ -47,7 +47,7 @@ public final class SDFAESKeyGenerator extends SDFKeyGeneratorCore {
     @Override
     protected void checkKey(int keysize) {
         if (((keysize % 8) != 0) ||
-                (!SDFKeyUtil.isAESKeySizeValid(keysize/8))) {
+                (!SDFKeyUtil.isAESKeySizeValid(keysize / 8))) {
             throw new InvalidParameterException
                     ("Wrong keysize: must be equal to 128, 192 or 256");
         }

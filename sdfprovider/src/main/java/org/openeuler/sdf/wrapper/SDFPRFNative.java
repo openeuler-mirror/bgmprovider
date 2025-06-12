@@ -24,11 +24,8 @@
 
 package org.openeuler.sdf.wrapper;
 
-import org.openeuler.sdf.wrapper.entity.SDFKeyPrfParameter;
-
 public class SDFPRFNative {
-    public native static byte[] nativeGMTLSPRF(long sessionHandleAddr, byte[] secretArr, String labelArr,
+    public native static byte[] nativeGMTLSPRF(String prfHashAlg, String cipherAlg, byte[] secretArr, String labelArr,
                                                byte[] clientRandomArr, byte[] serverRandomArr,
-                                               SDFKeyPrfParameter prfParameter, byte[] sessionHashArr,
-                                               byte[] handshakeHashArr);
+                                               byte[] sslHashArr, int macKeyLen, int cipherKeyLen, int ivLen);
 }

@@ -27,17 +27,17 @@ package org.openeuler.sdf.wrapper;
 public class SDFDigestNative {
 
     // return pointer to the context
-    public native static long nativeDigestInit(long sessionHandleAddr, String algorithmName);
+    public native static long nativeDigestInit(String algorithmName);
 
     // update the input byte
-    public native static void nativeDigestUpdate(long sessionHandleAddr, long ctxAddress, byte[] input, int offset, int inLen);
+    public native static void nativeDigestUpdate(long ctxAddress, byte[] input, int offset, int inLen);
 
     // digest and store the digest message to output
-    public native static byte[] nativeDigestFinal(long sessionHandleAddr, long ctxAddress, int digestLen);
+    public native static byte[] nativeDigestFinal(long ctxAddress, int digestLen);
 
     // free the digest context
-    public native static void nativeDigestCtxFree(long sessionHandleAddr, long ctxAddress);
+    public native static void nativeDigestCtxFree(long ctxAddress);
 
     // clone the digest context
-    public native static long nativeDigestCtxClone(long sessionHandleAddr, long ctxAddress);
+    public native static long nativeDigestCtxClone(long ctxAddress);
 }

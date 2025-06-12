@@ -25,9 +25,6 @@
 package org.openeuler.sdf.jca.asymmetric;
 
 import org.openeuler.sdf.commons.exception.SDFException;
-import org.openeuler.sdf.commons.exception.SDFRuntimeException;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.commons.spec.SDFKEKInfoEntity;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPrivateKeyImpl;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPublicKeyImpl;
@@ -133,14 +130,14 @@ public class SDFSM2KeyPairGenerator extends SDFKeyPairGeneratorCore {
     }
 
     @Override
-    protected byte[][] implGenerateKeyPair(SDFSession session, SDFKEKInfoEntity kekInfo, int keySize)
+    protected byte[][] implGenerateKeyPair(SDFKEKInfoEntity kekInfo, int keySize)
             throws SDFException {
         return SDFSM2KeyPairGeneratorNative.nativeGenerateKeyPair(
-                session.getAddress(),
+                keySize,
                 kekInfo.getKekId(),
                 kekInfo.getRegionId(),
                 kekInfo.getCdpId(),
-                kekInfo.getPIN()
+                kekInfo.getPin()
         );
     }
 

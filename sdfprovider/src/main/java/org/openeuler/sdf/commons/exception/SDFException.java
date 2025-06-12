@@ -35,6 +35,7 @@ import java.util.Map;
 public class SDFException extends Exception {
     private static final long serialVersionUID = -5328824333039362164L;
     protected long errorCode;
+    protected String functionName;
 
     protected String errorMsg;
 
@@ -54,6 +55,12 @@ public class SDFException extends Exception {
     public SDFException(long errorCode) {
         this.errorCode = errorCode;
         this.errorMsg = lookup(errorCode);
+    }
+
+    public SDFException(long errorCode, String functionName) {
+        this.errorCode = errorCode;
+        this.functionName = functionName;
+        this.errorMsg = functionName + ":" + lookup(errorCode);
     }
 
     @Override

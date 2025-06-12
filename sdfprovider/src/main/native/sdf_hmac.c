@@ -21,192 +21,147 @@
  * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
  * information or have any questions.
  */
+#include "cryptocard/crypto_sdk_vf.h"
+#include "cryptocard/errno.h"
+
 #include "org_openeuler_sdf_wrapper_SDFHmacNative.h"
-#include "sdf.h"
 #include "sdf_exception.h"
 #include "sdf_util.h"
 
-#include <string.h>
-#include <malloc.h>
-
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFHmacNative
- * Method:    nativeHmacInit
- * Signature: (J[BLjava/lang/String;)J
- */
 JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFHmacNative_nativeHmacInit
-        (JNIEnv *env, jclass cls, jlong sessionAddress, jbyteArray keyBytes, jstring digestName) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    unsigned char *uiKey = NULL;
-    unsigned int uiKeyLen;
-    SGD_HANDLE hKeyHandle = NULL;
+        (JNIEnv *env, jclass cls, jbyteArray keyBytes) {
+    unsigned char *key = NULL;
+    unsigned int keyLen;
+    void *keyHandle = NULL;
+    unsigned int type = CTX_TYPE_HMAC;
+    void *hmacContext = NULL;
+    int rv = SDR_UNKNOWERR;
 
-    const char *digestNameChars = NULL;
-    unsigned int uiAlgID;
-
-    unsigned int uiType = SDF_CTX_TYPE_HMAC;
-    void *HMAC_CONTEXT = NULL;
-
-    SGD_RV rv = SDR_UNKNOWERR;
-
-    // hKeyHandle
-    uiKeyLen = (*env)->GetArrayLength(env, keyBytes);
-    if ((uiKey = malloc(uiKeyLen)) == NULL) {
-        throwOutOfMemoryError(env, "malloc uiKey failed");
+    keyLen = (*env)->GetArrayLength(env, keyBytes);
+    if ((key = malloc(keyLen)) == NULL) {
+        throwOutOfMemoryError(env, "malloc key failed");
         goto cleanup;
     }
-    (*env)->GetByteArrayRegion(env, keyBytes, 0, uiKeyLen, uiKey);
+    (*env)->GetByteArrayRegion(env, keyBytes, 0, keyLen, key);
 
-    // Import encrypted uiKey
-    if ((rv = SDF_HW_ImportKey(hSessionHandle, uiKey, uiKeyLen, &hKeyHandle)) != SDR_OK) {
-        throwSDFException(env, rv);
+    // import key
+    if ((rv = CDM_ImportKeyHandle(key, keyLen, NULL, 0, &keyHandle)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_ImportKeyHandle");
         goto cleanup;
     }
 
-    // new HMAC_CONTEXT
-    if ((rv = SDF_HW_MemoryCalloc(hSessionHandle, uiType, &HMAC_CONTEXT)) != SDR_OK) {
-        throwSDFException(env, rv);
+    // new hmacContext
+    if ((rv = CDM_MemoryCalloc(type, &hmacContext)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_MemoryCalloc");
         goto cleanup;
     }
 
     // hmac init
-    digestNameChars = (*env)->GetStringUTFChars(env, digestName, 0);
-    uiAlgID = SDF_GetDigestAlgoId(digestNameChars);
-    if (uiAlgID == SDF_INVALID_VALUE) {
-        throwIllegalArgumentException(env, "invalid digestName");
-        goto cleanup;
-    }
-    rv = SDF_HW_HmacInit(hSessionHandle, hKeyHandle, uiAlgID, HMAC_CONTEXT);
-    if (rv != SDR_OK) {
-        throwSDFException(env, rv);
+    if ((rv = CDM_HMACInit(keyHandle, hmacContext)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_HMACInit");
         goto cleanup;
     }
 
 cleanup:
-    if (uiKey != NULL) {
-        free(uiKey);
+    if (key != NULL) {
+        free(key);
     }
-    if (digestNameChars != NULL) {
-        (*env)->ReleaseStringUTFChars(env, digestName, digestNameChars);
+    // keyHandle can be free after CDM_HMACInit
+    if (keyHandle != NULL) {
+        CDM_DestroyKeyHandle(keyHandle);
     }
-    // hKeyHandle can be free after SDF_HW_HmacInit
-    if (hKeyHandle != NULL) {
-        SDF_DestroyKey(hSessionHandle, hKeyHandle);
+    if (rv != SDR_OK && hmacContext != NULL) {
+        CDM_MemoryFree(type, hmacContext);
     }
-    if (rv != SDR_OK && HMAC_CONTEXT != NULL) {
-        SDF_HW_MemoryFree(hSessionHandle, uiType, HMAC_CONTEXT);
-    }
-    return (jlong) HMAC_CONTEXT;
+    return (jlong) hmacContext;
 }
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFHmacNative
- * Method:    nativeHmacUpdate
- * Signature: (J[BIJ)V
- */
 JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFHmacNative_nativeHmacUpdate
-        (JNIEnv *env, jclass cls, jlong sessionAddress, jlong ctxAddress, jbyteArray input, jint offset, jint len) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    void *HMAC_CONTEXT = (void *) ctxAddress;
-    unsigned char *pucData = NULL;
-    unsigned int uiDataLength = len;
-    SGD_RV rv;
+        (JNIEnv *env, jclass cls, jlong ctxAddress, jbyteArray input, jint offset, jint len) {
+    void *hmacContext = (void *) ctxAddress;
+    unsigned char *data = NULL;
+    unsigned int dataLen = len;
+    int rv;
 
-    if (!(pucData = malloc(uiDataLength))) {
-        throwOutOfMemoryError(env, "malloc pucData failed");
+    if (!(data = malloc(dataLen))) {
+        throwOutOfMemoryError(env, "malloc data failed");
         goto cleanup;
     }
-    (*env)->GetByteArrayRegion(env, input, offset, len, pucData);
+    (*env)->GetByteArrayRegion(env, input, offset, len, data);
 
-    if ((rv = SDF_HW_HmacUpdate(hSessionHandle, pucData, uiDataLength, HMAC_CONTEXT)) != SDR_OK) {
-        throwSDFException(env, rv);
+    if ((rv = CDM_HMACUpdate(data, dataLen, hmacContext)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_HMACUpdate");
         goto cleanup;
     }
 
 cleanup:
-    if (pucData != NULL) {
-        free(pucData);
+    if (data != NULL) {
+        free(data);
     }
 }
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFHmacNative
- * Method:    nativeHmacFinal
- * Signature: (JJ)[B
- */
 JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFHmacNative_nativeHmacFinal
-        (JNIEnv *env, jclass cls, jlong sessionAddress, jlong ctxAddress, jint macLen) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    void *HMAC_CONTEXT = (void *) ctxAddress;
-    unsigned char *pucHmac = NULL;
-    unsigned int puiHmacLength;
-    jbyteArray byteArray = NULL;
-    SGD_RV rv;
+        (JNIEnv *env, jclass cls, jlong ctxAddress, jint macLen) {
+    void *hmacContext = (void *) ctxAddress;
+    unsigned char *hmac = NULL;
+    unsigned int hmacLen = macLen;
+    jbyteArray hmacArr = NULL;
+    int rv;
 
-    if (!(pucHmac = malloc(macLen))) {
-        throwOutOfMemoryError(env, "malloc pucHmac failed");
+    if (!(hmac = malloc(macLen))) {
+        throwOutOfMemoryError(env, "malloc hmac failed");
         goto cleanup;
     }
 
-    if ((rv = SDF_HW_HmacFinal(hSessionHandle, pucHmac, &puiHmacLength, HMAC_CONTEXT)) != SDR_OK) {
-        throwSDFException(env, rv);
+    if ((rv = CDM_HMACFinal(hmacContext, hmac, &hmacLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_HMACFinal");
         goto cleanup;
     }
 
-    byteArray = (*env)->NewByteArray(env, (jsize) puiHmacLength);
-    (*env)->SetByteArrayRegion(env, byteArray, 0, puiHmacLength, pucHmac);
+    hmacArr = (*env)->NewByteArray(env, hmacLen);
+    (*env)->SetByteArrayRegion(env, hmacArr, 0, hmacLen, hmac);
 
 cleanup:
-    if (pucHmac != NULL) {
-        free(pucHmac);
+    if (hmac != NULL) {
+        free(hmac);
     }
-    return byteArray;
+    return hmacArr;
 }
 
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFHmacNative
- * Method:    nativeHmacContextFree
- * Signature: (JJ)[B
- */
 JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFHmacNative_nativeHmacContextFree
-        (JNIEnv *env, jclass cls, jlong sessionAddress, jlong ctxAddress) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    unsigned int uiType = SDF_CTX_TYPE_HMAC;
-    void *HMAC_CONTEXT = (void *) ctxAddress;
-    SGD_RV rv;
+        (JNIEnv *env, jclass cls, jlong ctxAddress) {
+    unsigned int type = CTX_TYPE_HMAC;
+    void *hmacContext = (void *) ctxAddress;
+    int rv;
 
-    if (HMAC_CONTEXT == NULL) {
+    if (hmacContext == NULL) {
         return;
     }
 
-    if ((rv = SDF_HW_MemoryFree(hSessionHandle, uiType, HMAC_CONTEXT)) != SDR_OK) {
-        throwSDFException(env, rv);
+    if ((rv = CDM_MemoryFree(type, hmacContext)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_MemoryFree");
         return;
     }
 }
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFHmacNative
- * Method:    nativeHmacContextClone
- * Signature: (JJ)J
- */
 JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFHmacNative_nativeHmacContextClone
-        (JNIEnv *env, jclass cls, jlong sessionAddress, jlong ctxAddress) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    unsigned int uiType = SDF_CTX_TYPE_HMAC;
-    void *uiSrcHandle = (void *) ctxAddress;
-    void *uiDestHandle = NULL;
-    SGD_RV rv;
+        (JNIEnv *env, jclass cls, jlong ctxAddress) {
+    unsigned int type = CTX_TYPE_HMAC;
+    void *srcHandle = (void *) ctxAddress;
+    void *dstHandle = NULL;
+    int rv;
 
-    if ((rv = SDF_HW_MemoryCalloc(hSessionHandle, uiType, &uiDestHandle) != SDR_OK)) {
-        throwSDFException(env, rv);
+    if ((rv = CDM_MemoryCalloc(type, &dstHandle) != SDR_OK)) {
+        throwSDFException(env, rv, "CDM_MemoryCalloc");
         goto cleanup;
     }
-    if ((rv = SDF_HW_MemoryCopy(hSessionHandle, uiType, uiSrcHandle, uiDestHandle)) != SDR_OK) {
-        throwSDFException(env, rv);
+    if ((rv = CDM_MemoryCopy(type, srcHandle, dstHandle)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_MemoryCopy");
         goto cleanup;
     }
+    return (jlong) (dstHandle);
+
 cleanup:
-    return (jlong) (uiDestHandle);
+    return 0L;
 }

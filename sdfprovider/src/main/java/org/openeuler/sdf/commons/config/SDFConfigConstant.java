@@ -25,6 +25,7 @@
 package org.openeuler.sdf.commons.config;
 
 interface SDFConfigConstant {
+    String SDF_CONFIG = "sdf.config";
     String SDF_ENABLE_NON_SM = "sdf.enableNonSM";
     String SDF_LIBRARY = "sdf.library";
     String SDF_USEENCDEK = "sdf.useEncDEK";
@@ -37,5 +38,5 @@ interface SDFConfigConstant {
     String SDF_LOG_LEVEL = "sdf.logLevel";
     String SDF_CLEANER_SHORT_INTERVAL = "sdf.cleaner.shortInterval";
     String SDF_CLEANER_LONG_INTERVAL = "sdf.cleaner.longInterval";
-    String SDF_SESSION_CAPACITY = "sdf.session.pool.capacity";
+    String SDF_SDK_CONFIG = "sdf.sdkConfig";
 }

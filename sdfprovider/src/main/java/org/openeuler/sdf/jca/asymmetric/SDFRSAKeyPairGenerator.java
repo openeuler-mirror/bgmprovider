@@ -28,8 +28,6 @@ package org.openeuler.sdf.jca.asymmetric;
 
 import org.openeuler.sdf.commons.exception.SDFException;
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.wrapper.SDFRSAKeyPairGeneratorNative;
 import sun.security.rsa.RSAUtil.KeyType;
 
@@ -106,17 +104,13 @@ abstract class SDFRSAKeyPairGenerator extends KeyPairGeneratorSpi {
 
     @Override
     public KeyPair generateKeyPair() {
-        SDFSession session = SDFSessionManager.getInstance().getSession();
         byte[][] nativeKeyParams;
         try {
             nativeKeyParams = SDFRSAKeyPairGeneratorNative.nativeGenerateKeyPair(
-                    session.getAddress(),
                     null, null, null, null, keySize
             );
         } catch (SDFException e) {
             throw new SDFRuntimeException(e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
         }
 
         // check key parameters

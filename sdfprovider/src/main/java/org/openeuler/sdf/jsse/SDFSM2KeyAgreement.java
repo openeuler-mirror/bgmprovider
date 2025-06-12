@@ -26,14 +26,11 @@ package org.openeuler.sdf.jsse;
 
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
 import org.openeuler.sdf.commons.key.SDFEncryptKey;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
 import org.openeuler.sdf.jca.commons.SDFUtil;
 import org.openeuler.sdf.jsse.commons.SDFKeyExchangeUtil;
 import org.openeuler.sdf.wrapper.SDFSM2KeyAgreementNative;
 import org.openeuler.spec.SM2KeyExchangeParameterSpec;
-import org.openeuler.sdf.wrapper.entity.SDFECCrefPublicKey;
 
 import javax.crypto.KeyAgreementSpi;
 import javax.crypto.SecretKey;
@@ -164,26 +161,23 @@ public class SDFSM2KeyAgreement extends KeyAgreementSpi {
             throw new IllegalStateException("Not initialized");
         }
         byte[] sharedSecretKey;
-        SDFSession session = SDFSessionManager.getInstance().getSession();
         try {
-            byte[] localCipherPriKey = SDFUtil.asUnsignedByteArray(localPrivateKey);
-            byte[] tmpCipherPriKey = SDFUtil.asUnsignedByteArray(localTempPrivateKey);
-            SDFECCrefPublicKey localPublicKey = new SDFECCrefPublicKey(this.localPublicKey);
-            SDFECCrefPublicKey localTempPublicKey = new SDFECCrefPublicKey(this.localTempPublicKey);
-            SDFECCrefPublicKey peerPublicKey = new SDFECCrefPublicKey(this.peerPublicKey);
-            SDFECCrefPublicKey peerTempPublicKey = new SDFECCrefPublicKey(this.peerTempPublicKey);
+            byte[] localCipherPriKeyArr = SDFUtil.getPrivateKeyBytes(this.localPrivateKey);
+            byte[] localTempCipherPriKeyArr = SDFUtil.getPrivateKeyBytes(this.localTempPrivateKey);
+            Object[] localPublicKeyArr = SDFUtil.getPublicKeyAffineXYBytes(this.localPublicKey);
+            Object[] localTempPublicKeyArr = SDFUtil.getPublicKeyAffineXYBytes(this.localTempPublicKey);
+            Object[] peerPublicKeyArr = SDFUtil.getPublicKeyAffineXYBytes(this.peerPublicKey);
+            Object[] peerTempPublicKeyArr = SDFUtil.getPublicKeyAffineXYBytes(this.peerTempPublicKey);
 
-            sharedSecretKey = SDFSM2KeyAgreementNative.generateSharedSecret(session.getAddress(), localId, localCipherPriKey, localPublicKey,
-                    tmpCipherPriKey, localTempPublicKey,
-                    peerId, peerPublicKey, peerTempPublicKey, secretLen << 3, useClientMode);
+            sharedSecretKey = SDFSM2KeyAgreementNative.generateSharedSecret(
+                    localId, localCipherPriKeyArr, localPublicKeyArr,
+                    localTempCipherPriKeyArr, localTempPublicKeyArr,
+                    peerId, peerPublicKeyArr, peerTempPublicKeyArr, this.secretLen << 3, this.useClientMode);
         } catch (Exception e) {
             throw new SDFRuntimeException(e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
         }
         return sharedSecretKey;
     }
-
 
     @Override
     protected int engineGenerateSecret(byte[] sharedSecret, int offset)

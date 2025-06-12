@@ -1,30 +1,32 @@
+/*
+ * Copyright (c) 2024, Huawei Technologies Co., Ltd. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Huawei designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Huawei in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
+ * information or have any questions.
+ */
+
+#include "cryptocard/crypto_sdk_vf.h"
+#include "cryptocard/errno.h"
+
 #include "org_openeuler_sdf_wrapper_SDFSM2KeyAgreementNative.h"
-#include "sdf.h"
 #include "sdf_util.h"
-
-unsigned char *SDF_NewSM2PublicKeyChars(JNIEnv *env, jobject publicKeyObj) {
-    ECCrefPublicKey_HW *publicKey = SDF_GetECCPublickeyFromObj(env, publicKeyObj);
-    if (!publicKey) {
-        return NULL;
-    }
-    return (unsigned char *) publicKey;
-}
-
-void SDF_ReleaseSM2PublicKeyChars(unsigned char *publicKey) {
-    if (publicKey) {
-        free(publicKey);
-    }
-}
-
-unsigned char *SDF_NewSM2PrivateKeyChars(JNIEnv *env, jbyteArray privateKeyArr) {
-    return (unsigned char *) (*env)->GetByteArrayElements(env, privateKeyArr, 0);
-}
-
-void SDF_ReleaseSM2PrivateKeyChars(JNIEnv *env, jbyteArray privateKeyArr, unsigned char *privateKeyBytes) {
-    if (privateKeyBytes) {
-        (*env)->ReleaseByteArrayElements(env, privateKeyArr, (jbyte *) privateKeyBytes, 0);
-    }
-}
 
 unsigned char *SDF_NewIDChars(JNIEnv *env, jbyteArray idArr) {
     return (unsigned char *) (*env)->GetByteArrayElements(env, idArr, 0);
@@ -40,99 +42,91 @@ void SDF_ReleaseIDChars(JNIEnv *env, jbyteArray idArr, unsigned char *idBytes) {
     }
 }
 
-
 JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2KeyAgreementNative_generateSharedSecret(
-        JNIEnv *env, jclass cls, jlong sessionHandleAddr,
-        jbyteArray localIdArr, jbyteArray localCipherPriKeyArr, jobject localPublicKeyObj,
-        jbyteArray tempCipherPriKeyArr, jobject tempPublicKeyObj,
-        jbyteArray peerIdArr, jobject peerPublicKeyObj, jobject peerTempPublicKeyObj,
+        JNIEnv *env, jclass cls, jbyteArray localIdArr, jbyteArray localCipherPriKeyArr, jobjectArray localPublicKeyArr,
+        jbyteArray localTempCipherPriKeyArr, jobjectArray localTempPublicKeyArr,
+        jbyteArray peerIdArr, jobjectArray peerPublicKeyArr, jobjectArray peerTempPublicKeyArr,
         jint secretLen, jboolean useClientMode) {
-    SGD_HANDLE *hSessionHandle = (SGD_HANDLE *) sessionHandleAddr;
-    unsigned int Flag;
-    unsigned char *OwnPublicKey = NULL;
-    unsigned int OPBKLen;
-    unsigned char *OwnPrivateKey = NULL;
-    unsigned int OCPIKLen;
-    unsigned char *OwnTmpPublicKey = NULL;
-    unsigned int OTPBKLen;
-    unsigned char *OwnTmpPrivateKey = NULL;
-    unsigned int OTPIKLen;
-    unsigned int uiKeyBits;
-    unsigned char *pucSponsorID = NULL;
-    unsigned int uiSponsorIDLength;
-    unsigned char *pucResponseID = NULL;
-    unsigned int uiResponseIDLength;
-    unsigned char *pucResponsePublicKey = NULL;
-    unsigned int RPBKLen;
-    unsigned char *pucResponseTmpPublicKey = NULL;
-    unsigned int RTPBKLen;
-    unsigned char *pCipherKey = NULL;
-    unsigned int pCKLen;
+    unsigned int flag;
+    char *ownPubKey = NULL;
+    unsigned int ownPubKeyLen = 0;
+    void *ownPriKeyHandle = NULL;
+    char *ownTmpPubKey = NULL;
+    unsigned int ownTmpPubKeyLen = 0;
+    void *ownTmpPriKeyHandle = NULL;
+    unsigned int keyBits;
+    unsigned char *sponsorId = NULL;
+    unsigned int sponsorIdLen;
+    unsigned char *responseId = NULL;
+    unsigned int responseIdLen;
+    char *responsePubKey = NULL;
+    unsigned int responsePubKeyLen = 0;
+    char *responseTmpPubKey = NULL;
+    unsigned int responseTmpPubKeyLen = 0;
+    char *cipherKey = NULL;
+    unsigned int cipherKeyLen = 0;
 
-    unsigned int uiType = SDF_ASYMMETRIC_KEY_TYPE_SM2;
-    unsigned int PBKLen = SDF_GetAsymmetricPBKLen(uiType);
-    unsigned int PRKLen = SDF_GetAsymmetricPRKLen(uiType);
     SGD_RV rv;
     jbyteArray result = NULL;
 
-    Flag = useClientMode ? 1 : 0;
-    OwnPublicKey = SDF_NewSM2PublicKeyChars(env, localPublicKeyObj);
-    OPBKLen = PBKLen;
+    flag = useClientMode ? 1 : 0;
+    ownPubKey = SDF_CreateSM2PublicKey(env, localPublicKeyArr, &ownPubKeyLen);
+    ownPriKeyHandle = SDF_CreateSM2PriKeyHandle(env, localCipherPriKeyArr);
 
-    OwnPrivateKey = SDF_NewSM2PrivateKeyChars(env, localCipherPriKeyArr);
-    OCPIKLen = PRKLen;
+    ownTmpPubKey = SDF_CreateSM2PublicKey(env, localTempPublicKeyArr, &ownTmpPubKeyLen);
+    ownTmpPriKeyHandle = SDF_CreateSM2PriKeyHandle(env, localTempCipherPriKeyArr);
 
-    OwnTmpPublicKey = SDF_NewSM2PublicKeyChars(env, tempPublicKeyObj);
-    OTPBKLen = PBKLen;
+    keyBits = secretLen;
 
-    OwnTmpPrivateKey = SDF_NewSM2PrivateKeyChars(env, tempCipherPriKeyArr);
-    OTPIKLen = PRKLen;
+    sponsorId = SDF_NewIDChars(env, localIdArr);
+    sponsorIdLen = SDF_GetIDLen(env, localIdArr);
 
-    uiKeyBits = secretLen;
+    responseId = SDF_NewIDChars(env, peerIdArr);
+    responseIdLen = SDF_GetIDLen(env, peerIdArr);
 
-    pucSponsorID = SDF_NewIDChars(env, localIdArr);
-    uiSponsorIDLength = SDF_GetIDLen(env, localIdArr);
+    responsePubKey = SDF_CreateSM2PublicKey(env, peerPublicKeyArr, &responsePubKeyLen);
+    responseTmpPubKey = SDF_CreateSM2PublicKey(env, peerTempPublicKeyArr, &responseTmpPubKeyLen);
 
-    pucResponseID = SDF_NewIDChars(env, peerIdArr);
-    uiResponseIDLength = SDF_GetIDLen(env, peerIdArr);
-
-    pucResponsePublicKey = SDF_NewSM2PublicKeyChars(env, peerPublicKeyObj);
-    RPBKLen = PBKLen;
-
-    pucResponseTmpPublicKey = SDF_NewSM2PublicKeyChars(env, peerTempPublicKeyObj);
-    RTPBKLen = PBKLen;
-
-    if (!(pCipherKey = malloc(SYSCKEY_LEN))) {
-        throwOutOfMemoryError(env, "malloc pCipherKey failed");
-        goto cleanup;
-    }
-    memset(pCipherKey, 0, SYSCKEY_LEN);
-
-    if ((rv = SDF_HW_PreMasterKeyExchange_SM2STD(hSessionHandle, Flag, OwnPublicKey, OPBKLen, OwnPrivateKey, OCPIKLen,
-            OwnTmpPublicKey, OTPBKLen, OwnTmpPrivateKey, OTPIKLen, uiKeyBits, pucSponsorID, uiSponsorIDLength,
-            pucResponseID, uiResponseIDLength, pucResponsePublicKey, RPBKLen, pucResponseTmpPublicKey, RTPBKLen,
-            pCipherKey, &pCKLen)) != SDR_OK) {
-        throwSDFException(env, rv);
+    // compute cipherKeyLen
+    if ((rv = CDM_PreMasterKeyExchangeSM2STD(flag, ownPubKey, ownPubKeyLen, ownPriKeyHandle,
+            ownTmpPubKey, ownTmpPubKeyLen, ownTmpPriKeyHandle, keyBits, sponsorId, sponsorIdLen,
+            responseId, responseIdLen, responsePubKey, responsePubKeyLen, responseTmpPubKey, responseTmpPubKeyLen,
+            cipherKey, &cipherKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_PreMasterKeyExchangeSM2STD");
         goto cleanup;
     }
 
-    result = (*env)->NewByteArray(env, (jint) pCKLen);
-    (*env)->SetByteArrayRegion(env, result, 0, (jint) pCKLen, (jbyte *) pCipherKey);
+    if (!(cipherKey = malloc(cipherKeyLen))) {
+        throwOutOfMemoryError(env, "malloc cipherKey failed");
+        goto cleanup;
+    }
+    memset(cipherKey, 0, cipherKeyLen);
+
+    if ((rv = CDM_PreMasterKeyExchangeSM2STD(flag, ownPubKey, ownPubKeyLen, ownPriKeyHandle,
+            ownTmpPubKey, ownTmpPubKeyLen, ownTmpPriKeyHandle, keyBits, sponsorId, sponsorIdLen,
+            responseId, responseIdLen, responsePubKey, responsePubKeyLen, responseTmpPubKey, responseTmpPubKeyLen,
+            cipherKey, &cipherKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_PreMasterKeyExchangeSM2STD");
+        goto cleanup;
+    }
+
+    result = (*env)->NewByteArray(env, (jint) cipherKeyLen);
+    (*env)->SetByteArrayRegion(env, result, 0, (jint) cipherKeyLen, (jbyte *) cipherKey);
 cleanup:
-    SDF_ReleaseSM2PublicKeyChars(OwnPublicKey);
-    SDF_ReleaseSM2PrivateKeyChars(env, localCipherPriKeyArr, OwnPrivateKey);
+    SDF_FreeSM2PublicKey(ownPubKey);
+    SDF_FreeSM2PriKeyHandle(ownPriKeyHandle);
 
-    SDF_ReleaseSM2PublicKeyChars(OwnTmpPublicKey);
-    SDF_ReleaseSM2PrivateKeyChars(env, tempCipherPriKeyArr, OwnTmpPrivateKey);
+    SDF_FreeSM2PublicKey(ownTmpPubKey);
+    SDF_FreeSM2PriKeyHandle(ownTmpPriKeyHandle);
 
-    SDF_ReleaseIDChars(env, localIdArr, pucSponsorID);
-    SDF_ReleaseIDChars(env, peerIdArr, pucResponseID);
+    SDF_ReleaseIDChars(env, localIdArr, sponsorId);
+    SDF_ReleaseIDChars(env, peerIdArr, responseId);
 
-    SDF_ReleaseSM2PublicKeyChars(pucResponsePublicKey);
-    SDF_ReleaseSM2PublicKeyChars(pucResponseTmpPublicKey);
+    SDF_FreeSM2PublicKey(responsePubKey);
+    SDF_FreeSM2PublicKey(responseTmpPubKey);
 
-    if (pCipherKey) {
-        free(pCipherKey);
+    if (cipherKey) {
+        free(cipherKey);
     }
     return result;
 }

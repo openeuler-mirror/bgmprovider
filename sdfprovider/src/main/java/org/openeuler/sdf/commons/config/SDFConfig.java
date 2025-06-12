@@ -78,15 +78,15 @@ public class SDFConfig {
     // cleaner long longInterval
     private long longInterval;
 
-    // session pool capacity
-    private int sessionCapacity;
+    // sdk config path
+    private String sdkConfig;
 
     private final Properties props = new Properties();
 
     private static final SDFConfig instance = new SDFConfig();
 
     private SDFConfig() {
-        this.fileName = System.getProperty("sdf.config");
+        this.fileName = System.getProperty(SDFConfigConstant.SDF_CONFIG);
         try {
             if (fileName != null) {
                 load(fileName);
@@ -154,7 +154,7 @@ public class SDFConfig {
         this.logLevel = parseLogLevel();
         this.shortInterval = parseShortInterval();
         this.longInterval = parseLongInterval();
-        this.sessionCapacity = parseSessionCapacity();
+        this.sdkConfig = parseSdkConfig();
     }
 
     private boolean parseEnableNonSM() {
@@ -203,19 +203,19 @@ public class SDFConfig {
     }
 
     private String parseDefaultKEKId() {
-        return getProperty(SDFConfigConstant.SDF_DEFAULT_KEK_ID, "");
+        return getProperty(SDFConfigConstant.SDF_DEFAULT_KEK_ID);
     }
 
     private String parseDefaultRegionId() {
-        return getProperty(SDFConfigConstant.SDF_DEFAULT_REGION_ID, "");
+        return getProperty(SDFConfigConstant.SDF_DEFAULT_REGION_ID);
     }
 
     private String parseDefaultCdpId() {
-        return getProperty(SDFConfigConstant.SDF_DEFAULT_CDP_ID, "");
+        return getProperty(SDFConfigConstant.SDF_DEFAULT_CDP_ID);
     }
 
     private String parseDefaultPin() {
-        return getProperty(SDFConfigConstant.SDF_DEFAULT_PIN, "");
+        return getProperty(SDFConfigConstant.SDF_DEFAULT_PIN);
     }
 
     private String parseLogPath() throws IOException {
@@ -255,8 +255,8 @@ public class SDFConfig {
         return longInterval;
     }
 
-    private int parseSessionCapacity() {
-        return getIntProperty(SDFConfigConstant.SDF_SESSION_CAPACITY, 1024);
+    private String parseSdkConfig() {
+        return getProperty(SDFConfigConstant.SDF_SDK_CONFIG);
     }
 
     public String getProperty(String key) {
@@ -348,7 +348,7 @@ public class SDFConfig {
         return longInterval;
     }
 
-    public int getSessionCapacity() {
-        return sessionCapacity;
+    public String getSdkConfig() {
+        return sdkConfig;
     }
 }

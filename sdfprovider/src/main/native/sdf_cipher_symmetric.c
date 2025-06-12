@@ -21,32 +21,153 @@
  * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
  * information or have any questions.
  */
+#include "cryptocard/errno.h"
+#include "cryptocard/crypto_sdk_vf.h"
 
 #include "org_openeuler_sdf_wrapper_SDFSymmetricCipherNative.h"
 #include "sdf_exception.h"
-#include <stdbool.h>
-#include <string.h>
-#include <stdlib.h>
-#include "sdf.h"
 #include "sdf_util.h"
 
-static void FreeMemoryFromInit(JNIEnv* env, jbyteArray iv, jbyte* ivBytes, jbyteArray key, jbyte* keyBytes,
-    int keyLength, jstring cipherType, const char* algo)
-{
-    if (ivBytes != NULL) {
-        (*env)->ReleaseByteArrayElements(env, iv, ivBytes, 0);
+static void FreeMemoryFromInit(JNIEnv *env, jbyteArray ivArr, jbyte *iv, jbyteArray keyArr, jbyte *key,
+        int keyLength, jstring mode, const char *modeName) {
+    if (iv != NULL) {
+        (*env)->ReleaseByteArrayElements(env, ivArr, iv, 0);
     }
-    if (keyBytes != NULL) {
-        memset(keyBytes, 0, keyLength);
-        (*env)->ReleaseByteArrayElements(env, key, keyBytes, 0);
+    if (key != NULL) {
+        memset(key, 0, keyLength);
+        (*env)->ReleaseByteArrayElements(env, keyArr, key, 0);
     }
-    if (algo != NULL) {
-        (*env)->ReleaseStringUTFChars(env, cipherType, algo);
+    if (modeName != NULL) {
+        (*env)->ReleaseStringUTFChars(env, mode, modeName);
     }
 }
 
-static void FreeMemoryFromUpdate(unsigned char* in, unsigned char* aad, unsigned char* out)
-{
+JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherInit(JNIEnv *env,
+        jclass cls, jint keyType, jstring mode, jboolean isPadding, jbyteArray keyArr, jbyteArray ivArr, jboolean encrypt) {
+    void *keyHandle = NULL;
+    void *sysCipher = NULL;
+    int ctxType = CTX_TYPE_SYMM;
+
+    jbyte *key = NULL;
+    int keyLen = 0;
+    jbyte *iv = NULL;
+    int ivLen = 0;
+    unsigned char *aad = NULL;
+    int aadLen = 0;
+    unsigned char *tag = NULL;
+    int tagLen = 0;
+    int dataUnitLen = 0;
+    const char *modeName = NULL;
+    unsigned int modeType;
+    int padding;
+
+    SGD_RV rv;
+
+    // key
+    key = (*env)->GetByteArrayElements(env, keyArr, NULL);
+    keyLen = (*env)->GetArrayLength(env, keyArr);
+
+    // iv
+    if (ivArr != NULL) {
+        iv = (*env)->GetByteArrayElements(env, ivArr, NULL);
+        ivLen = (*env)->GetArrayLength(env, ivArr);
+    }
+
+    // mode
+    modeName = (*env)->GetStringUTFChars(env, mode, 0);
+    modeType = SDF_GetSymmetricModeType(modeName);
+    if (modeType == SDF_INVALID_VALUE) {
+        throwIllegalArgumentException(env, "SDF_GetSymmetricAlgoId failed");
+        goto cleanup;
+    }
+    padding = isPadding ? PAD_PKCS7 : PAD_NO;
+
+    // Import normal or encrypted key
+    if ((rv = CDM_ImportKeyHandle(key, keyLen, NULL, 0, &keyHandle)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_ImportKeyHandle");
+        goto cleanup;
+    }
+    // Apply for symmetric encryption context
+    if ((rv = CDM_MemoryCalloc(ctxType, &sysCipher)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_MemoryCalloc");
+        goto cleanup;
+    }
+    if (encrypt) {
+        if ((rv = CDM_SymmEncryptInit(keyHandle, keyType, modeType, iv, ivLen, padding, aad, aadLen,
+                tagLen, dataUnitLen, sysCipher)) != SDR_OK) {
+            throwSDFException(env, rv, "CDM_SymmEncryptInit");
+            goto cleanup;
+        }
+    } else {
+        if ((rv = CDM_SymmDecryptInit(keyHandle, keyType, modeType, iv, ivLen, padding, aad, aadLen,
+                tag, tagLen, dataUnitLen, sysCipher)) != SDR_OK) {
+            throwSDFException(env, rv, "CDM_SymmDecryptInit");
+            goto cleanup;
+        }
+    }
+
+    FreeMemoryFromInit(env, ivArr, iv, keyArr, key, keyLen, mode, modeName);
+    return (jlong) sysCipher;
+
+cleanup:
+    if (keyHandle) {
+        CDM_DestroyKeyHandle(keyHandle);
+    }
+    if (sysCipher) {
+        CDM_MemoryFree(ctxType, sysCipher);
+    }
+    FreeMemoryFromInit(env, ivArr, iv, keyArr, key, keyLen, mode, modeName);
+    return 0;
+}
+
+/*
+ * Class:     org_openeuler_sdf_wrapper_SDFSymmetricCipherNative
+ * Method:    nativeCipherUpdate
+ * Signature: (JJ[BII[BIZ)I
+ */
+JNIEXPORT jint JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherUpdate(JNIEnv *env,
+        jclass cls, jlong ctxAddress, jbyteArray inArr, jint inOfs, jint inLen, jbyteArray outArr, jint outOfs,
+        jboolean encrypt) {
+    void *cipherHandle = (void *) ctxAddress;
+    unsigned char *in = NULL;
+    unsigned char *out = NULL;
+    unsigned char *aad = NULL;
+    unsigned int outLen = 0;
+    SGD_RV rv;
+
+    if (cipherHandle == NULL || inArr == NULL || outArr == NULL) {
+        throwNullPointerException(env, "NativeCipherUpdate failed. The parameter cannot be empty.");
+        goto cleanup;
+    }
+
+    if ((in = (unsigned char *) malloc(inLen)) == NULL) {
+        throwOutOfMemoryError(env, "NativeCipherUpdate failed. Unable to allocate in 'in' buffer");
+        goto cleanup;
+    }
+    memset(in, 0, inLen);
+    (*env)->GetByteArrayRegion(env, inArr, inOfs, inLen, (jbyte *) in);
+
+    outLen = (*env)->GetArrayLength(env, outArr);
+    outLen = outLen - outOfs;
+    if ((out = (unsigned char *) malloc(outLen)) == NULL) {
+        throwOutOfMemoryError(env, "NativeCipherUpdate failed. Unable to allocate in 'out' buffer");
+        goto cleanup;
+    }
+    memset(out, 0, outLen);
+
+    if (encrypt) {
+        if ((rv = CDM_SymmEncryptUpdate(in, inLen, cipherHandle, out, &outLen)) != SDR_OK) {
+            throwSDFException(env, rv, "CDM_SymmEncryptUpdate");
+            goto cleanup;
+        }
+    } else {
+        if ((rv = CDM_SymmDecryptUpdate(in, inLen, cipherHandle, out, &outLen)) != SDR_OK) {
+            throwSDFException(env, rv, "CDM_SymmDecryptUpdate");
+            goto cleanup;
+        }
+    }
+    (*env)->SetByteArrayRegion(env, outArr, outOfs, outLen, (jbyte *) out);
+cleanup:
     if (in != NULL) {
         free(in);
     }
@@ -56,134 +177,7 @@ static void FreeMemoryFromUpdate(unsigned char* in, unsigned char* aad, unsigned
     if (aad != NULL) {
         free(aad);
     }
-}
-
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFSymmetricCipherNative
- * Method:    nativeCipherInit
- * Signature: (JLjava/lang/String;Z[B[BZ)J
- */
-JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherInit(JNIEnv *env, jclass cls,
-  jlong sessionHandleAddr, jstring cipherAlgo, jboolean encrypt, jbyteArray keyArr, jbyteArray ivArr, jboolean padding)
-{
-    SGD_HANDLE sessionHandle = (SGD_HANDLE)sessionHandleAddr;
-    SGD_HANDLE keyHandle = NULL;
-    void* cipherHandle = NULL;
-
-    jbyte* uiKey = NULL;
-    jbyte* pucIv = NULL;
-    int ivLength = 0;
-    int keyLength = 0;
-    const char* algoName = NULL;
-    unsigned int uiAlgID = 0;
-    SGD_RV rv;
-
-    if (keyArr == NULL) {
-        throwNullPointerException(env, "NativeCipherInit failed. keyArr is Null.");
-        goto cleanup;
-    }
-    uiKey = (*env)->GetByteArrayElements(env, keyArr, NULL);
-    keyLength = (*env)->GetArrayLength(env, keyArr);
-
-    if (ivArr != NULL) {
-        pucIv = (*env)->GetByteArrayElements(env, ivArr, NULL);
-        ivLength = (*env)->GetArrayLength(env, ivArr);
-    }
-
-    algoName = (*env)->GetStringUTFChars(env, cipherAlgo, 0);
-    uiAlgID = SDF_GetSymmetricAlgoId(algoName);
-    if (uiAlgID == SDF_INVALID_VALUE) {
-        throwIllegalArgumentException(env, "SDF_GetSymmetricAlgoId failed");
-        goto cleanup;
-    }
-
-    // Import normal or encrypted key
-    if ((rv = SDF_HW_ImportKey(sessionHandle, uiKey, keyLength, &keyHandle)) != 0) {
-        throwSDFException(env, rv);
-        goto cleanup;
-    }
-    // Apply for symmetric encryption context
-    if ((rv = SDF_HW_MemoryCalloc(sessionHandle, SDF_CTX_TYPE_SYMMETRIC, &cipherHandle)) != 0) {
-        throwSDFException(env, rv);
-        goto cleanup;
-    }
-    if (encrypt) {
-        if ((rv = SDF_HW_SymmEncryptInit(sessionHandle, keyHandle, NULL, uiAlgID, pucIv, ivLength, padding ? 1 : 0, 0, cipherHandle)) != 0) {
-            throwSDFException(env, rv);
-            goto cleanup;
-        }
-    }else {
-        if ((rv = SDF_HW_SymmDecryptInit(sessionHandle, keyHandle, NULL, uiAlgID, pucIv, ivLength, padding ? 1 : 0, 0, cipherHandle)) != 0) {
-            throwSDFException(env, rv);
-            goto cleanup;
-        }
-    }
-    FreeMemoryFromInit(env, ivArr, pucIv, keyArr, uiKey, keyLength, cipherAlgo, algoName);
-    return (jlong)cipherHandle;
-
-cleanup:
-    if (keyHandle != NULL) {
-      SDF_DestroyKey(sessionHandle, keyHandle);
-    }
-    if (cipherHandle != NULL) {
-        SDF_HW_MemoryFree(sessionHandle, 0, cipherHandle);
-    }
-    FreeMemoryFromInit(env, ivArr, pucIv, keyArr, uiKey, keyLength, cipherAlgo, algoName);
-    return 0;
-}
-
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFSymmetricCipherNative
- * Method:    nativeCipherUpdate
- * Signature: (JJ[BII[BIZ)I
- */
-JNIEXPORT jint JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherUpdate(JNIEnv *env, jclass cls,
-  jlong sessionHandleAddr, jlong ctxAddress, jbyteArray inArr, jint inOfs, jint inLen, jbyteArray outArr, jint outOfs, jboolean encrypt)
-{
-    SGD_HANDLE sessionHandle = (SGD_HANDLE)sessionHandleAddr;
-    void* cipherHandle = (void*)ctxAddress;
-
-    unsigned char* in = NULL;
-    unsigned char* out = NULL;
-    unsigned char* aad = NULL;
-    unsigned int outLen = 0;
-    unsigned int bytesWritten = 0;
-    SGD_RV rv;
-
-    if (cipherHandle == NULL || inArr == NULL || outArr == NULL) {
-        throwNullPointerException(env, "NativeCipherUpdate failed. The parameter cannot be empty.");
-        goto cleanup;
-    }
-
-    if ((in = (unsigned char*)malloc(inLen)) == NULL) {
-        throwOutOfMemoryError(env, "NativeCipherUpdate failed. Unable to allocate in 'in' buffer");
-        goto cleanup;
-    }
-    memset(in, 0, inLen);
-    (*env)->GetByteArrayRegion(env, inArr, inOfs, inLen, (jbyte*)in);
-
-    outLen = (*env)->GetArrayLength(env, outArr) - outOfs;
-    if ((out = (unsigned char*)malloc(outLen)) == NULL) {
-        throwOutOfMemoryError(env, "NativeCipherUpdate failed. Unable to allocate in 'out' buffer");
-        goto cleanup;
-    }
-    memset(out, 0, outLen);
-
-    if (encrypt) {
-        if ((rv = SDF_HW_SymmEncryptUpdate(sessionHandle, in, inLen, out, &bytesWritten, cipherHandle)) != 0) {
-            throwSDFException(env, rv);
-            goto cleanup;
-        }
-    }else {
-        if ((rv = SDF_HW_SymmDecryptUpdate(sessionHandle, in, inLen, out, &bytesWritten, cipherHandle)) != 0) {
-            throwSDFException(env, rv);
-            goto cleanup;
-        }
-    }
-    (*env)->SetByteArrayRegion(env, outArr, outOfs, bytesWritten, (jbyte*)out);
-cleanup:
-    FreeMemoryFromUpdate(in, aad, out);
-    return bytesWritten;
+    return outLen;
 }
 
 /*
@@ -191,47 +185,47 @@ cleanup:
  * Method:    nativeCipherFinal
  * Signature: (JJ[BIZ)I
  */
-JNIEXPORT jint JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherFinal(JNIEnv *env, jclass cls,
-  jlong sessionHandleAddr, jlong ctxAddress, jbyteArray inArr, jint inOfs, jint inLen, jbyteArray outArr, jint outOfs, jboolean encrypt)
-{
-    SGD_HANDLE sessionHandle = (SGD_HANDLE)sessionHandleAddr;
-    void* cipherHandle = (void*) ctxAddress;
-    unsigned char* in = NULL;
-    unsigned char* out = NULL;
+JNIEXPORT jint JNICALL
+Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherFinal(JNIEnv *env, jclass cls,
+        jlong ctxAddress, jbyteArray inArr, jint inOfs, jint inLen, jbyteArray outArr, jint outOfs, jboolean encrypt) {
+    void* cipherHandle = (void *) ctxAddress;
+    unsigned char *in = NULL;
+    unsigned char *out = NULL;
     unsigned int outLen = 0;
-    unsigned  int bytesWritten = 0;
-    SGD_RV rv = 0;
+    unsigned char *tag = NULL;
+    SGD_RV rv;
 
     if (cipherHandle == NULL || outArr == NULL || inArr == NULL) {
         throwNullPointerException(env, "NativeCipherFinal failed. The parameter cannot be empty.");
         goto cleanup;
     }
-    if ((in = (unsigned char*)malloc(inLen)) == NULL) {
-        throwOutOfMemoryError(env, "NativeCipherUpdate failed. Unable to allocate in 'in' buffer");
+    if ((in = (unsigned char *) malloc(inLen)) == NULL) {
+        throwOutOfMemoryError(env, "NativeCipherFinal failed. Unable to allocate in 'in' buffer");
         goto cleanup;
     }
     memset(in, 0, inLen);
-    (*env)->GetByteArrayRegion(env, inArr, inOfs, inLen, (jbyte*)in);
+    (*env)->GetByteArrayRegion(env, inArr, inOfs, inLen, (jbyte *) in);
 
-    outLen = (*env)->GetArrayLength(env, outArr) - outOfs;
-    if ((out = (unsigned char*)malloc(outLen)) == NULL) {
+    outLen = (*env)->GetArrayLength(env, outArr);
+    outLen = outLen - outOfs;
+    if ((out = (unsigned char *) malloc(outLen)) == NULL) {
         throwOutOfMemoryError(env, "NativeCipherFinal failed. Unable to allocate in 'out' buffer");
         goto cleanup;
     }
     memset(out, 0, outLen);
 
     if (encrypt) {
-        if ((rv = SDF_HW_SymmEncryptFinal(sessionHandle, in, inLen, out, &bytesWritten, cipherHandle)) != 0) {
-            throwSDFException(env, rv);
+        if ((rv = CDM_SymmEncryptFinal(in, inLen, cipherHandle, out, &outLen, tag)) != SDR_OK) {
+            throwSDFException(env, rv, "CDM_SymmEncryptFinal");
             goto cleanup;
         }
     }else {
-        if ((rv = SDF_HW_SymmDecryptFinal(sessionHandle,in,inLen, out, &bytesWritten, cipherHandle)) != 0) {
-            throwSDFException(env, rv);
+        if ((rv = CDM_SymmDecryptFinal(cipherHandle, in, inLen, out, &outLen)) != SDR_OK) {
+            throwSDFException(env, rv, "CDM_SymmDecryptFinal");
             goto cleanup;
         }
     }
-    (*env)->SetByteArrayRegion(env, outArr, outOfs, bytesWritten, (jbyte*)out);
+    (*env)->SetByteArrayRegion(env, outArr, outOfs, outLen, (jbyte *) out);
 cleanup:
     if (in != NULL) {
         free(in);
@@ -239,27 +233,21 @@ cleanup:
     if (out != NULL) {
         free(out);
     }
-    return bytesWritten;
+    return outLen;
 }
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFSymmetricCipherNative
- * Method:    nativeCipherCtxFree
- * Signature: (J)V
- */
-JNIEXPORT void JNICALL
-Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherCtxFree(JNIEnv *env, jclass cls,
-        jlong sessionHandleAddr, jlong ctxAddress) {
-    if (sessionHandleAddr == 0 || ctxAddress == 0) {
+JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherCtxFree(JNIEnv *env,
+        jclass cls, jlong ctxAddress) {
+    if (ctxAddress == 0) {
         return;
     }
-    SGD_HANDLE sessionHandle = (SGD_HANDLE *) sessionHandleAddr;
     void *cipherHandle = (void *) ctxAddress;
-    // free cipherHandle and keyHandle ( uiType | HW_KEYDESTROY_MASK)
-    unsigned uiType = SDF_CTX_TYPE_SYMMETRIC | HW_KEYDESTROY_MASK;
+    // free cipherHandle and keyHandle
+    unsigned uiType = CTX_TYPE_SYMM;
     SGD_RV rv;
 
-    if ((rv = SDF_HW_MemoryFree(sessionHandle, uiType, cipherHandle)) != SDR_OK) {
-        throwSDFException(env, rv);
+    if ((rv = CDM_MemoryFree(uiType, cipherHandle)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_MemoryFree");
+        return;
     }
 }

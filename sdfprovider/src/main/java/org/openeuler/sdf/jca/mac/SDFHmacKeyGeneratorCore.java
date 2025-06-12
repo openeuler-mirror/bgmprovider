@@ -34,6 +34,10 @@ import java.security.spec.AlgorithmParameterSpec;
 
 abstract class SDFHmacKeyGeneratorCore extends SDFKeyGeneratorCore {
 
+    private static final int MIN_KEY_SIZE = 0;
+
+    private static final int MAX_KEY_SIZE = 1151;
+
     protected SDFHmacKeyGeneratorCore(String algorithm, int defaultKeySize) {
         super(algorithm, defaultKeySize, true);
     }
@@ -51,8 +55,9 @@ abstract class SDFHmacKeyGeneratorCore extends SDFKeyGeneratorCore {
 
     @Override
     protected void checkKey(int keysize) {
-        if (keysize < 40) {
-            throw new InvalidParameterException("Key length must be at least 40 bits");
+        if (keysize < MIN_KEY_SIZE || keysize > MAX_KEY_SIZE) {
+            throw new InvalidParameterException(
+                    "Key length must be in [" + MIN_KEY_SIZE + "," + MAX_KEY_SIZE + "] bits");
         }
     }
 

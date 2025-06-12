@@ -1,6 +1,7 @@
+#include "cryptocard/crypto_sdk_vf.h"
+#include "cryptocard/errno.h"
 
 #include "org_openeuler_sdf_wrapper_SDFRSACipherNative.h"
-#include "sdf.h"
 #include "sdf_util.h"
 
 static jbyte *SDF_GetRSAKeyParams(JNIEnv *env, jobjectArray params, SDF_RSAKeyParamIndex index, int len) {
@@ -153,10 +154,8 @@ void SDF_ReleaseRSAPrivateKeyChars(unsigned char *uiPriKey) {
  * Signature: (JI[[B[B)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFRSACipherNative_nativeEncrypt
-        (JNIEnv *env, jclass cls, jlong sessionAddress, jint bits, jobjectArray pubKeyParams, jbyteArray data) {
-
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    unsigned int uiKeyType = SDF_ASYMMETRIC_KEY_TYPE_RSA;
+        (JNIEnv *env, jclass cls, jint bits, jobjectArray pubKeyParams, jbyteArray data) {
+    unsigned int uiKeyType = DATA_KEY_RSA;
     unsigned char *uiPublicKey = NULL;
     unsigned int uiPBKLen = 0;
     unsigned char *pucData = NULL;
@@ -180,7 +179,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFRSACipherNative_n
         goto cleanup;
     }
 
-    if ((rv = SDF_HW_AsymEncrypt(hSessionHandle, uiKeyType, uiPublicKey, uiPBKLen,
+    if ((rv = CDM_AsymEncrypt(uiKeyType, uiPublicKey, uiPBKLen,
             pucData, uiDataLength, pucEncData, &pEDLen)) != SDR_OK) {
         throwSDFException(env, rv);
         goto cleanup;
@@ -207,9 +206,8 @@ cleanup:
  * Signature: (JI[[B[B)[B
  */
 JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFRSACipherNative_nativeDecrypt
-        (JNIEnv *env, jclass cls, jlong sessionAddress, jint bits, jobjectArray privateKeyParams, jbyteArray encData) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    unsigned int uiKeyType = SDF_ASYMMETRIC_KEY_TYPE_RSA;
+        (JNIEnv *env, jclass cls, jint bits, jobjectArray privateKeyParams, jbyteArray encData) {
+    unsigned int uiKeyType = DATA_KEY_RSA;
     unsigned char *uiPriKey = NULL;
     unsigned int uiPIKLen = 0;
     unsigned char *pucEncData = NULL;
@@ -233,7 +231,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFRSACipherNative_n
         goto cleanup;
     }
 
-    if ((rv = SDF_HW_AsymDecrypt(hSessionHandle, uiKeyType, uiPriKey, uiPIKLen, pucEncData, pEDLen, pucData,
+    if ((rv = CDM_AsymDecrypt(uiKeyType, uiPriKey, uiPIKLen, pucEncData, pEDLen, pucData,
             &puiDataLength) != SDR_OK)) {
         throwSDFException(env, rv);
         goto cleanup;

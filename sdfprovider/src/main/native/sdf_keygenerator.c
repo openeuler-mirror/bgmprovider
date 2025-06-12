@@ -22,64 +22,74 @@
  * information or have any questions.
  */
 
+#include "cryptocard/crypto_sdk_pf.h"
+#include "cryptocard/errno.h"
+
 #include "org_openeuler_sdf_wrapper_SDFKeyGeneratorNative.h"
 #include "sdf_exception.h"
-#include "sdf.h"
 #include "sdf_util.h"
 
-#define DEFAULT_ENC_KEY_ALG_ID SGD_SM4_ECB
-
-jbyteArray generateSecretKey(JNIEnv *env, jlong sessionHandleAddr, jbyteArray kekIdArr, jbyteArray regionIdArr,
-        jbyteArray cdpIdArr, jbyteArray PINArr, jint keySize, jboolean isHmac) {
-    SGD_HANDLE sessionHandle = (SGD_HANDLE) sessionHandleAddr;
-    jbyte *PINBytes = NULL;
-    int PinLen = 0;
-    unsigned int encKeyLen = isHmac ? HMAC_KEY_LEN : SYSCKEY_LEN;
-    unsigned char encKey[encKeyLen];
-
-    KEKInfo *kekInfo = NULL;
-
+JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFKeyGeneratorNative_nativeGenerateSecretKey (
+        JNIEnv *env, jclass cls, jbyteArray kekIdArr, jbyteArray regionIdArr,
+        jbyteArray cdpIdArr, jbyteArray pinArr, jstring algoName,jint keySize, jboolean isHmac) {
+    const char *algoNameUTF = NULL;
+    unsigned int algId = ALG_SM4;
+    unsigned int ivLen = 16;
+    unsigned char iv[ivLen];
+    unsigned int keyType;
+    unsigned int isXts = 0;
+    unsigned int encKeyLen = 0 ;
+    unsigned char *encKey = NULL;
+    void *dekParams = NULL;
     jbyteArray encKeyArr = NULL;
     SGD_RV rv;
 
-    kekInfo = SDF_NewKEKInfo(env, kekIdArr, regionIdArr, cdpIdArr);
-
-    if (PINArr != NULL) {
-        PINBytes = (*env)->GetByteArrayElements(env, PINArr, NULL);
-        PinLen = (*env)->GetArrayLength(env, PINArr);
-    }
-
+    // get keyType
+    algoNameUTF = (*env)->GetStringUTFChars(env, algoName, 0);
     if (isHmac) {
-        if ((rv = SDF_HW_CreateDataKeyWithoutPlaintext_HMAC(sessionHandle, DEFAULT_ENC_KEY_ALG_ID, NULL, 0, PINBytes,
-                PinLen, kekInfo, keySize, encKey, &encKeyLen)) != 0) {
-            throwSDFException(env, rv);
-            goto cleanup;
-        }
+        keyType = SDF_GetHmacKeyType(algoNameUTF);
     } else {
-        if ((rv = SDF_HW_CreateDataKeyWithoutPlaintext(sessionHandle, DEFAULT_ENC_KEY_ALG_ID, NULL, 0, PINBytes,
-                PinLen, kekInfo, keySize, encKey, &encKeyLen)) != 0) {
-            throwSDFException(env, rv);
-            goto cleanup;
-        }
+        keyType = SDF_GetSymmetricKeyType(algoNameUTF);
     }
+
+    // generate iv
+    if ((rv = CDM_GenRandom(ivLen, iv)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_GenRandom");
+        goto cleanup;
+    }
+
+    // create dek params
+    if (!(dekParams = SDF_CreateDEKParams(env, kekIdArr, regionIdArr, cdpIdArr, pinArr))) {
+        goto cleanup;
+    }
+
+    // compute key size
+    if ((rv = CDM_CreateDataKeyWithoutPlaintext(algId, iv, ivLen, dekParams,
+            keyType, isXts, keySize, encKey, &encKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_CreateDataKeyWithoutPlaintext");
+        goto cleanup;
+    }
+    if (!(encKey = malloc(encKeyLen))) {
+        throwOutOfMemoryError(env, "malloc enckey failed");
+        goto cleanup;
+    }
+
+    if ((rv = CDM_CreateDataKeyWithoutPlaintext(algId, iv, ivLen, dekParams,
+            keyType, isXts, keySize, encKey, &encKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_CreateDataKeyWithoutPlaintext");
+        goto cleanup;
+    }
+
     encKeyArr = (*env)->NewByteArray(env, encKeyLen);
     (*env)->SetByteArrayRegion(env, encKeyArr, 0, encKeyLen, (jbyte *) encKey);
 
 cleanup:
-    if (kekInfo != NULL) {
-        SDF_ReleaseKEKInfo(kekInfo);
+    if (algoNameUTF) {
+        (*env)->ReleaseStringUTFChars(env, algoName, algoNameUTF);
     }
-    if (PINBytes != NULL) {
-        (*env)->ReleaseByteArrayElements(env, PINArr, PINBytes, 0);
+    if (encKey) {
+        free(encKey);
     }
+    SDF_FreeDEKParams(env, dekParams);
     return encKeyArr;
 }
-
-
-JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFKeyGeneratorNative_nativeGenerateSecretKey (
-        JNIEnv *env, jclass cls, jlong sessionHandleAddr, jbyteArray kekIdArr, jbyteArray regionIdArr,
-        jbyteArray cdpIdArr, jbyteArray PINArr, jint keySize, jboolean isHmac) {
-    return generateSecretKey(env, sessionHandleAddr, kekIdArr, regionIdArr, cdpIdArr, PINArr, keySize, isHmac);
-}
-
-

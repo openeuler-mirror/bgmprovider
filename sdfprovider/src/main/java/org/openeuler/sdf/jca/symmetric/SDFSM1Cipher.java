@@ -24,6 +24,8 @@
 
 package org.openeuler.sdf.jca.symmetric;
 
+import org.openeuler.sdf.commons.constant.SDFDataKeyType;
+
 /**
  * This class currently supports:
  * - SM1/ECB/NOPADDING
@@ -57,6 +59,6 @@ abstract class SDFSM1Cipher extends SDFSymmetricCipherBase {
     }
 
     SDFSM1Cipher(SDFMode mode, SDFPadding padding) {
-        super("SM1", mode, padding, 16, 16);
+        super(SDFDataKeyType.DATA_KEY_SM1, mode, padding, 16, 16);
     }
 }

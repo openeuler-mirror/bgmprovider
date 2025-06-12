@@ -21,101 +21,166 @@
  * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
  * information or have any questions.
  */
+#include "cryptocard/crypto_sdk_vf.h"
+#include "cryptocard/errno.h"
 
-#include <string.h>
 #include "org_openeuler_sdf_wrapper_SDFSM2SignatureNative.h"
-#include "sdf.h"
 #include "sdf_exception.h"
 #include "sdf_util.h"
 #include "sdf_log.h"
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFSM2SignatureNative
- * Method:    nativeSM2Sign
- * Signature: (J[BI[BLorg/openeuler/sdf/wrapper/entity/SDFECCSignature;)V
- */
-JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNative_nativeSM2Sign
-        (JNIEnv *env, jclass clz, jlong sessionAddress, jbyteArray privateKeyArray, jint bits,
-                jbyteArray digestArray, jobject signature) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    unsigned int curveLen = (bits + 7) / 8;
-    unsigned int uiKeyType = SDF_SIGNATURE_KEY_TYPE_SM2;
-    jbyte *uiPriKey = NULL;
-    unsigned int uiPIKLen;
-    jbyte *pucData = NULL;
-    unsigned int uiDataLength;
-    unsigned char *pucSignature = NULL;
-    unsigned int pSNLen;
-    SGD_RV rv;
 
-    // uiPriKey
-    uiPIKLen = (*env)->GetArrayLength(env, privateKeyArray);
-    if ((uiPriKey = malloc(uiPIKLen)) == NULL) {
-        SDF_LOG_ERROR("malloc uiPriKey failed");
-        throwOutOfMemoryError(env, "malloc pubData failed");
+enum {
+    SDF_SM2_SIGNATURE_R_IDX= 0,
+    SDF_SM2_SIGNATURE_S_IDX = 1,
+    SDF_SM2_SIGNATURE_PARAMS_LEN = 2
+} SDF_SM2_SIGNATURE_IDX;
+
+jobjectArray SDF_SM2SignatureToObjectArray(JNIEnv *env, SM2Signature* sm2Signature) {
+    jbyteArray rArr = NULL;
+    jbyteArray sArr = NULL;
+    jclass byteArrayClass = NULL;
+    jobjectArray params = NULL;
+
+    // r
+    rArr = (*env)->NewByteArray(env, SM2_KEY_BUF_LEN);
+    if (rArr == NULL) {
+        SDF_LOG_ERROR("SDF_SM2SignatureToObjectArray failed to allocate pbkXArr");
         goto cleanup;
     }
-    (*env)->GetByteArrayRegion(env, privateKeyArray, 0, uiPIKLen, uiPriKey);
+    (*env)->SetByteArrayRegion(env, rArr, 0, SM2_KEY_BUF_LEN, (jbyte *) sm2Signature->r);
 
-    // pubData
-    uiDataLength = (*env)->GetArrayLength(env, digestArray);
-    if ((pucData = malloc(uiDataLength)) == NULL) {
+    // s
+    sArr = (*env)->NewByteArray(env, SM2_KEY_BUF_LEN);
+    if (sArr == NULL) {
+        SDF_LOG_ERROR("SDF_SM2SignatureToObjectArray failed to allocate pbkYArr");
+        goto cleanup;
+    }
+    (*env)->SetByteArrayRegion(env, sArr, 0, SM2_KEY_BUF_LEN, (jbyte *) sm2Signature->s);
+
+    byteArrayClass = (*env)->FindClass(env, "[B");
+    int arrayLen = SDF_SM2_SIGNATURE_PARAMS_LEN;
+    params = (*env)->NewObjectArray(env, arrayLen, byteArrayClass, NULL);
+    if (params == NULL) {
+        SDF_LOG_ERROR("SDF_SM2SignatureToObjectArray failed to allocate params");
+        goto cleanup;
+    }
+    (*env)->SetObjectArrayElement(env, params, SDF_SM2_SIGNATURE_R_IDX, rArr);
+    (*env)->SetObjectArrayElement(env, params, SDF_SM2_SIGNATURE_S_IDX, sArr);
+
+cleanup:
+    if (byteArrayClass != NULL) {
+        (*env)->DeleteLocalRef(env, byteArrayClass);
+    }
+    if (rArr != NULL) {
+        (*env)->DeleteLocalRef(env, rArr);
+    }
+    if (sArr != NULL) {
+        (*env)->DeleteLocalRef(env, sArr);
+    }
+    return params;
+}
+
+SM2Signature *SDF_ObjectArrayToSM2Signature(JNIEnv *env, jobjectArray params) {
+    jbyteArray rArr = NULL;
+    jbyteArray sArr = NULL;
+    jbyte *rBytes = NULL;
+    jbyte *sBytes = NULL;
+    SM2Signature *sm2Signature = NULL;
+
+    if ((sm2Signature = malloc(sizeof(SM2Signature))) == NULL) {
+        throwSDFRuntimeException(env, "malloc SM2Signature failed");
+        goto cleanup;
+    }
+
+    // r
+    rArr = (*env)->GetObjectArrayElement(env, params, SDF_SM2_SIGNATURE_R_IDX);
+    rBytes = (*env)->GetByteArrayElements(env, rArr, 0);
+    memcpy(sm2Signature->r, rBytes, SM2_KEY_BUF_LEN);
+
+    // s
+    sArr = (*env)->GetObjectArrayElement(env, params, SDF_SM2_SIGNATURE_S_IDX);
+    sBytes = (*env)->GetByteArrayElements(env, sArr, 0);
+    memcpy(sm2Signature->s, sBytes, SM2_KEY_BUF_LEN);
+
+cleanup:
+    if (rBytes) {
+        (*env)->ReleaseByteArrayElements(env, rArr, rBytes, 0);
+    }
+    if (sBytes) {
+        (*env)->ReleaseByteArrayElements(env, sArr, sBytes, 0);
+    }
+    return sm2Signature;
+}
+
+JNIEXPORT jobjectArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNative_nativeSM2Sign(JNIEnv *env, jclass clz,
+        jbyteArray priKeyArr, jbyteArray digestArray) {
+    unsigned int keyType = DATA_KEY_SM2;
+    void *keyHandle = NULL;
+    jbyte *data = NULL;
+    unsigned int dataLen;
+    unsigned char *signature = NULL;
+    unsigned int signatureLen;
+    SGD_RV rv;
+    jobjectArray params = NULL;
+
+    // private key
+    keyHandle = SDF_CreateSM2PriKeyHandle(env,priKeyArr);
+
+    // digest data
+    dataLen = (*env)->GetArrayLength(env, digestArray);
+    if ((data = malloc(dataLen)) == NULL) {
         SDF_LOG_ERROR("malloc pubData failed");
         throwOutOfMemoryError(env, "malloc pubData failed");
         goto cleanup;
     }
-    (*env)->GetByteArrayRegion(env, digestArray, 0, uiDataLength, pucData);
+    (*env)->GetByteArrayRegion(env, digestArray, 0, dataLen, data);
 
-    // pucSignature
-    if ((pucSignature = malloc(sizeof(ECCSignature_HW))) == NULL) {
-        SDF_LOG_ERROR("malloc pucSignature failed");
-        throwOutOfMemoryError(env, "malloc pucSignature failed");
+    // signature
+    signatureLen = sizeof(SM2Signature);
+    if ((signature = malloc(signatureLen)) == NULL) {
+        SDF_LOG_ERROR("malloc signature failed");
+        throwOutOfMemoryError(env, "malloc signature failed");
         goto cleanup;
     }
 
     // sign
-    if ((rv = SDF_HW_AsymSign(hSessionHandle, uiKeyType, uiPriKey, uiPIKLen,
-            pucData, uiDataLength, pucSignature, &pSNLen)) != 0) {
-        throwSDFException(env, rv);
+    if ((rv = CDM_AsymSign(keyType, keyHandle, data, dataLen,
+            signature, &signatureLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_AsymSign");
         goto cleanup;
     }
 
-    ECCSignature_HW *eccSignature = (ECCSignature_HW *) pucSignature;
-    /*SDF_Print_Chars("eccSignature.r", eccSignature->r, ECCref_MAX_LEN_HW);
-    SDF_Print_Chars("eccSignature.s", eccSignature->s, ECCref_MAX_LEN_HW);*/
+    SM2Signature *sm2Signature = (SM2Signature *) signature;
+    params = SDF_SM2SignatureToObjectArray(env, sm2Signature);
+    if (params == NULL) {
+        throwSDFRuntimeException(env, "SDF_SM2SignatureToObjectArray failed");
+        goto cleanup;
+    }
 
-    jclass signatureClass = (*env)->GetObjectClass(env, signature);
-    SDF_SetECCCharArrayToJava(env, signatureClass, signature, "r", "[B",
-            eccSignature->r, curveLen);
-    SDF_SetECCCharArrayToJava(env, signatureClass, signature, "s", "[B",
-            eccSignature->s, curveLen);
 cleanup:
-    if (uiPriKey != NULL) {
-        free(uiPriKey);
+    if (keyHandle != NULL) {
+        CDM_DestroyKeyHandle(keyHandle);
     }
-    if (pucData != NULL) {
-        free(pucData);
+    if (data != NULL) {
+        free(data);
     }
-    if (pucSignature != NULL) {
-        free(pucSignature);
+    if (signature != NULL) {
+        free(signature);
     }
+
+    return params;
 }
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFSM2SignatureNative
- * Method:    nativeSM2Verify
- * Signature: (J[B[BI[BLorg/openeuler/sdf/wrapper/entity/SDFECCSignature;)Z
- */
-JNIEXPORT jboolean JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNative_nativeSM2Verify
-        (JNIEnv *env, jclass clz, jlong sessionAddress, jbyteArray xArr, jbyteArray yArr, jint bits,
-                jbyteArray digestArray, jobject signature) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionAddress;
-    unsigned int uiKeyType = SDF_SIGNATURE_KEY_TYPE_SM2;
-    unsigned char *uiPublicKey = NULL;
-    unsigned int uiPBKLen;
-    unsigned char *pucData = NULL;
-    unsigned int uiDataLength;
-    unsigned char *pucSignature = NULL;
-    unsigned int pSNLen;
+
+JNIEXPORT jboolean JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNative_nativeSM2Verify(JNIEnv *env, jclass clz,
+        jobjectArray pubKeyArr, jbyteArray digestArray, jobjectArray params) {
+    unsigned int keyType = DATA_KEY_SM2;
+    unsigned char *pubKey = NULL;
+    unsigned int pubKeyLen = 0;
+    unsigned char *data = NULL;
+    unsigned int dataLen = 0;
+    unsigned char *signature = NULL;
+    unsigned int signatureLen = 0;
 
     jbyte *rBytes = NULL;
     jbyte *sBytes = NULL;
@@ -123,64 +188,36 @@ JNIEXPORT jboolean JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNative_
     SGD_RV rv;
     jboolean result = JNI_FALSE;
 
-    uiPublicKey = SDF_NewECCrefPublicKeyChars(env, xArr, yArr, bits);
-    uiPBKLen = SDF_GetECCrefPublicKeyLen();
+    // public key
+    pubKey = SDF_CreateSM2PublicKey(env, pubKeyArr,&pubKeyLen);
 
-
-    uiDataLength = (*env)->GetArrayLength(env, digestArray);
-    if ((pucData = malloc(uiDataLength)) == NULL) {
+    // digest data
+    dataLen = (*env)->GetArrayLength(env, digestArray);
+    if ((data = malloc(dataLen)) == NULL) {
         SDF_LOG_ERROR("malloc pubData failed");
         goto cleanup;
     }
-    (*env)->GetByteArrayRegion(env, digestArray, 0, uiDataLength, pucData);
+    (*env)->GetByteArrayRegion(env, digestArray, 0, dataLen, data);
 
-    // eccSignature
-    jclass signatureClass = (*env)->GetObjectClass(env, signature);
-    // r
-    jfieldID rFieldId = (*env)->GetFieldID(env, signatureClass, "r", "[B");
-    jbyteArray rArray = (*env)->GetObjectField(env, signature, rFieldId);
-    if ((rBytes = malloc(ECCref_MAX_LEN_HW)) == NULL) {
-        throwOutOfMemoryError(env, "malloc rBytes failed");
-        goto cleanup;
-    }
-    memset(rBytes, 0, ECCref_MAX_LEN_HW);
-    jint rLen = (*env)->GetArrayLength(env, rArray);
-    (*env)->GetByteArrayRegion(env, rArray, 0, rLen, rBytes);
+    // signature
+    SM2Signature* sm2Signature = SDF_ObjectArrayToSM2Signature(env, params);
+    signature = (unsigned char* ) sm2Signature;
+    signatureLen = sizeof(SM2Signature);
 
-    // s
-    jfieldID sFieldId = (*env)->GetFieldID(env, signatureClass, "s", "[B");
-    jbyteArray sArray = (*env)->GetObjectField(env, signature, sFieldId);
-    if ((sBytes = malloc(ECCref_MAX_LEN_HW)) == NULL) {
-        throwOutOfMemoryError(env, "malloc sBytes failed");
-        goto cleanup;
-    }
-    memset(sBytes, 0, ECCref_MAX_LEN_HW);
-    jint sLen = (*env)->GetArrayLength(env, sArray);
-    (*env)->GetByteArrayRegion(env, sArray, 0, sLen, sBytes);
-
-    pSNLen = sizeof(ECCSignature_HW);
-    if ((pucSignature = malloc(pSNLen)) == NULL) {
-        throwOutOfMemoryError(env, "malloc eccSignature failed");
-        goto cleanup;
-    }
-    ECCSignature_HW *eccSignature = (ECCSignature_HW *) pucSignature;
-    memcpy(eccSignature->r, rBytes, ECCref_MAX_LEN_HW);
-    memcpy(eccSignature->s, sBytes, ECCref_MAX_LEN_HW);
-
-    if ((rv = SDF_HW_AsymVerify(hSessionHandle, uiKeyType, uiPublicKey, uiPBKLen, pucData, uiDataLength,
-            pucSignature, pSNLen)) != SDR_OK) {
-        SDF_LOG_ERROR("SDF_HW_AsymVerify failed, rv=%lx", rv);
+    if ((rv = CDM_AsymVerify(keyType, pubKey, pubKeyLen, data, dataLen,
+            signature, signatureLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_AsymVerify");
         goto cleanup;
     }
 
     result = JNI_TRUE;
 cleanup:
-    SDF_ReleaseECCrefPubicKeyChars(uiPublicKey);
-    if (pucData != NULL) {
-        free(pucData);
+    SDF_FreeSM2PublicKey(pubKey);
+    if (data != NULL) {
+        free(data);
     }
-    if (pucSignature != NULL) {
-        free(pucSignature);
+    if (signature != NULL) {
+        free(signature);
     }
     if (rBytes != NULL) {
         free(rBytes);

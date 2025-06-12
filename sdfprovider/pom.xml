@@ -29,6 +29,7 @@
             -I ${project.build.directory}/include
         </native.compiler.startOptions>
         <native.link.startOptions>-shared</native.link.startOptions>
+        <native.link.library>-lcrypto_card_sdk</native.link.library>
         <compiler.executable.x86_64>${env.SDF_EXECUTABLE_X86_64}</compiler.executable.x86_64>
         <compiler.executable.aarch64>${env.SDF_EXECUTABLE_AARCH64}</compiler.executable.aarch64>
         <compiler.library_path.x86_64>${env.SDF_LIBRARY_PATH_X86_64}</compiler.library_path.x86_64>
@@ -127,8 +128,7 @@
                         </goals>
                         <configuration>
                             <javahClassNames>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFDeviceNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSessionNative</javahClassName>
+                                <javahClassName>org.openeuler.sdf.wrapper.SDFSDKNative</javahClassName>
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFDigestNative</javahClassName>
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFLogNative</javahClassName>
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFRandomNative</javahClassName>
@@ -164,7 +164,23 @@
                                 <source>
                                     <directory>${basedir}/src/main/native</directory>
                                     <includes>
-                                        <include>*.c</include>
+                                        <include>sdf_util.c</include>
+                                        <include>sdf_exception.c</include>
+                                        <include>sdf_log.c</include>
+                                        <include>sdf_sdk.c</include>
+                                        <include>sdf_random.c</include>
+                                        <include>sdf_digest.c</include>
+                                        <include>sdf_hmac.c</include>
+                                        <include>sdf_keygenerator.c</include>
+                                        <include>sdf_internal.c</include>
+                                        <include>sdf_pbkdf2.c</include>
+                                        <include>sdf_cipher_symmetric.c</include>
+                                        <include>sdf_keypairgenerator_sm2.c</include>
+                                        <include>sdf_signature_sm2.c</include>
+                                        <include>sdf_cipher_sm2.c</include>
+                                        <include>sdf_keyagreement_sm2.c</include>
+                                        <include>sdf_keyagreement_ecc.c</include>
+                                        <include>sdf_prf.c</include>
                                     </includes>
                                 </source>
                             </sources>
@@ -186,7 +202,7 @@
                             </linkerStartOptions>
                             <linkerEndOptions>
                                 <linkerEndOption>-L${compiler.library_path.x86_64}</linkerEndOption>
-                                <linkerEndOption>-lswsds</linkerEndOption>
+                                <linkerEndOption>${native.link.library}</linkerEndOption>
                             </linkerEndOptions>
                             <linkerFinalName>libsdfcrypto_linux_x86_64</linkerFinalName>
                             <linkerFinalNameExt>so</linkerFinalNameExt>
@@ -195,7 +211,7 @@
                     </execution>
 
                     <!-- aarch64 -->
-                    <execution>
+                    <!-- <execution>
                         <id>compile_linux_aarch64</id>
                         <phase>compile</phase>
                         <goals>
@@ -210,7 +226,23 @@
                                 <source>
                                     <directory>${basedir}/src/main/native</directory>
                                     <includes>
-                                        <include>*.c</include>
+                                        <include>sdf_util.c</include>
+                                        <include>sdf_exception.c</include>
+                                        <include>sdf_log.c</include>
+                                        <include>sdf_sdk.c</include>
+                                        <include>sdf_random.c</include>
+                                        <include>sdf_digest.c</include>
+                                        <include>sdf_hmac.c</include>
+                                        <include>sdf_keygenerator.c</include>
+                                        <include>sdf_internal.c</include>
+                                        <include>sdf_pbkdf2.c</include>
+                                        <include>sdf_cipher_symmetric.c</include>
+                                        <include>sdf_keypairgenerator_sm2.c</include>
+                                        <include>sdf_signature_sm2.c</include>
+                                        <include>sdf_cipher_sm2.c</include>
+                                        <include>sdf_keyagreement_sm2.c</include>
+                                        <include>sdf_keyagreement_ecc.c</include>
+                                        <include>sdf_prf.c</include>
                                     </includes>
                                 </source>
                             </sources>
@@ -232,13 +264,13 @@
                             </linkerStartOptions>
                             <linkerEndOptions>
                                 <linkerEndOption>-L${compiler.library_path.aarch64}</linkerEndOption>
-                                <linkerEndOption>-lswsds</linkerEndOption>
+                                <linkerEndOption>${native.link.library}</linkerEndOption>
                             </linkerEndOptions>
                             <linkerFinalName>libsdfcrypto_linux_aarch64</linkerFinalName>
                             <linkerFinalNameExt>so</linkerFinalNameExt>
                             <linkerOutputDirectory>${project.build.directory}</linkerOutputDirectory>
                         </configuration>
-                    </execution>
+                    </execution> -->
                 </executions>
             </plugin>
 

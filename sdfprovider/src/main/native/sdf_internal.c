@@ -1,171 +1,95 @@
-#include <string.h>
-#include "sdf.h"
+/*
+ * Copyright (c) 2024, Huawei Technologies Co., Ltd. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Huawei designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Huawei in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
+ * information or have any questions.
+ */
+
+#include "cryptocard/errno.h"
+#include "cryptocard/crypto_sdk_pf.h"
+
 #include "sdf_util.h"
 
-
-// SDF_HW_EncryptSecretkeyWithoutPlaintext uiKeyType
-#define HW_SM2                      0
-#define HW_RSA                      1
-#define HW_ECC                      2
-#define HW_SM9                      3
-#define HW_SYM                      4
-#define HW_HMAC                     5
-
-/*
-void print(char *p, int count) {
-    int i = 0;
-    while (i < count) {
-        int c = p[i++];
-        if (c >= 128) {
-            c = c - 256;
-        }
-        printf("%d, ", c);
-    }
-    printf("\n");
-}
-
-void generate_enc_key(int uiKeyType, unsigned char *uiPalinKey, unsigned int uiPKLen) {
-    SGD_HANDLE hDeviceHandle;
-    SGD_HANDLE hSessionHandle;
-    SGD_RV rv;
-    rv = SDF_OpenDevice(&hDeviceHandle);
-    printf("rv=%x\n", rv);
-    if (rv) {
-        printf("SDF_OpenDevice failed\n");
-        return;
-    }
-    rv = SDF_OpenSession(hDeviceHandle, &hSessionHandle);
-    printf("rv=%x\n", rv);
-    if (rv) {
-        printf("SDF_OpenSession failed\n");
-        return;
-    }
-
-    KEKInfo uiKEKInfo = {0};
-    memcpy(uiKEKInfo.KEKID, "KekId123456789012345678901234567", 32);
-    memcpy(uiKEKInfo.RegionID, "RegionID1", 9);
-    memcpy(uiKEKInfo.CdpID, "CdpID1", 6);
-
-    unsigned int uiAlgID = SGD_SM4_ECB;
-    unsigned char *IV = NULL;
-    unsigned int IVLen = 0;
-    unsigned char *uiPIN = NULL;
-    unsigned int uiPINLen = 0;
-
-
-    unsigned char pCipherKey[10240] = {0};
-    unsigned int pCKLen;
-
-
-    rv = SDF_HW_EncryptSecretkeyWithoutPlaintext(
-            hSessionHandle,
-            uiAlgID,
-            IV,
-            IVLen,
-            uiPIN,
-            uiPINLen,
-            &uiKEKInfo,
-            uiKeyType,
-            uiPalinKey,
-            uiPKLen,
-            pCipherKey,
-            &pCKLen);
-
-
-    printf("rv=%x\n", rv);
-    printf("pCKLen=%d\n", pCKLen);
-    print(pCipherKey, pCKLen);
-
-    SysCKey *sysCKey = (SysCKey *) pCipherKey;
-
-    signed char t = 128;
-
-    printf("t = %d\n", t);
-}
-
-void main() {
-    int uiKeyType = HW_SYM;
-    unsigned char uiPalinKey[] = {
-            -78, 13, -71, 96, 114, 81, 24, -77, -88, -29, -102, -80, 100, 78, 115, -107
-    };
-    unsigned int uiPKLen = sizeof(uiPalinKey);
-    generate_enc_key(uiKeyType, uiPalinKey, uiPKLen);
-}*/
-
-
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFInternalNative
- * Method:    encryptKey
- * Signature: (J[B[B[B[BI[B)[B
- */
-JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFInternalNative_encryptKey
-        (JNIEnv *env, jclass clazz, jlong sessionAddr, jbyteArray kekId, jbyteArray regionId, jbyteArray cdpId,
-                jbyteArray pin, jint uiType, jbyteArray plainKey) {
-
-    void *hSessionHandle = (void *) sessionAddr;
-    unsigned int uiAlgID = SGD_SM4_ECB;
-    unsigned char *IV = NULL;
-    unsigned int IVLen = 0;
-    unsigned char *uiPIN = NULL;
-    unsigned int uiPINLen = 0;
-    unsigned int uiKeyType = uiType;
-    unsigned char *uiPlainKey = NULL;
-    unsigned int uiPKLen = 0;
-    unsigned int pCKLen = 0;
-    unsigned char pCipherKey[10240];
-    KEKInfo *uiKEKInfo = NULL;
+JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFInternalNative_encryptKey(JNIEnv *env, jclass clazz,
+        jbyteArray kekId, jbyteArray regionId, jbyteArray cdpId, jbyteArray pin, jint uiType, jbyteArray plainKeyArr) {
+    unsigned int algId = ALG_SM4;
+    unsigned int ivLen = 16;
+    unsigned char iv[ivLen];
+    void *dekParams = NULL;
+    unsigned int outKeyType = uiType;
+    unsigned char *plainKeyTmp = NULL;
+    unsigned char *plainKey = NULL;
+    unsigned int plainKeyLen;
+    unsigned int cipherKeyLen = 10240;
+    unsigned char cipherKey[cipherKeyLen];
     jbyteArray encKeyArr = NULL;
-
-    uiKEKInfo = SDF_NewKEKInfo(env, kekId, regionId, cdpId);
-    if (!uiKEKInfo) {
-        throwSDFRuntimeException(env, "SDF_NewKEKInfo failed");
-        goto cleanup;
-    }
-
-    if (!plainKey) {
-        throwIllegalArgumentException(env, "plainKey should not be null ");
-        goto cleanup;
-    }
-    uiPlainKey = (*env)->GetByteArrayElements(env, plainKey, NULL);
-    uiPKLen = (*env)->GetArrayLength(env, plainKey);
-
-    if (pin) {
-        uiPIN = (*env)->GetByteArrayElements(env, pin, NULL);
-        uiPINLen = (*env)->GetArrayLength(env, pin);
-    }
-
     SGD_RV rv;
 
-    if ((rv = SDF_HW_EncryptSecretkeyWithoutPlaintext(
-            hSessionHandle,
-            uiAlgID,
-            IV,
-            IVLen,
-            uiPIN,
-            uiPINLen,
-            uiKEKInfo,
-            uiKeyType,
-            uiPlainKey,
-            uiPKLen,
-            pCipherKey,
-            &pCKLen)) != SDR_OK) {
-        throwSDFException(env, rv);
+    plainKey = (*env)->GetByteArrayElements(env, plainKeyArr, NULL);
+    plainKeyLen = (*env)->GetArrayLength(env, plainKeyArr);
+    if (outKeyType == DATA_KEY_SM2) {
+        int sm2PriKeyLen = sizeof(SM2PrivateKey);
+        plainKeyTmp = malloc(sm2PriKeyLen);
+        SM2PrivateKey *sm2PriKey = (SM2PrivateKey *) plainKeyTmp;
+        sm2PriKey->bits = 256;
+        memcpy(sm2PriKey->D, plainKey, plainKeyLen);
+        plainKeyLen = sm2PriKeyLen;
+    } else {
+        plainKeyTmp = malloc(plainKeyLen);
+        memcpy(plainKeyTmp, plainKey, plainKeyLen);
+    }
+    plainKeyLen = plainKeyLen << 3; // key len in bits
+
+    if (!(dekParams = SDF_CreateDEKParams(env, kekId, regionId, cdpId, pin))) {
         goto cleanup;
     }
 
-    encKeyArr = (*env)->NewByteArray(env, pCKLen);
-    (*env)->SetByteArrayRegion(env, encKeyArr, 0, pCKLen, pCipherKey);
+    if ((rv = CDM_GenRandom(ivLen, iv)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_GenRandom");
+        goto cleanup;
+    }
+
+    if ((rv = CDM_EncryptSecretKeyWithoutPlaintext(
+            algId,
+            iv,
+            ivLen,
+            outKeyType,
+            dekParams,
+            plainKeyTmp,
+            plainKeyLen,
+            cipherKey,
+            &cipherKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_EncryptSecretKeyWithoutPlaintext");
+        goto cleanup;
+    }
+
+    encKeyArr = (*env)->NewByteArray(env, cipherKeyLen);
+    (*env)->SetByteArrayRegion(env, encKeyArr, 0, cipherKeyLen, cipherKey);
 
 cleanup:
-    if (uiKEKInfo) {
-        SDF_ReleaseKEKInfo(uiKEKInfo);
+    SDF_FreeDEKParams(env, dekParams);
+    if (plainKey) {
+        (*env)->ReleaseByteArrayElements(env, plainKeyArr, plainKey, 0);
     }
-    if (pin) {
-        (*env)->ReleaseByteArrayElements(env, pin, uiPIN, 0);
+    if (plainKeyTmp) {
+        free(plainKeyTmp);
     }
-    // cannot release bytes here, SDF_HW_EncryptSecretkeyWithoutPlaintext has been free the uiPlainKey.
-    /*if (plainKey) {
-        (*env)->ReleaseByteArrayElements(env, plainKey, uiPlainKey, 0);
-    }*/
     return encKeyArr;
 }

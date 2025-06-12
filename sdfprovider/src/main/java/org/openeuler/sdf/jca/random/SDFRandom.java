@@ -24,12 +24,9 @@
 
 package org.openeuler.sdf.jca.random;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
+import org.openeuler.sdf.wrapper.SDFRandomNative;
 
 import java.security.SecureRandomSpi;
-
-import org.openeuler.sdf.wrapper.SDFRandomNative;
 
 public class SDFRandom extends SecureRandomSpi {
 
@@ -41,13 +38,11 @@ public class SDFRandom extends SecureRandomSpi {
     @Override
     protected void engineNextBytes(byte[] bytes) {
         if (bytes.length > 0) {
-            SDFSession session = SDFSessionManager.getInstance().getSession();
             try {
-                SDFRandomNative.nativeGenerateRandom(session.getAddress(), bytes);
-            }catch (Exception e){
-                throw new RuntimeException("SDFRandom nativeGenerateRandom failed. random bytes length is "+ bytes.length, e);
-            }finally {
-                SDFSessionManager.getInstance().releaseSession(session);
+                SDFRandomNative.nativeGenerateRandom(bytes);
+            } catch (Exception e) {
+                throw new RuntimeException("SDFRandom nativeGenerateRandom failed. random bytes length is "
+                        + bytes.length, e);
             }
         }
     }

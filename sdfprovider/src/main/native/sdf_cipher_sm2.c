@@ -22,137 +22,113 @@
  * information or have any questions.
  */
 
+#include "cryptocard/crypto_sdk_vf.h"
+#include "cryptocard/errno.h"
+
 #include "org_openeuler_sdf_wrapper_SDFSM2CipherNative.h"
-#include "sdf.h"
 #include "sdf_exception.h"
 #include "sdf_util.h"
 #include "sdf_log.h"
 #include <stdlib.h>
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFSM2CipherNative
- * Method:    nativeSM2Encrypt
- * Signature: (J[B[B[BI)Lorg/openeuler/sdf/wrapper/entity/SDFECCCipherEntity;
- */
 JNIEXPORT jobject JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2CipherNative_nativeSM2Encrypt(JNIEnv *env, jclass cls,
-        jlong sessionHandleAddr, jbyteArray xArr, jbyteArray yArr, jint bits, jbyteArray pubDataArr) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionHandleAddr;
-    unsigned int uiKeyType = SDF_ASYMMETRIC_KEY_TYPE_SM2;
-    unsigned char *uiPublicKey = NULL;
-    unsigned int uiPBKLen;
-    jbyte *pucData = NULL;
-    unsigned int uiDataLength;
-    unsigned char *pucEncData = NULL;
-    unsigned int pEDLen;
+        jobjectArray pubKeyArr, jbyteArray pubDataArr) {
+    unsigned int keyType = DATA_KEY_SM2;
+    unsigned char *publicKey = NULL;
+    unsigned int pubKeyLen = 0;
+    jbyte *data = NULL;
+    unsigned int dataLen = 0;
+    unsigned char *encData = NULL;
+    unsigned int encDataLen = 0;
 
-    jobject eccCipher_object = NULL;
+    jbyteArray params = NULL;
 
     SGD_RV rv;
 
-    // uiPublicKey, uiPBKLen
-    uiPublicKey = SDF_NewECCrefPublicKeyChars(env, xArr, yArr, bits);
-    uiPBKLen = SDF_GetECCrefPublicKeyLen();
-
-    // get pucData,uiDataLength
-    pucData = (*env)->GetByteArrayElements(env, pubDataArr, 0);
-    uiDataLength = (*env)->GetArrayLength(env, pubDataArr);
-    pEDLen = sizeof(ECCCipher) + uiDataLength;
-    if ((pucEncData = malloc(pEDLen)) == NULL) {
-        throwOutOfMemoryError(env, "malloc pucEncData failed");
+    // public key
+    publicKey = SDF_CreateSM2PublicKey(env, pubKeyArr, &pubKeyLen);
+    if ((*env)->ExceptionCheck(env)) {
         goto cleanup;
     }
 
-    /* SDF_LOG_DEBUG("hSessionHandle=%p", hSessionHandle);
-     SDF_LOG_DEBUG("uiKeyType=%d", uiKeyType);
-     SDF_Print_Chars("uiPublicKey", uiPublicKey, uiPBKLen);
-     SDF_LOG_DEBUG("uiPBKLen=%d", uiPBKLen);
-     SDF_LOG_DEBUG("pucData=%s", pucData);
-     SDF_LOG_DEBUG("uiDataLength=%d", uiDataLength);*/
+    // data
+    data = (*env)->GetByteArrayElements(env, pubDataArr, 0);
+    dataLen = (*env)->GetArrayLength(env, pubDataArr);
 
-    if ((rv = SDF_HW_AsymEncrypt(hSessionHandle, uiKeyType, uiPublicKey, uiPBKLen,
-            pucData, uiDataLength, pucEncData, &pEDLen)) != SDR_OK) {
-        throwSDFException(env, rv);
+    // malloc enc data memory
+    encDataLen = sizeof(SM2Cipher) + dataLen;
+    if ((encData = malloc(encDataLen)) == NULL) {
+        throwOutOfMemoryError(env, "malloc encData failed");
         goto cleanup;
     }
-    /*SDF_Print_Chars("pucEncData", pucEncData, pEDLen);
-    SDF_LOG_DEBUG("pEDLen=%d", pEDLen);*/
 
-    eccCipher_object = SDF_GetECCCipherJavaObject(env, pucEncData, pEDLen);
+    // encrypt
+    if ((rv = CDM_AsymEncrypt(keyType, publicKey, pubKeyLen,
+            data, dataLen, encData, &encDataLen)) != SDR_OK) {
+        throwSDFException(env, rv,"CDM_AsymEncrypt");
+        goto cleanup;
+    }
+
+    SM2Cipher *sm2Cipher = (SM2Cipher *) encData;
+    params = SDF_SM2CipherToObjectArray(env, sm2Cipher);
 
 cleanup:
-    if (pucData != NULL) {
-        (*env)->ReleaseByteArrayElements(env, pubDataArr, pucData, 0);
+    SDF_FreeSM2PublicKey(publicKey);
+    if (data != NULL) {
+        (*env)->ReleaseByteArrayElements(env, pubDataArr, data, 0);
     }
-    if (uiPublicKey != NULL) {
-        SDF_ReleaseECCrefPubicKeyChars(uiPublicKey);
+    if (encData != NULL) {
+        free(encData);
     }
-    if (pucEncData != NULL) {
-        free(pucEncData);
-    }
-    return eccCipher_object;
+    return params;
 }
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFSM2CipherNative
- * Method:    nativeSM2Decrypt
- * Signature: (J[BLorg/openeuler/sdf/wrapper/entity/SDFECCCipherEntity;I)[B
- */
 JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2CipherNative_nativeSM2Decrypt(JNIEnv *env, jclass cls,
-        jlong sessionHandleAddr, jbyteArray uiPriKeyArr, jobject eccCipher, jint bits) {
-    SGD_HANDLE hSessionHandle = (SGD_HANDLE) sessionHandleAddr;
-    unsigned int uiKeyType = SDF_ASYMMETRIC_KEY_TYPE_SM2;
-    unsigned char *uiPriKey = NULL;
-    unsigned int uiPIKLen;
-
-    unsigned char *pucEncData = NULL;
-    unsigned int pEDLen;
-
-    jbyte *pucData = NULL;
-    unsigned int puiDataLength;
+        jbyteArray priKeyArr, jobjectArray cipherParams) {
+    unsigned int keType = DATA_KEY_SM2;
+    void *keyHandle = NULL;
+    unsigned char *encData = NULL;
+    unsigned int encDataLen;
+    jbyte *data = NULL;
+    unsigned int dataLen;
     jbyteArray pucDataArray = NULL;
-
     SGD_RV rv;
 
-    uiPriKey = (*env)->GetByteArrayElements(env, uiPriKeyArr, 0);
-    uiPIKLen = (*env)->GetArrayLength(env, uiPriKeyArr);
+    // keyHandle
+    keyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr);
+    SM2Cipher *sm2Cipher = SDF_ObjectArrayToSM2Cipher(env, cipherParams, &encDataLen);
 
-    pucEncData = SDF_NewECCCipherChars(env, eccCipher, &pEDLen);
-    if (pucEncData == NULL) {
+    // encData
+    encData = (unsigned char *) sm2Cipher;
+    if (encData == NULL) {
         goto cleanup;
     }
 
-    puiDataLength = pEDLen - (ECCref_MAX_LEN_HW * 2 + 32 + sizeof(int));
-    if ((pucData = malloc(puiDataLength)) == NULL) {
-        throwOutOfMemoryError(env, "malloc pucData failed");
-        goto cleanup;
-    }
-/*
-    SDF_LOG_DEBUG("uiKeyType=%d",uiKeyType);
-    SDF_Print_Chars("uiPriKey", uiPriKey, uiPIKLen);
-    SDF_LOG_DEBUG("uiPIKLen=%d",uiPIKLen);
-    SDF_Print_Chars("pucEncData", pucEncData, pEDLen);
-    SDF_LOG_DEBUG("pEDLen=%d",pEDLen);*/
-
-    if ((rv = SDF_HW_AsymDecrypt(hSessionHandle, uiKeyType, uiPriKey, uiPIKLen, pucEncData, pEDLen, pucData,
-            &puiDataLength) != SDR_OK)) {
-        throwSDFException(env, rv);
+    dataLen = sm2Cipher->L;
+    if ((data = malloc(dataLen)) == NULL) {
+        throwOutOfMemoryError(env, "malloc data failed");
         goto cleanup;
     }
 
-    /*SDF_LOG_DEBUG("pucData=%s", pucData);
-    SDF_LOG_DEBUG("puiDataLength=%d",puiDataLength);*/
+    // decrypt
+    if ((rv = CDM_AsymDecrypt(keType, keyHandle, encData, encDataLen, data,
+            &dataLen) != SDR_OK)) {
+        throwSDFException(env, rv, "CDM_AsymDecrypt");
+        goto cleanup;
+    }
 
-    pucDataArray = (*env)->NewByteArray(env, puiDataLength);
-    (*env)->SetByteArrayRegion(env, pucDataArray, 0, puiDataLength, pucData);
+    pucDataArray = (*env)->NewByteArray(env, dataLen);
+    (*env)->SetByteArrayRegion(env, pucDataArray, 0, dataLen, data);
+
 cleanup:
-    if (uiPriKey) {
-        (*env)->ReleaseByteArrayElements(env, uiPriKeyArr, uiPriKey, 0);
+    if (keyHandle) {
+        CDM_DestroyKeyHandle(keyHandle);
     }
-    if (pucEncData) {
-        SDF_ReleaseECCCipherChars(pucEncData);
+    if (encData) {
+        free(encData);
     }
-    if (pucData) {
-        free(pucData);
+    if (data) {
+        free(data);
     }
     return pucDataArray;
 }

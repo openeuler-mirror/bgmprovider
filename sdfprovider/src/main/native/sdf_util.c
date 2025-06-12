@@ -21,12 +21,39 @@
  * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
  * information or have any questions.
  */
+#include "cryptocard/crypto_sdk_struct.h"
+#include "cryptocard/crypto_sdk_pf.h"
+#include "cryptocard/errno.h"
 
-#include <stdbool.h>
 #include "sdf_util.h"
 #include "sdf_log.h"
 
-jbyteArray SDF_GetByteArrayFromCharArr(JNIEnv* env, const char* charArr, int arrLen)
+
+enum SDF_SM2_PUBLIC_KEY_PARAMS_IDX {
+    SDF_SM2_PUBLIC_KEY_X_IDX = 0,
+    SDF_SM2_PUBLIC_KEY_Y_IDX = 1,
+    SDF_SM2_PUBLIC_KEY_BITS_IDX = 2,
+} ;
+
+enum SDF_SM2_CIPHER_IDX {
+    SDF_SM2_CIPHER_C1_X_IDX = 0,
+    SDF_SM2_CIPHER_C1_Y_IDX = 1,
+    SDF_SM2_CIPHER_C2_IDX = 2,
+    SDF_SM2_CIPHER_C3_IDX = 3,
+    SDF_SM2_CIPHER_PARAMS_LEN = 4
+};
+
+
+void *SDF_MALLOC(size_t num) {
+    return calloc(num, sizeof(char));
+}
+
+void *SDF_Free(void *ptr) {
+    free(ptr);
+}
+
+
+/*jbyteArray SDF_GetByteArrayFromCharArr(JNIEnv* env, const char* charArr, int arrLen)
 {
     if (charArr == NULL) {
         return NULL;
@@ -62,7 +89,7 @@ ECCrefPublicKey_HW* SDF_GetECCPublickeyFromObj(JNIEnv* env, jobject publicKeyObj
 ECCrefPublicKey_HW* SDF_GetECCPublickeyFromByteArray(JNIEnv* env, jbyteArray xArr, jbyteArray yArr, jint bits)
 {
     ECCrefPublicKey_HW* publicKey = NULL;
-    unsigned int PBKLen = SDF_GetAsymmetricPBKLen(SDF_ASYMMETRIC_KEY_TYPE_SM2);
+    unsigned int PBKLen = SDF_GetAsymmetricPBKLen(DATA_KEY_SM2);
 
     jsize xLen;
     jsize yLen;
@@ -247,123 +274,45 @@ void SDF_ReleaseECCCipherChars(unsigned char *pucEncData) {
         return;
     }
     free(pucEncData);
-}
+}*/
 
 unsigned int SDF_GetDigestAlgoId(const char *algoName) {
     if (strcmp(algoName, "SM3") == 0) {
-        return SGD_SM3;
+        return ALG_SM3;
     } else if (strcmp(algoName, "SHA-256") == 0) {
-        return SGD_SHA256;
+        return ALG_SHA256;
     } else if (strcmp(algoName, "SHA-384") == 0) {
-        return SGD_SHA384;
+        return ALG_SHA384;
     } else if (strcmp(algoName, "SHA-512") == 0) {
-        return SGD_SHA512;
+        return ALG_SHA512;
     } else if (strcmp(algoName, "SHA-1") == 0) {
-        return SGD_SHA1;
+        return ALG_SHA1;
     } else if (strcmp(algoName, "SHA-224") == 0) {
-        return SGD_SHA224;
+        return ALG_SHA224;
     } else if (strcmp(algoName, "MD5") == 0) {
-        return SGD_MD5;
+        return ALG_MD5;
     } else {
         return SDF_INVALID_VALUE;
     }
 }
 
-unsigned int SDF_GetSM1AlgoId(const char *algoName) {
-    if (strcmp(algoName, "SM1-ECB") == 0) {
-        return SGD_SM1_ECB;
-    } else if (strcmp(algoName, "SM1-CBC") == 0) {
-        return SGD_SM1_CBC;
-    } else if (strcmp(algoName, "SM1-CFB") == 0) {
-        return SGD_SM1_CFB;
-    } else if (strcmp(algoName, "SM1-OFB") == 0) {
-        return SGD_SM1_OFB;
-    } else if (strcmp(algoName, "SM1-CTR") == 0) {
-        return SGD_SM1_CTR;
-    } else {
-        return SDF_INVALID_VALUE;
-    }
-}
-
-unsigned int SDF_GetSM4AlgoId(const char *algoName) {
-    if (strcmp(algoName, "SM4-ECB") == 0) {
-        return SGD_SM4_ECB;
-    } else if (strcmp(algoName, "SM4-CBC") == 0) {
-        return SGD_SM4_CBC;
-    } else if (strcmp(algoName, "SM4-CFB") == 0) {
-        return SGD_SM4_CFB;
-    } else if (strcmp(algoName, "SM4-OFB") == 0) {
-        return SGD_SM4_OFB;
-    } else if (strcmp(algoName, "SM4-CTR") == 0) {
-        return SGD_SM4_CTR;
-    } else {
-        return SDF_INVALID_VALUE;
-    }
-}
-
-unsigned int SDF_GetSM7AlgoId(const char *algoName) {
-    if (strcmp(algoName, "SM7-ECB") == 0) {
-        return SGD_SM7_ECB;
-    } else if (strcmp(algoName, "SM7-CBC") == 0) {
-        return SGD_SM7_CBC;
-    } else if (strcmp(algoName, "SM7-CFB") == 0) {
-        return SGD_SM7_CFB;
-    } else if (strcmp(algoName, "SM7-OFB") == 0) {
-        return SGD_SM7_OFB;
-    } else if (strcmp(algoName, "SM7-CTR") == 0) {
-        return SGD_SM7_CTR;
-    } else {
-        return SDF_INVALID_VALUE;
-    }
-}
-
-unsigned int SDF_GetAESAlgoId(const char *algoName) {
-    if (strcmp(algoName, "AES-ECB") == 0) {
-        return SGD_AES_ECB;
-    } else if (strcmp(algoName, "AES-CBC") == 0) {
-        return SGD_AES_CBC;
-    } else if (strcmp(algoName, "AES-CFB") == 0) {
-        return SGD_AES_CFB;
-    } else if (strcmp(algoName, "AES-OFB") == 0) {
-        return SGD_AES_OFB;
-    } else if (strcmp(algoName, "AES-CTR") == 0) {
-        return SGD_AES_CTR;
-    } else {
-        return SDF_INVALID_VALUE;
-    }
-}
-
-int SDF_StartsWith(const char* str1, const char* str2)
-{
-    if (str1 == NULL || str2 == NULL) {
-        return 0;
-    }
-    size_t len1 = strlen(str1);
-    size_t len2 = strlen(str2);
-    if (len1 > len2 || (len1 == 0 || len2 == 0)) {
-        return 0;
-    }
-    const char *cur = str1;
-    int i = 0;
-    while (*cur != '\0') {
-        if (*cur != str2[i]) {
-            return 0;
-        }
-        cur++;
-        i++;
-    }
-    return 1;
-}
-
-unsigned int SDF_GetSymmetricAlgoId(const char *algoName) {
-    if (SDF_StartsWith("SM4", algoName)) {
-        return SDF_GetSM4AlgoId(algoName);
-    } else if (SDF_StartsWith("SM1", algoName)) {
-        return SDF_GetSM1AlgoId(algoName);
-    } else if (SDF_StartsWith("SM7", algoName)) {
-        return SDF_GetSM7AlgoId(algoName);
-    } else if (SDF_StartsWith("AES", algoName)) {
-        return SDF_GetAESAlgoId(algoName);
+unsigned int SDF_GetSymmetricModeType(const char *modeName) {
+    if (strcmp("ECB", modeName) == 0) {
+        return ALG_MODE_ECB;
+    } else if (strcmp("CBC", modeName) == 0) {
+        return ALG_MODE_CBC;
+    } else if (strcmp("CFB", modeName) == 0) {
+        return ALG_MODE_CFB;
+    } else if (strcmp("OFB", modeName) == 0) {
+        return ALG_MODE_OFB;
+    } else if (strcmp("GCM", modeName) == 0) {
+        return ALG_MODE_GCM;
+    } else if (strcmp("CCM", modeName) == 0) {
+        return ALG_MODE_CCM;
+    } else if (strcmp("XTS", modeName) == 0) {
+        return ALG_MODE_XTS;
+    } else if (strcmp("CTR", modeName) == 0) {
+        return ALG_MODE_CTR;
     } else {
         return SDF_INVALID_VALUE;
     }
@@ -371,20 +320,20 @@ unsigned int SDF_GetSymmetricAlgoId(const char *algoName) {
 
 
 unsigned int SDF_GetAsymmetricPBKLen(unsigned int uiKeyType) {
-    if (uiKeyType == SDF_ASYMMETRIC_KEY_TYPE_SM2) {
-        return sizeof(ECCrefPublicKey_HW);
-    } else if (uiKeyType == SDF_ASYMMETRIC_KEY_TYPE_RSA) {
-        return sizeof(RSArefPublicKeyEx);
+    if (uiKeyType == DATA_KEY_SM2) {
+        return SDF_SM2_ENC_PUB_KEY_SIZE;
+    } else if (uiKeyType == DATA_KEY_RSA) {
+        return SDF_INVALID_VALUE;
     } else {
         return SDF_INVALID_VALUE;
     }
 }
 
 unsigned int SDF_GetAsymmetricPRKLen(unsigned int uiKeyType) {
-    if (uiKeyType == SDF_ASYMMETRIC_KEY_TYPE_SM2) {
-        return sizeof(C_SM2Pairs);
-    } else if (uiKeyType == SDF_ASYMMETRIC_KEY_TYPE_RSA) {
-        return sizeof(RSArefPrivateKeyEx);
+    if (uiKeyType == DATA_KEY_SM2) {
+        return SDF_SM2_ENC_PRI_KEY_SIZE;
+    } else if (uiKeyType == DATA_KEY_RSA) {
+        return SDF_INVALID_VALUE;
     } else {
         return SDF_INVALID_VALUE;
     }
@@ -402,26 +351,26 @@ KEKInfo* SDF_NewKEKInfo(JNIEnv *env, jbyteArray kekId, jbyteArray regionId, jbyt
 
     kekInfoLen = sizeof(KEKInfo);
     uiKEKInfo = malloc(kekInfoLen);
-    memset(uiKEKInfo, 0, kekInfoLen);
     if (!uiKEKInfo) {
         SDF_LOG_ERROR("malloc KEKInfo failed");
         goto cleanup;
     }
+    memset(uiKEKInfo, 0, kekInfoLen);
 
     if (kekId) {
         kekIdBytes = (*env)->GetByteArrayElements(env, kekId, NULL);
         kekIdLen = (*env)->GetArrayLength(env, kekId);
-        memcpy(uiKEKInfo->KEKID, kekIdBytes, kekIdLen);
+        memcpy(uiKEKInfo->kekId, kekIdBytes, kekIdLen);
     }
     if (regionId) {
         regionIdBytes = (*env)->GetByteArrayElements(env, regionId, NULL);
         regionIdLen = (*env)->GetArrayLength(env, regionId);
-        memcpy(uiKEKInfo->RegionID, regionIdBytes, regionIdLen);
+        memcpy(uiKEKInfo->regionId, regionIdBytes, regionIdLen);
     }
     if (cdpId) {
         cdpIdBytes = (*env)->GetByteArrayElements(env, cdpId, NULL);
         cdpIdLen = (*env)->GetArrayLength(env, cdpId);
-        memcpy(uiKEKInfo->CdpID, cdpIdBytes, cdpIdLen);
+        memcpy(uiKEKInfo->cdpId, cdpIdBytes, cdpIdLen);
     }
 
 cleanup:
@@ -444,36 +393,86 @@ void SDF_ReleaseKEKInfo(KEKInfo *uiKEKInfo) {
     free(uiKEKInfo);
 }
 
+void *SDF_CreateDEKParams(JNIEnv *env, jbyteArray kekId, jbyteArray regionId, jbyteArray cdpId, jbyteArray pin) {
+    KEKInfo *kekInfo = NULL;
+    jbyte *pinBytes = NULL;
+    unsigned int pinLen = 0;
+    void *dekParams = NULL;
+    SGD_RV rv;
 
-unsigned int SDF_GetECCrefPublicKeyLen() {
-    return sizeof(ECCrefPublicKey_HW);
+    kekInfo = SDF_NewKEKInfo(env, kekId, regionId, cdpId);
+    if (!kekInfo) {
+        throwSDFRuntimeException(env, "SDF_NewKEKInfo failed");
+        goto cleanup;
+    }
+    if (pin) {
+        pinBytes = (*env)->GetByteArrayElements(env, pin, NULL);
+        pinLen = (*env)->GetArrayLength(env, pin);
+    }
+
+    if ((rv = CDM_CreateDEKParams(kekInfo, pinBytes, pinLen, &dekParams)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_CreateDEKParams");
+        goto cleanup;
+    }
+
+cleanup:
+    if (pinBytes) {
+        (*env)->ReleaseByteArrayElements(env, pin, pinBytes, 0);
+    }
+    SDF_ReleaseKEKInfo(kekInfo);
+    return dekParams;
 }
 
-unsigned char *SDF_NewECCrefPublicKeyChars(JNIEnv *env, jbyteArray xArr, jbyteArray yArr, jint bits) {
-    jbyte *x = NULL;
-    int xLen;
-    jbyte *y = NULL;
-    int yLen;
+void SDF_FreeDEKParams(JNIEnv *env, void *dekParams) {
+    if (!dekParams) {
+        return;
+    }
+    SGD_RV rv;
+    if ((rv = CDM_FreeDEKParams(dekParams)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_FreeDEKParams");
+        return;
+    }
+}
 
-    ECCrefPublicKey_HW *refPubLicKey = NULL;
-    unsigned int uiPBKLen;
 
+unsigned int SDF_GetSM2PublicKeyLen() {
+    return SDF_GetAsymmetricPBKLen(DATA_KEY_SM2);
+}
+
+unsigned char *SDF_CreateSM2PublicKey(JNIEnv *env, jobjectArray pubKeyArr, unsigned int *pubKeyLen) {
+    jbyteArray xArr = NULL;
+    unsigned char *x = NULL;
+    unsigned int xLen;
+    jbyteArray yArr = NULL;
+    unsigned char *y = NULL;
+    unsigned int yLen;
+    unsigned int bitsLen;
+
+    char *pubKey = NULL;
+    SGD_RV rv;
+
+    xArr = (*env)->GetObjectArrayElement(env, pubKeyArr, SDF_SM2_PUBLIC_KEY_X_IDX);
     x = (*env)->GetByteArrayElements(env, xArr, 0);
     xLen = (*env)->GetArrayLength(env, xArr);
+
+    yArr = (*env)->GetObjectArrayElement(env, pubKeyArr, SDF_SM2_PUBLIC_KEY_Y_IDX);
     y = (*env)->GetByteArrayElements(env, yArr, 0);
     yLen = (*env)->GetArrayLength(env, yArr);
 
-    uiPBKLen = SDF_GetECCrefPublicKeyLen();
-
-    // ECCrefPublicKey_HW
-    if ((refPubLicKey = malloc(uiPBKLen)) == NULL) {
-        SDF_LOG_ERROR("malloc ECCrefPublicKey_HW failed");
+    bitsLen = xLen << 3;
+    if ((rv = CDM_SetSM2PubKeyElements(x, xLen, y, yLen, bitsLen, pubKey, pubKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_SetSM2PubKeyElements");
         goto cleanup;
     }
-    memset(refPubLicKey,0,uiPBKLen);
-    refPubLicKey->bits = bits;
-    memcpy(refPubLicKey->x, x, xLen);
-    memcpy(refPubLicKey->y, y, yLen);
+    if ((pubKey = malloc( *pubKeyLen)) == NULL) {
+        throwOutOfMemoryError(env, "malloc pubKey failed");
+        goto cleanup;
+    }
+
+    if ((rv = CDM_SetSM2PubKeyElements(x, xLen, y, yLen, bitsLen, pubKey, pubKeyLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_SetSM2PubKeyElements");
+        goto cleanup;
+    }
 
 cleanup:
     if (x != NULL) {
@@ -482,14 +481,147 @@ cleanup:
     if (y != NULL) {
         (*env)->ReleaseByteArrayElements(env, yArr, y, 0);
     }
-    return (unsigned char *) refPubLicKey;
+    return pubKey;
 }
 
-void SDF_ReleaseECCrefPubicKeyChars(unsigned char *uiPublicKey) {
-    if (uiPublicKey == NULL) {
+void SDF_FreeSM2PublicKey(unsigned char *pubKey) {
+    if (pubKey == NULL) {
         return;
     }
-    free(uiPublicKey);
+    free(pubKey);
+}
+
+void *SDF_CreateSM2PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr) {
+    void *keyHandle = NULL;
+    const char *priKey = NULL;
+    unsigned int priKeyLen;
+    SGD_RV rv;
+
+    priKeyLen = (*env)->GetArrayLength(env, priKeyArr);
+    if ((priKey = malloc(priKeyLen)) == NULL) {
+        throwOutOfMemoryError(env, "malloc priKey failed");
+        goto cleanup;
+    }
+    (*env)->GetByteArrayRegion(env, priKeyArr, 0, priKeyLen, priKey);
+    if ((rv = CDM_ImportKeyHandle(priKey, priKeyLen, NULL, 0, &keyHandle)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_ImportKeyHandle");
+        goto cleanup;
+    }
+
+cleanup:
+    if (priKey) {
+        free(priKey);
+    }
+    return keyHandle;
+}
+
+void SDF_FreeSM2PriKeyHandle(void *keyHandle) {
+    if (keyHandle == NULL) {
+        return;
+    }
+    CDM_DestroyKeyHandle(keyHandle);
+}
+
+// SM2Cipher to jobjectArray
+jobjectArray SDF_SM2CipherToObjectArray(JNIEnv *env, SM2Cipher *sm2Cipher) {
+    jobjectArray cipherParams = NULL;
+    jclass byteArrayClass = NULL;
+    jbyteArray c1xArr;
+    jbyteArray c1yArr;
+    jbyteArray c2Arr;
+    jbyteArray c3Arr;
+
+    // cipherParams
+    byteArrayClass = (*env)->FindClass(env, "[B");
+    cipherParams = (*env)->NewObjectArray(env, SDF_SM2_CIPHER_PARAMS_LEN, byteArrayClass, NULL);
+
+    // C1 x
+    c1xArr = (*env)->NewByteArray(env, SM2_KEY_BUF_LEN);
+    (*env)->SetByteArrayRegion(env, c1xArr, 0, SM2_KEY_BUF_LEN, (jbyte *) sm2Cipher->x);
+    (*env)->SetObjectArrayElement(env, cipherParams, SDF_SM2_CIPHER_C1_X_IDX, c1xArr);
+
+    // C1 y
+    c1yArr = (*env)->NewByteArray(env, SM2_KEY_BUF_LEN);
+    (*env)->SetByteArrayRegion(env, c1yArr, 0, SM2_KEY_BUF_LEN, (jbyte *) sm2Cipher->y);
+    (*env)->SetObjectArrayElement(env, cipherParams, SDF_SM2_CIPHER_C1_Y_IDX, c1yArr);
+
+    // C2
+    c2Arr = (*env)->NewByteArray(env, sm2Cipher->L);
+    (*env)->SetByteArrayRegion(env, c2Arr, 0, sm2Cipher->L, (jbyte *) sm2Cipher->C);
+    (*env)->SetObjectArrayElement(env, cipherParams, SDF_SM2_CIPHER_C2_IDX, c2Arr);
+
+    // C3
+    c3Arr = (*env)->NewByteArray(env, SM2_KEY_BUF_LEN);
+    (*env)->SetByteArrayRegion(env, c3Arr, 0, SM2_KEY_BUF_LEN, (jbyte *) sm2Cipher->M);
+    (*env)->SetObjectArrayElement(env, cipherParams, SDF_SM2_CIPHER_C3_IDX, c3Arr);
+
+cleanup:
+    if (c3Arr) {
+        (*env)->DeleteLocalRef(env, c3Arr);
+    }
+    if (c2Arr) {
+        (*env)->DeleteLocalRef(env, c2Arr);
+    }
+    if (c1yArr) {
+        (*env)->DeleteLocalRef(env, c1yArr);
+    }
+    if (c1xArr) {
+        (*env)->DeleteLocalRef(env, c1xArr);
+    }
+    if (byteArrayClass) {
+        (*env)->DeleteLocalRef(env, byteArrayClass);
+    }
+
+    return cipherParams;
+}
+
+// jobjectArray to SM2Cipher
+SM2Cipher * SDF_ObjectArrayToSM2Cipher(JNIEnv *env, jobjectArray cipherParams, unsigned int* encDataLen) {
+    jbyteArray c1xArr = NULL;
+    jsize c1xLen = 0;
+    jbyteArray c1yArr = NULL;
+    jsize c1yLen = 0;
+    jbyteArray c2Arr = NULL;
+    jsize c2Len = 0;
+    jbyteArray c3Arr = NULL;
+    jsize c3Len = 0;
+
+    c1xArr = (*env)->GetObjectArrayElement(env, cipherParams, SDF_SM2_CIPHER_C1_X_IDX);
+    c1xLen = (*env)->GetArrayLength(env, c1xArr);
+
+    c1yArr = (*env)->GetObjectArrayElement(env, cipherParams, SDF_SM2_CIPHER_C1_Y_IDX);
+    c1yLen = (*env)->GetArrayLength(env, c1yArr);
+
+    c2Arr = (*env)->GetObjectArrayElement(env, cipherParams, SDF_SM2_CIPHER_C2_IDX);
+    c2Len = (*env)->GetArrayLength(env, c2Arr);
+
+    c3Arr = (*env)->GetObjectArrayElement(env, cipherParams, SDF_SM2_CIPHER_C3_IDX);
+    c3Len = (*env)->GetArrayLength(env, c3Arr);
+
+    SM2Cipher *sm2Cipher = NULL;
+    *encDataLen = c1xLen + c1yLen + c3Len + c2Len + sizeof(int);
+    if (!(sm2Cipher = malloc(*encDataLen))) {
+        goto cleanup;
+    }
+    (*env)->GetByteArrayRegion(env, c1xArr, 0, c1xLen, (jbyte*) sm2Cipher->x);
+    (*env)->GetByteArrayRegion(env, c1yArr, 0, c1yLen, (jbyte*) sm2Cipher->y);
+    sm2Cipher->L = c2Len;
+    (*env)->GetByteArrayRegion(env, c2Arr, 0, c2Len, (jbyte*) sm2Cipher->C);
+    (*env)->GetByteArrayRegion(env, c3Arr, 0, c3Len, (jbyte*) sm2Cipher->M);
+cleanup:
+    if (c3Arr) {
+        (*env)->DeleteLocalRef(env, c3Arr);
+    }
+    if (c2Arr) {
+        (*env)->DeleteLocalRef(env, c2Arr);
+    }
+    if (c1yArr) {
+        (*env)->DeleteLocalRef(env, c1yArr);
+    }
+    if (c1xArr) {
+        (*env)->DeleteLocalRef(env, c1xArr);
+    }
+    return sm2Cipher;
 }
 
 
@@ -499,4 +631,50 @@ void SDF_Print_Chars(const char *attrName, unsigned char *p, unsigned int len) {
         printf("%d,", p[i]);
     }
     printf("\n");
+}
+
+unsigned int SDF_GetAsymmetricKeyType(const char *algoName) {
+    if (strcasecmp("SM2", algoName) == 0) {
+        return DATA_KEY_SM2;
+    } else if (strcasecmp("RSA", algoName) == 0) {
+        return DATA_KEY_RSA;
+    } else if (strcasecmp("ECC", algoName) == 0) {
+        return DATA_KEY_ECC;
+    } else {
+        return SDF_INVALID_VALUE;
+    }
+}
+
+unsigned int SDF_GetHmacKeyType(const char *algoName) {
+    if (strcasecmp("HmacSM3", algoName) == 0 || strcasecmp("SM3", algoName) == 0) {
+        return DATA_KEY_HMAC_SM3;
+    } else if (strcasecmp("HmacSHA1", algoName) == 0 || strcasecmp("SHA1", algoName) == 0) {
+        return DATA_KEY_HMAC_SHA1;
+    } else if (strcasecmp("HmacSHA224", algoName) == 0 || strcasecmp("SHA224", algoName) == 0) {
+        return DATA_KEY_HMAC_SHA224;
+    } else if (strcasecmp("HmacSHA256", algoName) == 0 || strcasecmp("SHA256", algoName) == 0) {
+        return DATA_KEY_HMAC_SHA256;
+    } else if (strcasecmp("HmacSHA384", algoName) == 0 || strcasecmp("SHA384", algoName) == 0) {
+        return DATA_KEY_HMAC_SHA384;
+    } else if (strcasecmp("HmacSHA512", algoName) == 0 || strcasecmp("SHA512", algoName) == 0) {
+        return DATA_KEY_HMAC_SHA512;
+    } else {
+        return SDF_INVALID_VALUE;
+    }
+}
+
+unsigned int SDF_GetSymmetricKeyType(const char *algoName) {
+    if (strcasecmp("SM4", algoName) == 0) {
+        return DATA_KEY_SM4;
+    } else if (strcasecmp("SM1", algoName) == 0) {
+        return DATA_KEY_SM1;
+    } else if (strcasecmp("SM7", algoName) == 0) {
+        return DATA_KEY_SM7;
+    } else if (strcasecmp("AES", algoName) == 0) {
+        return DATA_KEY_AES;
+    } else if (strcasecmp("3DES", algoName) == 0) {
+        return DATA_KEY_3DES;
+    } else {
+        return SDF_INVALID_VALUE;
+    }
 }

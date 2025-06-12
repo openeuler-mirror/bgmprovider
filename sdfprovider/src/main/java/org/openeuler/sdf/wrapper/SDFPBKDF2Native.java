@@ -26,6 +26,6 @@ package org.openeuler.sdf.wrapper;
 
 public class SDFPBKDF2Native {
     public static native byte[] nativeDeriveKey(
-            long sessionHandleAddr, String algorithm, byte[] password, byte[] salt, int iterCount, int keyLength);
+            String algorithm, byte[] password, byte[] salt, int iterCount, int keyLength);
 
 }

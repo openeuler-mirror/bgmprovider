@@ -26,7 +26,6 @@ package org.openeuler.sdf.jca.commons;
 
 import org.openeuler.sdf.commons.key.SDFEncryptKey;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPrivateKeyImpl;
-import org.openeuler.sdf.wrapper.entity.SDFECCCipherEntity;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
@@ -34,8 +33,10 @@ import sun.security.util.DerValue;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.PrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECPoint;
 
-import static org.openeuler.sdf.commons.constant.SDFConstant.ENC_PRIVATE_KEY_SIZE;
+import static org.openeuler.sdf.commons.constant.SDFConstant.ENC_SM2_PRIVATE_KEY_SIZE;
 
 public class SDFUtil {
     /**
@@ -64,41 +65,50 @@ public class SDFUtil {
         return tmp;
     }
 
-    public static byte[] asUnsignedByteArray(PrivateKey privateKey) {
+    public static byte[] getPrivateKeyBytes(PrivateKey privateKey) {
         if(!(privateKey instanceof SDFECPrivateKeyImpl)) {
             throw new IllegalArgumentException("only support EncryptKey");
         }
         int size;
         if(((SDFEncryptKey) privateKey).isEncKey()) {
-            size = ENC_PRIVATE_KEY_SIZE;
+            size = ENC_SM2_PRIVATE_KEY_SIZE;
         } else {
             size = (((SDFECPrivateKeyImpl) privateKey).getParams().getCurve().getField().getFieldSize() + 7) / 8;
         }
         return asUnsignedByteArray(size, ((SDFECPrivateKeyImpl) privateKey).getS());
     }
 
+    public static Object[] getPublicKeyAffineXYBytes(ECPublicKey publicKey) {
+        int size = (publicKey.getParams().getCurve().getField().getFieldSize() + 7) / 8;
+        ECPoint w = publicKey.getW();
+        return new Object[]{
+                asUnsignedByteArray(size, w.getAffineX()),
+                asUnsignedByteArray(size, w.getAffineY()),
+        };
+    }
 
-    // convert SDFECCCipherEntity to byte array
-    public static byte[] encodeECCCipher(SDFSM2CipherMode outputMode, SDFECCCipherEntity entity) throws IOException {
-        BigInteger x = new BigInteger(1, entity.getX());
-        BigInteger y = new BigInteger(1, entity.getY());
+
+    // convert sm2 encrypted parameters to SM2Cipher struct bytes
+    public static byte[] encodeECCCipher(SDFSM2CipherMode outputMode, byte[][] sm2CipherParams) throws IOException {
+        BigInteger x = new BigInteger(1, sm2CipherParams[0]);
+        BigInteger y = new BigInteger(1, sm2CipherParams[1]);
 
         DerOutputStream out = new DerOutputStream();
         out.putInteger(x);
         out.putInteger(y);
         if (outputMode == SDFSM2CipherMode.C1C3C2) {
-            out.putOctetString(entity.getM());
-            out.putOctetString(entity.getC());
+            out.putOctetString(sm2CipherParams[3]);
+            out.putOctetString(sm2CipherParams[2]);
         } else if (outputMode == SDFSM2CipherMode.C1C2C3) {
-            out.putOctetString(entity.getC());
-            out.putOctetString(entity.getM());
+            out.putOctetString(sm2CipherParams[2]);
+            out.putOctetString(sm2CipherParams[3]);
         }
         DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
         return result.toByteArray();
     }
 
-    // convert byte array to SDFECCCipherEntity
-    public static SDFECCCipherEntity decodeECCCipher(SDFSM2CipherMode outputMode, byte[] in, int curveLength) throws IOException {
+    // convert SM2Cipher struct bytes to sm2 encrypted parameters
+    public static byte[][] decodeECCCipher(SDFSM2CipherMode outputMode, byte[] in, int curveLength) throws IOException {
         DerInputStream inDer = new DerInputStream(in, 0, in.length, false);
         DerValue[] values = inDer.getSequence(2);
         // check number of components in the read sequence
@@ -107,16 +117,11 @@ public class SDFUtil {
             throw new IOException("Invalid encoding for signature");
         }
 
-        SDFECCCipherEntity eccCipher = new SDFECCCipherEntity();
-
         BigInteger x = values[0].getPositiveBigInteger();
         BigInteger y = values[1].getPositiveBigInteger();
 
-        byte[] encodedX = SDFUtil.asUnsignedByteArray((curveLength + 7) / 8, x);
-        eccCipher.setX(encodedX);
-
-        byte[] encodedY = SDFUtil.asUnsignedByteArray((curveLength + 7) / 8, y);
-        eccCipher.setY(encodedY);
+        byte[] c1x = SDFUtil.asUnsignedByteArray((curveLength + 7) / 8, x);
+        byte[] c1y = SDFUtil.asUnsignedByteArray((curveLength + 7) / 8, y);
 
         byte[] c2, c3;
         if (outputMode == SDFSM2CipherMode.C1C3C2) {
@@ -126,9 +131,11 @@ public class SDFUtil {
             c2 = values[2].getOctetString();
             c3 = values[3].getOctetString();
         }
-        eccCipher.setcLength(c2.length);
-        eccCipher.setC(c2);
-        eccCipher.setM(c3);
-        return eccCipher;
+        return new byte[][]{
+                c1x,
+                c1y,
+                c2,
+                c3
+        };
     }
 }

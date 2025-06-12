@@ -25,13 +25,10 @@
 package org.openeuler.sdf.jca.asymmetric;
 
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.jca.commons.SDFKeyUtil;
 import org.openeuler.sdf.jca.commons.SDFSM2CipherMode;
 import org.openeuler.sdf.jca.commons.SDFUtil;
 import org.openeuler.sdf.wrapper.SDFSM2CipherNative;
-import org.openeuler.sdf.wrapper.entity.SDFECCCipherEntity;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -50,6 +47,7 @@ import java.security.interfaces.ECKey;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.Arrays;
 
 /**
  * SDF SM2 Cipher
@@ -66,9 +64,6 @@ public class SDFSM2Cipher extends CipherSpi {
     private SDFSM2CipherMode outputMode = SDFSM2CipherMode.C1C3C2;
     private int mode;
     private int curveLength;
-
-    // SDF Session
-    private SDFSession session;
 
     @Override
     protected void engineSetMode(String mode) throws NoSuchAlgorithmException {
@@ -224,46 +219,42 @@ public class SDFSM2Cipher extends CipherSpi {
     }
 
     private byte[] encrypt(byte[] in) {
-        SDFECCCipherEntity entity;
-        ECPublicKey publicKey = (ECPublicKey) ecKey;
-        // init session
-        if (session == null) {
-            this.session = SDFSessionManager.getInstance().getSession();
+        if (in == null || in.length == 0) {
+            throw new IllegalArgumentException("data should not be empty");
         }
+        byte[][] cipherParams;
+        ECPublicKey publicKey = (ECPublicKey) ecKey;
         try {
             int size = (curveLength + 7) / 8;
-            entity = SDFSM2CipherNative.nativeSM2Encrypt(session.getAddress(),
+            Object[] pubKeyArr = {
                     SDFUtil.asUnsignedByteArray(size, publicKey.getW().getAffineX()),
-                    SDFUtil.asUnsignedByteArray(size, publicKey.getW().getAffineY()),
-                    curveLength,
-                    in);
-            return SDFUtil.encodeECCCipher(outputMode, entity);
+                    SDFUtil.asUnsignedByteArray(size, publicKey.getW().getAffineY())
+            };
+            cipherParams = SDFSM2CipherNative.nativeSM2Encrypt(pubKeyArr, in);
+            System.out.println(Arrays.toString(cipherParams[0]));
+            System.out.println(Arrays.toString(cipherParams[1]));
+            System.out.println(Arrays.toString(cipherParams[2]));
+            System.out.println(Arrays.toString(cipherParams[3]));
+            return SDFUtil.encodeECCCipher(outputMode, cipherParams);
         } catch (Exception e) {
             throw new SDFRuntimeException(e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
-            session = null;
         }
     }
 
     private byte[] decrypt(byte[] in) {
+        if (in == null || in.length == 0) {
+            throw new IllegalArgumentException("encData should not be empty");
+        }
         byte[] result;
         ECPrivateKey privateKey = (ECPrivateKey) ecKey;
-        // init session
-        if (session == null) {
-            this.session = SDFSessionManager.getInstance().getSession();
-        }
         try {
-            byte[] priArray = SDFUtil.asUnsignedByteArray(privateKey);
-            result = SDFSM2CipherNative.nativeSM2Decrypt(session.getAddress(),
-                    priArray,
-                    SDFUtil.decodeECCCipher(outputMode, in, curveLength),
-                    curveLength);
+            byte[] priKeyArr = SDFUtil.getPrivateKeyBytes(privateKey);
+            byte[][] sm2CipherParams = SDFUtil.decodeECCCipher(outputMode, in, curveLength);
+            result = SDFSM2CipherNative.nativeSM2Decrypt(
+                    priKeyArr, sm2CipherParams
+            );
         } catch (Exception e) {
-            throw new SDFRuntimeException("nativeSM2Encrypt failed.", e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
-            session = null;
+            throw new SDFRuntimeException("decrypt failed.", e);
         }
         return result;
     }

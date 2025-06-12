@@ -25,10 +25,7 @@ package org.openeuler.sdf.jca.asymmetric;
 
 import org.openeuler.sdf.commons.exception.SDFException;
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.wrapper.SDFRSACipherNative;
-import sun.security.rsa.RSACore;
 import sun.security.rsa.RSAPrivateCrtKeyImpl;
 import sun.security.rsa.RSAPublicKeyImpl;
 import sun.security.rsa.RSAUtil.KeyType;
@@ -109,19 +106,15 @@ public class SDFRSACore {
     public static byte[] rsa(byte[] msg, RSAPublicKey key) {
         byte[][] pubKeyParams = translateToRSAPublicKeyParams(key);
         int bits = key.getModulus().bitLength();
-        SDFSession session = SDFSessionManager.getInstance().getSession();
         byte[] encryptedData;
         try {
             encryptedData = SDFRSACipherNative.nativeEncrypt(
-                    session.getAddress(),
                     bits,
                     pubKeyParams,
                     msg
             );
         } catch (SDFException e) {
             throw new SDFRuntimeException(e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
         }
         return encryptedData;
     }
@@ -133,19 +126,15 @@ public class SDFRSACore {
     public static byte[] rsa(byte[] msg, RSAPrivateKey key) {
         byte[][] priKeyParams = translateToRSAPrivateKeyParams(key);
         int bits = key.getModulus().bitLength();
-        SDFSession session = SDFSessionManager.getInstance().getSession();
         byte[] decryptedData;
         try {
             decryptedData = SDFRSACipherNative.nativeDecrypt(
-                    session.getAddress(),
                     bits,
                     priKeyParams,
                     msg
             );
         } catch (SDFException e) {
             throw new SDFRuntimeException(e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
         }
         return decryptedData;
     }

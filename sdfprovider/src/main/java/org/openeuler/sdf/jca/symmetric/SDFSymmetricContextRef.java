@@ -34,15 +34,14 @@ public class SDFSymmetricContextRef extends AbstractSDFRef<SDFSymmetricContext> 
     // Used when creating Digest Context
     private long sessionAddr;
 
-    public SDFSymmetricContextRef(SDFSymmetricContext reference, long sessionAddr, long address) {
+    public SDFSymmetricContextRef(SDFSymmetricContext reference, long address) {
         super(reference, address);
-        this.sessionAddr = sessionAddr;
     }
 
     @Override
     protected void free(long address) {
         try {
-            nativeCipherCtxFree(sessionAddr, address);
+            nativeCipherCtxFree(address);
         }catch (Exception e){
             throw new RuntimeException("SDFCipherContextRef nativeCipherCtxFree failed ", e);
         }

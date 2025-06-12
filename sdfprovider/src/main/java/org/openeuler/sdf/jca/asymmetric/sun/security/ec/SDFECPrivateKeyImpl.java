@@ -46,7 +46,7 @@ import sun.security.util.DerValue;
 import sun.security.x509.AlgorithmId;
 import sun.security.pkcs.PKCS8Key;
 
-import static org.openeuler.sdf.commons.constant.SDFConstant.ENC_PRIVATE_KEY_SIZE;
+import static org.openeuler.sdf.commons.constant.SDFConstant.ENC_SM2_PRIVATE_KEY_SIZE;
 
 /**
  * Key implementation for EC private keys.
@@ -159,7 +159,7 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
             // convert to fixed-length array
             int numOctets;
             if (isEncKey) {
-                numOctets = ENC_PRIVATE_KEY_SIZE;
+                numOctets = ENC_SM2_PRIVATE_KEY_SIZE;
             } else {
                 numOctets = (params.getOrder().bitLength() + 7) / 8;
             }
@@ -202,7 +202,7 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
             ArrayUtil.reverse(arr);
             int byteLength;
             if (isEncKey) {
-                byteLength = ENC_PRIVATE_KEY_SIZE;
+                byteLength = ENC_SM2_PRIVATE_KEY_SIZE;
             } else {
                 byteLength = (params.getOrder().bitLength() + 7) / 8;
             }
@@ -241,7 +241,7 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
             ArrayUtil.reverse(privData);
             arrayS = privData;
             // enc private key
-            if (arrayS.length == ENC_PRIVATE_KEY_SIZE) {
+            if (arrayS.length == ENC_SM2_PRIVATE_KEY_SIZE) {
                 isEncKey = true;
             }
             while (data.available() != 0) {

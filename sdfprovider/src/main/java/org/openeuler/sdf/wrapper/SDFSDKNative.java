@@ -24,8 +24,11 @@
 
 package org.openeuler.sdf.wrapper;
 
-public class SDFSessionNative {
-    public native static long nativeOpenSession(long hDeviceHandle);
+import org.openeuler.sdf.commons.exception.SDFException;
 
-    public native static void nativeCloseSession(long hSessionHandle);
+public class SDFSDKNative {
+
+    public static native void init(String configPath) throws SDFException;
+
+    public static native void destroy();
 }
