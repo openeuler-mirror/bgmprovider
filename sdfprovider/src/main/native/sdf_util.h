@@ -21,16 +21,13 @@
  * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
  * information or have any questions.
  */
-
-#include "sdf.h"
-#include "sdf_exception.h"
 #include <stdlib.h>
 #include <string.h>
 #include <jni.h>
+#include "sdf_exception.h"
 
-#define SYSCKEY_LEN 512
-#define HMAC_KEY_LEN sizeof(HMACKey)
-#define SDF_INVALID_VALUE -1
+#define SGD_RV int
+
 #define CLASS_SDFECCCipherEntity "org/openeuler/sdf/wrapper/entity/SDFECCCipherEntity"
 
 #define HW_KEYDESTROY_MASK 0x00010000
@@ -50,26 +47,19 @@ typedef enum SDF_RSAKeyParamIndex {
     SDF_RSA_PRK_PRIME_COEFF_IDX = 7,
 } SDF_RSAKeyParamIndex;
 
-enum SDF_CTX_TYPE {
-    SDF_CTX_TYPE_SYMMETRIC = 0,
-    SDF_CTX_TYPE_DIGEST = 1,
-    SDF_CTX_TYPE_HMAC = 2
+enum SDF_KEY_SIZE {
+    SDF_INVALID_VALUE = -1,
+    SDF_SYS_ENC_KEY_LEN  = 1024,
+    SDF_HMAC_ENC_KEY_LEN  = 1024,
+    SDF_SM2_ENC_PRI_KEY_SIZE = 1024,
+    SDF_SM2_ENC_PUB_KEY_SIZE = 136,
+    SDF_FINISHED_LEN = 12
 };
 
-enum SDF_ASYMMETRIC_KEY_TYPE {
-    SDF_ASYMMETRIC_KEY_TYPE_SM2 = 0,
-    SDF_ASYMMETRIC_KEY_TYPE_RSA = 1,
-    SDF_ASYMMETRIC_KEY_TYPE_ECC = 2
-};
+void *SDF_Malloc(size_t num);
 
-enum SDF_SIGNATURE_KEY_TYPE {
-    SDF_SIGNATURE_KEY_TYPE_SM2 = 0,
-    SDF_SIGNATURE_KEY_TYPE_ECC = 0
-};
-
-jbyteArray SDF_GetByteArrayFromCharArr(JNIEnv* env, const char* charArr, int arrLen);
-
-ECCrefPublicKey_HW* SDF_GetECCPublickeyFromObj(JNIEnv* env, jobject publicKeyObj);
+void *SDF_Free(void *ptr);
+/*ECCrefPublicKey_HW* SDF_GetECCPublickeyFromObj(JNIEnv* env, jobject publicKeyObj);
 
 ECCrefPublicKey_HW* SDF_GetECCPublickeyFromByteArray(JNIEnv* env, jbyteArray xArr, jbyteArray yArr, jint bits);
 
@@ -87,11 +77,11 @@ jobject SDF_GetECCCipherJavaObject(JNIEnv *env, unsigned char *pucEncData, unsig
 
 unsigned char* SDF_NewECCCipherChars(JNIEnv *env, jobject eccCipher_object, unsigned int *eccCipher_len);
 
-void SDF_ReleaseECCCipherChars(unsigned char *pucEncData);
+void SDF_ReleaseECCCipherChars(unsigned char *pucEncData);*/
 
 unsigned int SDF_GetDigestAlgoId(const char *algoName);
 
-unsigned int SDF_GetSymmetricAlgoId(const char *algoName);
+unsigned int SDF_GetSymmetricModeType(const char *modeName);
 
 // get asymmetric public key len
 unsigned int SDF_GetAsymmetricPBKLen(unsigned int uiKeyType);
@@ -99,18 +89,29 @@ unsigned int SDF_GetAsymmetricPBKLen(unsigned int uiKeyType);
 // get asymmetric private key len
 unsigned int SDF_GetAsymmetricPRKLen(unsigned int uiKeyType);
 
-// new KEKInfo
-KEKInfo* SDF_NewKEKInfo(JNIEnv *env, jbyteArray kekId, jbyteArray regionId, jbyteArray cdpId);
+// create DEK params
+void* SDF_CreateDEKParams(JNIEnv *env, jbyteArray kekId, jbyteArray regionId, jbyteArray cdpId, jbyteArray pin);
 
-// release KEKInfo
-void SDF_ReleaseKEKInfo(KEKInfo *uiKEKInfo);
+// free DEK params
+void SDF_FreeDEKParams(JNIEnv *env, void *dekParams);
 
+// get sm2 public key len
+unsigned int SDF_GetSM2PublicKeyLen();
 
-unsigned int SDF_GetECCrefPublicKeyLen();
+// create sm2 public key
+unsigned char *SDF_CreateSM2PublicKey(JNIEnv *env, jobjectArray pubKeyArr, unsigned int *pubKeyLen);
+// free sm2 public key
+void SDF_FreeSM2PublicKey(unsigned char *pubKey);
 
-unsigned char *SDF_NewECCrefPublicKeyChars(JNIEnv *env, jbyteArray xArr, jbyteArray yArr, jint bits);
+void *SDF_CreateSM2PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr);
+void SDF_FreeSM2PriKeyHandle(void *keyHandle);
 
-void SDF_ReleaseECCrefPubicKeyChars(unsigned char *uiPublicKey);
+jobjectArray SDF_SM2CipherToObjectArray(JNIEnv *env, SM2Cipher *sm2Cipher);
+SM2Cipher * SDF_ObjectArrayToSM2Cipher(JNIEnv *env, jobjectArray cipherParams, unsigned int* encDataLen);
 
 // print a memory array of specified length
 void SDF_Print_Chars(const char *attrName, unsigned char *p, unsigned int len);
+
+unsigned int SDF_GetSymmetricKeyType(const char *algoName);
+unsigned int SDF_GetHmacKeyType(const char *algoName);
+unsigned int SDF_GetAsymmetricKeyType(const char *algoName);

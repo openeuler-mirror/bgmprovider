@@ -24,6 +24,8 @@
 
 package org.openeuler.sdf.jca.symmetric;
 
+import org.openeuler.sdf.commons.constant.SDFDataKeyType;
+
 /**
  * This class currently supports:
  * - SM7/ECB/NOPADDING
@@ -58,6 +60,6 @@ abstract class SDFSM7Cipher extends SDFSymmetricCipherBase {
     }
 
     SDFSM7Cipher(SDFMode mode, SDFPadding padding) {
-        super("SM7", mode, padding, 8, 16);
+        super(SDFDataKeyType.DATA_KEY_SM7, mode, padding, 8, 16);
     }
 }

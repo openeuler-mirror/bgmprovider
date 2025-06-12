@@ -28,7 +28,9 @@ import org.openeuler.provider.AbstractEntries;
 import org.openeuler.provider.AbstractProvider;
 import org.openeuler.sdf.commons.base.SDFNativeResourceCleaner;
 import org.openeuler.sdf.commons.config.SDFConfig;
+import org.openeuler.sdf.commons.exception.SDFException;
 import org.openeuler.sdf.commons.log.SDFLog;
+import org.openeuler.sdf.commons.sdk.SDFSDKManager;
 import sun.security.util.Debug;
 import sun.security.util.ObjectIdentifier;
 import sun.security.x509.AlgorithmId;
@@ -43,7 +45,6 @@ import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.security.AccessController;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
 import java.security.Provider;
 import java.security.SecureRandom;
@@ -66,6 +67,8 @@ public class SDFProvider extends AbstractProvider {
     private static final String LIB_NAME = "sdfcrypto";
     private static final String LIB_SUFFIX = ".so";
 
+    private static final String CDM_SDK_CONFIG = "CDM_SDK_CONFIG";
+
     private static final String CLEANER_THREAD_NAME = "sdf-cleaner-thread";
     private static final SDFConfig config = SDFConfig.getInstance();
 
@@ -83,6 +86,8 @@ public class SDFProvider extends AbstractProvider {
         loadLibrary();
         // init log
         initLog();
+        // init SDK
+        initSDK();
         // init cleaner thread
         initCleanerThread();
         // init NameTable
@@ -174,10 +179,50 @@ public class SDFProvider extends AbstractProvider {
     }
 
     /**
+     * Get tmp lib name
+     */
+    private static String getTmpLibName() {
+        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
+        int processID = Integer.parseInt(runtimeMXBean.getName().split("@")[0]);
+        Random tmpRandom = new Random();
+        String version = SDFProvider.class.getPackage().getImplementationVersion();
+        return getLibName() + "-" + version + "-" + processID + tmpRandom.nextLong() + LIB_SUFFIX;
+    }
+
+    /**
      * Init log
      */
     private static void initLog() {
-        SDFLog.init(config.getLogPath(),config.getLogLevel());
+        if (config.getLogPath() != null) {
+            SDFLog.init(config.getLogPath(), config.getLogLevel());
+        }
+    }
+
+    /**
+     * Init SDK, supports the following two configuration methods:
+     * 1. using the sdf.sdkConfig system property: -Dsdf.sdkConfig=/path/sdk.config
+     * 2. using the environment variable CDM_SDK_CONFIG  export CDM_SDK_CONFIG=/path/sdk.config
+     */
+    private static void initSDK() {
+        String sdkConfig = config.getSdkConfig();
+
+        if (sdkConfig == null && System.getenv(CDM_SDK_CONFIG) == null) {
+            if (debug != null) {
+                debug.println("Missing SDK config file");
+            }
+            return;
+        }
+
+        if (debug != null) {
+            debug.println("SDK config file :" + sdkConfig);
+        }
+        try {
+            SDFSDKManager.init(sdkConfig);
+        } catch (SDFException e) {
+            if (debug != null) {
+                debug.println(e.getMessage());
+            }
+        }
     }
 
     /**
@@ -194,7 +239,6 @@ public class SDFProvider extends AbstractProvider {
 
     /**
      * Get static Random Instance
-     * @return
      */
     public static SecureRandom getRandom() {
         return SecureRandomHolder.RANDOM;
@@ -202,19 +246,6 @@ public class SDFProvider extends AbstractProvider {
 
     private static class SecureRandomHolder {
         static final SecureRandom RANDOM = new SecureRandom();
-    }
-
-    /**
-     * Get tmp lib name
-     * @return
-     * @throws NoSuchAlgorithmException
-     */
-    private static String getTmpLibName() throws NoSuchAlgorithmException {
-        RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
-        int processID = Integer.parseInt(runtimeMXBean.getName().split("@")[0]);
-        Random tmpRandom = new Random();
-        String version = SDFProvider.class.getPackage().getImplementationVersion();
-        return getLibName() + "-" + version + "-" + processID + tmpRandom.nextLong() + LIB_SUFFIX;
     }
 
     @Override

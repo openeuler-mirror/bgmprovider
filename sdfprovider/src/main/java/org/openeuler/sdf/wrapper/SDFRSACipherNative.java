@@ -27,10 +27,10 @@ package org.openeuler.sdf.wrapper;
 import org.openeuler.sdf.commons.exception.SDFException;
 
 public class SDFRSACipherNative {
-    public static native byte[] nativeEncrypt(long sessionAddr, int bits, byte[][] pubKeyParams, byte[] plainData)
+    public static native byte[] nativeEncrypt(int bits, byte[][] pubKeyParams, byte[] plainData)
             throws SDFException;
 
 
-    public static native byte[] nativeDecrypt(long sessionAddr, int bits, byte[][] priKeyParams , byte[] encryptedData)
+    public static native byte[] nativeDecrypt(int bits, byte[][] priKeyParams , byte[] encryptedData)
             throws SDFException;
 }

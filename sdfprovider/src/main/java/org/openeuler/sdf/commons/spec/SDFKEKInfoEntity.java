@@ -45,29 +45,37 @@ public class SDFKEKInfoEntity {
     protected byte[] cdpId;
 
     // PIN used to generate the secret key for encryption.
-    protected byte[] PIN;
+    protected byte[] pin;
 
-    public SDFKEKInfoEntity(byte[] kekId, byte[] regionId, byte[] cdpId, byte[] PIN) {
-        if (kekId == null || kekId.length != 32){
-            throw new InvalidParameterException("Wrong kekId size: must be equal to 32");
-        }
-        if (regionId == null && cdpId == null) {
-            throw new InvalidParameterException("Both cdpID and regionId cannot be empty.");
+    public SDFKEKInfoEntity(byte[] kekId, byte[] regionId, byte[] cdpId, byte[] pin) {
+        if (kekId == null || regionId == null && cdpId == null) {
+            throw new InvalidParameterException("kekId, regionId and cdpId cannot be empty.");
         }
         this.kekId = kekId;
         this.regionId = regionId;
         this.cdpId = cdpId;
-        this.PIN = PIN;
+        this.pin = pin;
     }
 
     private static void initDefaultKEKInfo() {
         SDFConfig config = SDFConfig.getInstance();
-        if(config.isUseEncDEK() && !config.getDefaultKEKId().isEmpty()) {
-            defaultKEKInfo = new SDFKEKInfoEntity(config.getDefaultKEKId().getBytes(),
-                    config.getDefaultRegionId().getBytes(),
-                    config.getDefaultCdpId().getBytes(),
-                    config.getDefaultPin().getBytes());
+        if (!config.isUseEncDEK()) {
+            return;
         }
+        if (config.getDefaultKEKId() == null
+                || config.getDefaultRegionId() == null
+                || config.getDefaultCdpId() == null) {
+            return;
+        }
+
+        byte[] pinBytes = null;
+        if (config.getDefaultPin() != null) {
+            pinBytes = config.getDefaultPin().getBytes();
+        }
+        defaultKEKInfo = new SDFKEKInfoEntity(config.getDefaultKEKId().getBytes(),
+                config.getDefaultRegionId().getBytes(),
+                config.getDefaultCdpId().getBytes(),
+                pinBytes);
     }
 
     public static SDFKEKInfoEntity getDefaultKEKInfo() {
@@ -86,7 +94,7 @@ public class SDFKEKInfoEntity {
         return cdpId;
     }
 
-    public byte[] getPIN() {
-        return PIN;
+    public byte[] getPin() {
+        return pin;
     }
 }

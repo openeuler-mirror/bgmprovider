@@ -28,6 +28,6 @@ package org.openeuler.sdf.wrapper;
  * The method of this class is just used to test.
  */
 public class SDFInternalNative {
-    public static native byte[] encryptKey(long sessionHandleAddr, byte[] kekId, byte[] regionId,
-                                    byte[] cdpId, byte[] pin, int uiType, byte[] plainKey);
+    public static native byte[] encryptKey(byte[] kekId, byte[] regionId, byte[] cdpId, byte[] pin,
+                                           int uiType, byte[] plainKey);
 }

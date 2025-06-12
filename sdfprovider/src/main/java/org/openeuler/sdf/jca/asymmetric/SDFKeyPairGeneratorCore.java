@@ -1,11 +1,10 @@
 package org.openeuler.sdf.jca.asymmetric;
 
 import org.openeuler.sdf.commons.exception.SDFException;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.commons.spec.SDFEncKeyGenParameterSpec;
 import org.openeuler.sdf.commons.spec.SDFKEKInfoEntity;
 
+import javax.naming.OperationNotSupportedException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidParameterException;
 import java.security.KeyPairGeneratorSpi;
@@ -51,18 +50,18 @@ abstract class SDFKeyPairGeneratorCore extends KeyPairGeneratorSpi {
 
 
     protected byte[][] implGenerateKeyPair() {
-        SDFSession session = SDFSessionManager.getInstance().getSession();
+        if (this.kekInfo == null) {
+            throw new IllegalArgumentException("Not support generate sm2 plain key");
+        }
         byte[][] keys;
         try {
-            keys = implGenerateKeyPair(session, kekInfo, keySize);
+            keys = implGenerateKeyPair(kekInfo, keySize);
         } catch (SDFException e) {
             throw new RuntimeException(e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
         }
         return keys;
     }
 
-    protected abstract byte[][] implGenerateKeyPair(SDFSession session, SDFKEKInfoEntity kekInfo, int keySize)
+    protected abstract byte[][] implGenerateKeyPair(SDFKEKInfoEntity kekInfo, int keySize)
             throws SDFException;
 }

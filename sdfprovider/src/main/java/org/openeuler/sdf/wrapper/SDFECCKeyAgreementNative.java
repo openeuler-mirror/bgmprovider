@@ -24,18 +24,21 @@
 
 package org.openeuler.sdf.wrapper;
 
-import org.openeuler.sdf.wrapper.entity.SDFECCCipherEntity;
-import org.openeuler.sdf.wrapper.entity.SDFECCrefPublicKey;
-
 public class SDFECCKeyAgreementNative {
 
     // decode encryptedSecret, generate encrypted preMasterKey
-    public native static byte[] decodeECCPreMasterKey(long sessionHandleAddr, byte[] localEncPriKey,
-                                                      SDFECCCipherEntity encryptedSecret, int bits);
+    public native static byte[] decodeECCPreMasterKey(byte[] priKeyArr, byte[][] encDataArr);
 
-    // generate preMasterKey and encryptedKey (preMasterKey encrypted by public)
-    public native static SDFECCCipherEntity generateECCPreMasterKey(long sessionHandleAddr, byte[] kekId,
-                                                                    byte[] regionId, byte[] cdpId, byte[] pin,
-                                                                    SDFECCrefPublicKey publicKey, byte[] preMasterKey,
-                                                                    int preMasterKeyLen, int clientVersion);
+    /**
+     * generate key encrypted by KEK and key encrypted by public key
+     * @param kekId KEK Id
+     * @param regionId Region Id
+     * @param cdpId Cdp Id
+     * @param pin PIN
+     * @param publicKeyArr public key x, y
+     * @param clientVersion client version
+     * @return {kekEncCmk, pubEncCmk}
+     */
+    public native static Object[] generateECCPreMasterKey(byte[] kekId, byte[] regionId, byte[] cdpId, byte[] pin,
+                                                          Object[] publicKeyArr, int clientVersion);
 }

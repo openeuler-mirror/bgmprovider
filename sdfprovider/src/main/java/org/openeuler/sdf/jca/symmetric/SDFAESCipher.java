@@ -24,6 +24,7 @@
 
 package org.openeuler.sdf.jca.symmetric;
 
+import org.openeuler.sdf.commons.constant.SDFDataKeyType;
 import org.openeuler.sdf.jca.commons.SDFKeyUtil;
 
 import java.security.InvalidKeyException;
@@ -122,7 +123,7 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
     }
 
     SDFAESCipher(SDFMode mode, SDFPadding padding, int supportedKeySize) {
-        super("AES", mode, padding, 16, supportedKeySize);
+        super(SDFDataKeyType.DATA_KEY_AES, mode, padding, 16, supportedKeySize);
     }
 
     @Override

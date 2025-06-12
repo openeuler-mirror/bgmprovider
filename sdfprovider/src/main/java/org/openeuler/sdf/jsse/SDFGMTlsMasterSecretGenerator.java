@@ -26,17 +26,17 @@
 
 package org.openeuler.sdf.jsse;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.wrapper.SDFPRFNative;
 import org.openeuler.sun.security.internal.spec.TlsMasterSecretParameterSpec;
 
 import javax.crypto.KeyGeneratorSpi;
 import javax.crypto.SecretKey;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidParameterException;
+import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
-import static org.openeuler.sdf.jsse.commons.SDFGMTlsConstant.*;
+import static org.openeuler.sdf.jsse.commons.SDFGMTlsConstant.LABEL_MASTER_SECRET;
 
 
 /**
@@ -106,20 +106,15 @@ public class SDFGMTlsMasterSecretGenerator extends KeyGeneratorSpi {
             premasterMajor = -1;
             premasterMinor = -1;
         }
-        byte[] master;
-        SDFSession session = SDFSessionManager.getInstance().getSession();
-        try {
-            byte[] clientRandom = null;
-            byte[] serverRandom = null;
-            clientRandom = spec.getClientRandom();
-            serverRandom = spec.getServerRandom();
-            // GMTls masterSecret size is fixed 48 Bytes. Native methods return is encrypted masterSecret.
-            master = SDFPRFNative.nativeGMTLSPRF(session.getAddress(), premaster, LABEL_MASTER_SECRET,
-                    clientRandom, serverRandom, null, null, null);
-            return new SDFGMTlsMasterSecretKey(master, premasterMajor,
-                    premasterMinor, true);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
-        }
+
+        byte[] clientRandom = spec.getClientRandom();
+        byte[] serverRandom = spec.getServerRandom();
+        String prfHashAlg = spec.getPRFHashAlg();
+        // GMTls masterSecret size is fixed 48 Bytes. Native methods return is encrypted masterSecret.
+        byte[] master = SDFPRFNative.nativeGMTLSPRF(prfHashAlg, null, premaster, LABEL_MASTER_SECRET,
+                clientRandom, serverRandom, null, 0, 0, 0);
+        return new SDFGMTlsMasterSecretKey(master, premasterMajor,
+                premasterMinor, true);
+
     }
 }

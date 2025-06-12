@@ -24,8 +24,6 @@
 
 package org.openeuler.sdf.jca.pbkdf;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.wrapper.SDFPBKDF2Native;
 
 import javax.crypto.SecretKey;
@@ -101,9 +99,7 @@ final class SDFPBKDF2KeyImpl implements javax.crypto.interfaces.PBEKey {
         // Convert the password from char[] to byte[]
         byte[] passwdBytes = getPasswordBytes(this.passwd);
         try {
-            SDFSession session = SDFSessionManager.getInstance().getSession();
             this.key = SDFPBKDF2Native.nativeDeriveKey(
-                    session.getAddress(),
                     digestAlgo,
                     passwdBytes,
                     salt,

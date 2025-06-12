@@ -24,9 +24,6 @@
 
 package org.openeuler.sdf.commons.log;
 
-import java.util.HashMap;
-import java.util.Map;
-
 public enum SDFLogLevel {
     OFF(0),
     ERROR(1),

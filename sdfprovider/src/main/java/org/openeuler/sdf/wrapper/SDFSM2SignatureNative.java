@@ -24,13 +24,26 @@
 
 package org.openeuler.sdf.wrapper;
 
-import org.openeuler.sdf.wrapper.entity.SDFECCSignature;
-import org.openeuler.sdf.wrapper.entity.SDFECCrefPublicKey;
-
 public class SDFSM2SignatureNative {
-    public static native void nativeSM2Sign(long sessionAddress, byte[] privateKeyArray, int bits,
-                                            byte[] digestArray, SDFECCSignature signature);
 
-    public static native boolean nativeSM2Verify(long sessionAddress, byte[] xArr, byte[] yArr, int bits,
-                                                 byte[] digestArray, SDFECCSignature signature);
+    /**
+     * SM2 sign
+     * @param privateKeyArray private key in bytes
+     * @param digestArray sm3 digest bytes
+     * @return sm2 signature params
+     * format {
+     *     r[32],
+     *     s[32]
+     * }
+     */
+    public static native byte[][] nativeSM2Sign(byte[] privateKeyArray, byte[] digestArray);
+
+    /**
+     * SM2 verify
+     * @param pubKeyArr public key x, y
+     * @param digestArray sm3 digest bytes
+     * @param signatureParams sm2 signature params
+     * @return true if the signature was verified, false if not.
+     */
+    public static native boolean nativeSM2Verify(Object[] pubKeyArr, byte[] digestArray, byte[][] signatureParams);
 }

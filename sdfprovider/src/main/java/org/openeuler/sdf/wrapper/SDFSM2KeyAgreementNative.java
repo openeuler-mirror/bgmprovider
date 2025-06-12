@@ -24,13 +24,10 @@
 
 package org.openeuler.sdf.wrapper;
 
-import org.openeuler.sdf.wrapper.entity.SDFECCrefPublicKey;
-
 public class SDFSM2KeyAgreementNative {
 
-    public native static byte[] generateSharedSecret(long sessionHandleAddr,
-                                                     byte[] localId, byte[] localCipherPriKey, SDFECCrefPublicKey localPublicKey,
-                                                     byte[] tempCipherPriKey, SDFECCrefPublicKey tempPublicKey,
-                                                     byte[] peerId, SDFECCrefPublicKey peerPublicKey, SDFECCrefPublicKey peerTempPublicKey,
+    public native static byte[] generateSharedSecret(byte[] localId, byte[] localCipherPriKeyArr, Object[] localPublicKeyArr,
+                                                     byte[] localTempCipherPriKeyArr, Object[] localTempPublicKeyArr,
+                                                     byte[] peerId, Object[] peerPublicKeyArr, Object[] peerTempPublicKeyArr,
                                                      int secretLen, boolean useClientMode);
 }

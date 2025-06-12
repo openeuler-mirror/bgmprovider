@@ -21,41 +21,42 @@
  * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
  * information or have any questions.
  */
+#include "cryptocard/crypto_sdk_vf.h"
+#include "cryptocard/errno.h"
 
-#include "org_openeuler_sdf_wrapper_SDFDeviceNative.h"
-#include "sdf.h"
+#include "org_openeuler_sdf_wrapper_SDFSDKNative.h"
 #include "sdf_exception.h"
+#include "sdf_util.h"
 
 /*
- * Class:     org_openeuler_sdf_wrapper_SDFDeviceNative
- * Method:    nativeOpenDevice
- * Signature: ()J
+ * Class:     org_openeuler_sdf_wrapper_SDFSDKNative
+ * Method:    init
+ * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFDeviceNative_nativeOpenDevice
-        (JNIEnv *env, jclass cls) {
-    SGD_HANDLE deviceHandle = NULL;
-    SGD_RV rv = SDF_HW_OpenDevice(&deviceHandle, NULL, 0, NULL, 0) ;
-    if (rv != 0) {
-        throwSDFException(env, rv);
+JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFSDKNative_init
+        (JNIEnv *env, jclass clazz, jstring configPathStr) {
+    const char *configPath = NULL;
+    SGD_RV rv;
+
+    if (configPathStr) {
+        configPath = (*env)->GetStringUTFChars(env, configPathStr, 0);
+    }
+    if ((rv = CDM_InitSDK(configPath)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_InitSDK");
         goto cleanup;
     }
-    return (jlong) deviceHandle;
-    cleanup:
-    if (deviceHandle)
-        SDF_CloseDevice(deviceHandle);
-    return 0;
+cleanup:
+    if(configPath) {
+        (*env)->ReleaseStringUTFChars(env, configPathStr, configPath);
+    }
 }
 
 /*
- * Class:     org_openeuler_sdf_wrapper_SDFDeviceNative
- * Method:    nativeCloseDevice
- * Signature: (J)V
+ * Class:     org_openeuler_sdf_wrapper_SDFSDKNative
+ * Method:    destroy
+ * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFDeviceNative_nativeCloseDevice
-        (JNIEnv *env, jclass cls, jlong hDeviceHandle) {
-    SGD_HANDLE deviceHandle = (SGD_HANDLE) hDeviceHandle;
-    SGD_RV rv = SDF_CloseDevice(deviceHandle);
-    if (rv != 0) {
-        throwSDFException(env, rv);
-    }
+JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFSDKNative_destroy
+        (JNIEnv *env, jclass clazz) {
+    CDM_DeInitSDK();
 }

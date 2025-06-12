@@ -30,17 +30,15 @@ import org.openeuler.sdf.commons.exception.SDFRuntimeException;
 import org.openeuler.sdf.wrapper.SDFHmacNative;
 
 public class SDFHmacContextRef extends AbstractSDFRef<SDFHmacContext> {
-    private final long sessionAddress;
 
-    protected SDFHmacContextRef(SDFHmacContext reference, long sessionAddress, long ctxAddress) {
+    protected SDFHmacContextRef(SDFHmacContext reference, long ctxAddress) {
         super(reference, ctxAddress);
-        this.sessionAddress = sessionAddress;
     }
 
     @Override
     protected void free(long ctxAddress) {
         try {
-            SDFHmacNative.nativeHmacContextFree(sessionAddress, ctxAddress);
+            SDFHmacNative.nativeHmacContextFree(ctxAddress);
         } catch (SDFException e) {
             throw new SDFRuntimeException(e);
         }

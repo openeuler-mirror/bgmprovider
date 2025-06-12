@@ -25,8 +25,6 @@
 package org.openeuler.sdf.jca.symmetric;
 
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.commons.spec.SDFKEKInfoEntity;
 import org.openeuler.sdf.commons.spec.SDFKeyGeneratorParameterSpec;
 import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
@@ -97,22 +95,19 @@ public abstract class SDFKeyGeneratorCore extends KeyGeneratorSpi {
             random.nextBytes(key);
             return new SDFSecretKeySpec(key, algorithm);
         }
-        // init session
-        SDFSession session = SDFSessionManager.getInstance().getSession();
         // Generate encrypted key
         byte[] encKey;
         try {
-            encKey = SDFKeyGeneratorNative.nativeGenerateSecretKey(session.getAddress(),
+            encKey = SDFKeyGeneratorNative.nativeGenerateSecretKey(
                     kekInfo.getKekId(),
                     kekInfo.getRegionId(),
                     kekInfo.getCdpId(),
-                    kekInfo.getPIN(),
-                    keySize,
+                    kekInfo.getPin(),
+                    algorithm,
+                    keySize << 3,
                     isHmac);
-        }catch (Exception e){
+        } catch (Exception e) {
             throw new SDFRuntimeException("engineGenerateKey failed.", e);
-        }finally {
-            SDFSessionManager.getInstance().releaseSession(session);
         }
         return new SDFSecretKeySpec(encKey, algorithm, true);
     }

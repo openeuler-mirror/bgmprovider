@@ -27,16 +27,14 @@ package org.openeuler.sdf.wrapper;
 import org.openeuler.sdf.commons.exception.SDFException;
 
 public class SDFHmacNative {
-    public static native long nativeHmacInit(long sessionAddress, byte[] keyBytes,
-                                             String digestName) throws SDFException;
+    public static native long nativeHmacInit(byte[] keyBytes) throws SDFException;
 
-    public static native void nativeHmacUpdate(long sessionAddress, long ctxAddress,
-                                               byte[] input, int offset, int len) throws SDFException;
+    public static native void nativeHmacUpdate(long ctxAddress, byte[] input,
+                                               int offset, int len) throws SDFException;
 
-    public static native byte[] nativeHmacFinal(long sessionAddress, long ctxAddress, int macLen)
-            throws SDFException;
+    public static native byte[] nativeHmacFinal(long ctxAddress, int macLen) throws SDFException;
 
-    public static native void nativeHmacContextFree(long sessionAddress, long ctxAddress) throws SDFException;
+    public static native void nativeHmacContextFree(long ctxAddress) throws SDFException;
 
-    public static native long nativeHmacContextClone(long sessionAddress, long ctxAddress) throws SDFException;
+    public static native long nativeHmacContextClone(long ctxAddress) throws SDFException;
 }

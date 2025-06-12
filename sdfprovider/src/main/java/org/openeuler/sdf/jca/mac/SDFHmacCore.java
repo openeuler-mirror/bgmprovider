@@ -26,8 +26,6 @@ package org.openeuler.sdf.jca.mac;
 
 import org.openeuler.sdf.commons.exception.SDFException;
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.wrapper.SDFHmacNative;
 
 import javax.crypto.MacSpi;
@@ -35,13 +33,11 @@ import javax.crypto.SecretKey;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
-import java.security.MessageDigest;
 import java.security.spec.AlgorithmParameterSpec;
 
 abstract class SDFHmacCore extends MacSpi implements Cloneable {
-    private String digestName;
-    private int macLen;
-    private SDFSession session;
+    private final String digestName;
+    private final int macLen;
     private SDFHmacContext context;
     private Key key;
 
@@ -88,7 +84,7 @@ abstract class SDFHmacCore extends MacSpi implements Cloneable {
 
         try {
             init();
-            SDFHmacNative.nativeHmacUpdate(session.getAddress(), context.getAddress(), input, offset, len);
+            SDFHmacNative.nativeHmacUpdate(context.getAddress(), input, offset, len);
         } catch (SDFException e) {
             engineReset();
             throw new SDFRuntimeException("nativeHmacUpdate failed.", e);
@@ -100,7 +96,7 @@ abstract class SDFHmacCore extends MacSpi implements Cloneable {
         byte[] result;
         try {
             init();
-            result = SDFHmacNative.nativeHmacFinal(session.getAddress(), context.getAddress(), macLen);
+            result = SDFHmacNative.nativeHmacFinal(context.getAddress(), macLen);
         } catch (SDFException e) {
             throw new SDFRuntimeException("nativeHmacFinal failed.", e);
         } finally {
@@ -115,37 +111,29 @@ abstract class SDFHmacCore extends MacSpi implements Cloneable {
             context.getReference().dispose();
             context = null;
         }
-        if (session != null) {
-            SDFSessionManager.getInstance().releaseSession(session);
-            session = null;
-        }
     }
 
     @Override
     public Object clone() throws CloneNotSupportedException {
         SDFHmacCore copy =(SDFHmacCore) super.clone();
-        copy.session = SDFSessionManager.getInstance().getSession();
         long ctxAddress;
         try {
             if (context == null) {
-                ctxAddress = SDFHmacNative.nativeHmacInit(copy.session.getAddress(), key.getEncoded(), digestName);
+                ctxAddress = SDFHmacNative.nativeHmacInit(key.getEncoded());
             } else {
-                ctxAddress = SDFHmacNative.nativeHmacContextClone(session.getAddress(), context.getAddress());
+                ctxAddress = SDFHmacNative.nativeHmacContextClone(context.getAddress());
             }
         } catch (SDFException e) {
             throw new SDFRuntimeException(e);
         }
-        copy.context = new SDFHmacContext(copy.session.getAddress(), ctxAddress);
+        copy.context = new SDFHmacContext(ctxAddress);
         return copy;
     }
 
     private void init() throws SDFException {
-        if (session == null) {
-            session = SDFSessionManager.getInstance().getSession();
-        }
         if (context == null) {
-            long hmacContextAddress = SDFHmacNative.nativeHmacInit(session.getAddress(), key.getEncoded(), digestName);
-            context = new SDFHmacContext(session.getAddress(), hmacContextAddress);
+            long hmacContextAddress = SDFHmacNative.nativeHmacInit(key.getEncoded());
+            context = new SDFHmacContext(hmacContextAddress);
         }
     }
 

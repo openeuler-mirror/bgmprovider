@@ -27,8 +27,8 @@ package org.openeuler.sdf.jca.mac;
 import org.openeuler.sdf.commons.base.AbstractSDFHandle;
 
 public class SDFHmacContext extends AbstractSDFHandle {
-    public SDFHmacContext(long sessionAddress, long ctxAddress) {
+    public SDFHmacContext(long ctxAddress) {
         super(ctxAddress);
-        setReference(new SDFHmacContextRef(this, sessionAddress, ctxAddress));
+        setReference(new SDFHmacContextRef(this, ctxAddress));
     }
 }

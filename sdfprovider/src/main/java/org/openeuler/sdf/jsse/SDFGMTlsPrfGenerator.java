@@ -26,16 +26,15 @@
 
 package org.openeuler.sdf.jsse;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
 import org.openeuler.sdf.wrapper.SDFPRFNative;
 import org.openeuler.sun.security.internal.spec.TlsPrfParameterSpec;
 
 import javax.crypto.KeyGeneratorSpi;
 import javax.crypto.SecretKey;
-import java.io.UnsupportedEncodingException;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidParameterException;
+import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 
 /**
@@ -84,14 +83,11 @@ public class SDFGMTlsPrfGenerator extends KeyGeneratorSpi {
         }
         SecretKey key = spec.getSecret();
         byte[] secret = (key == null) ? null : key.getEncoded();
-        SDFSession session = SDFSessionManager.getInstance().getSession();
-        try {
-            String label = spec.getLabel();
-            byte[] prfBytes = SDFPRFNative.nativeGMTLSPRF(session.getAddress(), secret, label,
-                    null, null, null, null, spec.getSeed());
-            return new SDFSecretKeySpec(prfBytes, "GMTlsPrf", true);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
-        }
+
+        String label = spec.getLabel();
+        String prfHashAlg = spec.getPRFHashAlg();
+        byte[] prfBytes = SDFPRFNative.nativeGMTLSPRF(prfHashAlg, null, secret, label,
+                null, null, spec.getSeed(), 0, 0, 0);
+        return new SDFSecretKeySpec(prfBytes, "GMTlsPrf", true);
     }
 }

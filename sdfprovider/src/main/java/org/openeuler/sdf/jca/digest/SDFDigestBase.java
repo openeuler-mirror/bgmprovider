@@ -24,12 +24,9 @@
 
 package org.openeuler.sdf.jca.digest;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
+import org.openeuler.sdf.wrapper.SDFDigestNative;
 
 import java.security.MessageDigestSpi;
-
-import org.openeuler.sdf.wrapper.SDFDigestNative;
 
 abstract class SDFDigestBase extends MessageDigestSpi implements Cloneable {
     private final int digestLength;
@@ -38,8 +35,6 @@ abstract class SDFDigestBase extends MessageDigestSpi implements Cloneable {
 
     private SDFDigestContext context = null;
 
-    private SDFSession session = null;
-
     SDFDigestBase(String algorithm, int digestLength) {
         this.algorithm = algorithm;
         this.digestLength = digestLength;
@@ -47,12 +42,9 @@ abstract class SDFDigestBase extends MessageDigestSpi implements Cloneable {
 
     // init SDF Digest Context
     private void init() {
-        // init session
-        this.session = SDFSessionManager.getInstance().getSession();
-
         // init digest context
-        long contextAddr = SDFDigestNative.nativeDigestInit(session.getAddress(), algorithm);
-        this.context = new SDFDigestContext(session.getAddress(), contextAddr);
+        long contextAddr = SDFDigestNative.nativeDigestInit(algorithm);
+        this.context = new SDFDigestContext(contextAddr);
     }
 
     @Override
@@ -74,7 +66,7 @@ abstract class SDFDigestBase extends MessageDigestSpi implements Cloneable {
         }
 
         try {
-            SDFDigestNative.nativeDigestUpdate(session.getAddress(), context.getAddress(), input, offset, len);
+            SDFDigestNative.nativeDigestUpdate(context.getAddress(), input, offset, len);
         } catch (Throwable e) {
             engineReset();
             throw e;
@@ -89,7 +81,7 @@ abstract class SDFDigestBase extends MessageDigestSpi implements Cloneable {
 
         byte[] digestBytes;
         try {
-            digestBytes = SDFDigestNative.nativeDigestFinal(session.getAddress(), context.getAddress(), digestLength);
+            digestBytes = SDFDigestNative.nativeDigestFinal(context.getAddress(), digestLength);
         } finally {
             engineReset();
         }
@@ -103,27 +95,18 @@ abstract class SDFDigestBase extends MessageDigestSpi implements Cloneable {
             context.getReference().dispose();
             context = null;
         }
-
-        // Free SDF Session
-        if (session != null) {
-            SDFSessionManager.getInstance().releaseSession(session);
-            session = null;
-        }
     }
 
     @Override
     public Object clone() throws CloneNotSupportedException {
         SDFDigestBase copy = (SDFDigestBase) super.clone();
-        copy.session = SDFSessionManager.getInstance().getSession();
         long copyCtxAddr;
         if (copy.context != null) {
-            copyCtxAddr = SDFDigestNative.nativeDigestCtxClone(
-                    copy.session.getAddress(), copy.context.getAddress());
+            copyCtxAddr = SDFDigestNative.nativeDigestCtxClone(copy.context.getAddress());
         } else {
-            copyCtxAddr = SDFDigestNative.nativeDigestInit(
-                    copy.session.getAddress(), algorithm);
+            copyCtxAddr = SDFDigestNative.nativeDigestInit(algorithm);
         }
-        copy.context = new SDFDigestContext(copy.session.getAddress(), copyCtxAddr);
+        copy.context = new SDFDigestContext(copyCtxAddr);
         return copy;
     }
 

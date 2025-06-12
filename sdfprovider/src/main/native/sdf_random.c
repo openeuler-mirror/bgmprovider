@@ -21,26 +21,22 @@
  * Please visit https://gitee.com/openeuler/bgmprovider if you need additional
  * information or have any questions.
  */
+#include "cryptocard/crypto_sdk_pf.h"
+#include "cryptocard/errno.h"
 
 #include "org_openeuler_sdf_wrapper_SDFRandomNative.h"
 #include "sdf_exception.h"
-#include "sdf.h"
 
-/*
- * Class:     org_openeuler_sdf_wrapper_SDFRandomNative
- * Method:    nativeGenerateRandom
- * Signature: (J[B)V
- */
 JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFRandomNative_nativeGenerateRandom(JNIEnv *env, jclass cls,
-  jlong sessionHandleAddr, jbyteArray bytesArr){
-    SGD_HANDLE sessionHandle = (SGD_HANDLE) sessionHandleAddr;
-
+        jbyteArray randomArr) {
     int rv;
-    unsigned int outlen = (*env)->GetArrayLength(env, bytesArr);
-    unsigned char randomResult[outlen];
-    
-    if ((rv = SDF_GenerateRandom(sessionHandle, outlen, randomResult) != 0)) {
-        throwSDFException(env, rv);
+    unsigned int length = (*env)->GetArrayLength(env, randomArr);
+    unsigned char randomNum[length];
+
+    if ((rv = CDM_GenRandom(length, randomNum) != SDR_OK)) {
+        throwSDFException(env, rv, "CDM_GenRandom");
+        return;
     }
-    (*env)->SetByteArrayRegion(env, bytesArr, 0, outlen, (jbyte*) randomResult);
+
+    (*env)->SetByteArrayRegion(env, randomArr, 0, length, (jbyte *) randomNum);
 }

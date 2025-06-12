@@ -23,6 +23,7 @@
  */
 
 #include "sdf_exception.h"
+
 void throwByName(JNIEnv *env, const char *name, const char *message) {
   jclass cls = (*env)->FindClass(env, name);
   if (cls != 0) {
@@ -46,7 +47,7 @@ void throwIllegalArgumentException(JNIEnv *env, const char *message) {
     throwByName(env, CLASS_ILLEGALARGUMENTEXCEPTION, message);
 }
 
-void throwSDFException(JNIEnv *env, SGD_RV errorCode) {
+void throwSDFException(JNIEnv *env, int errorCode, const char* funcName) {
   jclass jSDFExceptionClass = NULL;
   jSDFExceptionClass = (*env)->FindClass(env, CLASS_SDFEXCEPTION);
   if (jSDFExceptionClass == NULL) {
@@ -54,14 +55,15 @@ void throwSDFException(JNIEnv *env, SGD_RV errorCode) {
   }
 
   jmethodID jConstructor = NULL;
-  jConstructor = (*env)->GetMethodID(env, jSDFExceptionClass, "<init>", "(J)V");
+  jConstructor = (*env)->GetMethodID(env, jSDFExceptionClass, "<init>", "(JLjava/lang/String;)V");
   if (jConstructor == NULL) {
       goto cleanup;
   }
 
   jthrowable jPKCS11Exception = NULL;
   jlong jErrorCode = (jlong) errorCode;
-  jPKCS11Exception = (jthrowable) (*env)->NewObject(env, jSDFExceptionClass, jConstructor, jErrorCode);
+  jstring jFuncName = (*env)->NewStringUTF(env, funcName);
+  jPKCS11Exception = (jthrowable) (*env)->NewObject(env, jSDFExceptionClass, jConstructor, jErrorCode, jFuncName);
   if (jPKCS11Exception == NULL) {
       goto cleanup;
   }

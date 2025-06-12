@@ -27,6 +27,6 @@ package org.openeuler.sdf.wrapper;
 public class SDFRandomNative {
 
     // generate random bytes
-    public native static void nativeGenerateRandom(long sessionHandleAddr, byte[] bytes);
+    public native static void nativeGenerateRandom(byte[] bytes);
 
 }

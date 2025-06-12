@@ -24,8 +24,6 @@
 
 package org.openeuler.sdf.jsse.commons;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.jca.commons.SDFUtil;
 import org.openeuler.sdf.wrapper.SDFSM2KeyPairGeneratorNative;
 
@@ -53,14 +51,12 @@ public class SDFKeyExchangeUtil {
 
         ECPoint P;
         byte[][] keys;
-        SDFSession session = SDFSessionManager.getInstance().getSession();
         try {
-            keys = SDFSM2KeyPairGeneratorNative.nativeGeneratePublicKey(SDFUtil.asUnsignedByteArray(privateKey));
-        }catch (Exception e) {
+            keys = SDFSM2KeyPairGeneratorNative.nativeGeneratePublicKey(SDFUtil.getPrivateKeyBytes(privateKey));
+        } catch (Exception e) {
             throw new RuntimeException("SDFSM2Signature failed. unable to generate PublicKey", e);
-        }finally {
-            SDFSessionManager.getInstance().releaseSession(session);
         }
+
         /**
          * // SM2 Key index.
          * typedef enum ECDHKeyIndex {

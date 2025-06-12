@@ -24,25 +24,24 @@
 
 package org.openeuler.sdf.jsse;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.commons.spec.SDFKEKInfoEntity;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPrivateKeyImpl;
-import org.openeuler.sdf.jca.commons.SDFUtil;
 import org.openeuler.sdf.jca.commons.SDFSM2CipherMode;
-import org.openeuler.sdf.wrapper.entity.SDFECCCipherEntity;
-import org.openeuler.sdf.wrapper.entity.SDFECCrefPublicKey;
+import org.openeuler.sdf.jca.commons.SDFUtil;
+import org.openeuler.sdf.wrapper.SDFECCKeyAgreementNative;
 import org.openeuler.spec.ECCPremasterSecretKeySpec;
 import org.openeuler.sun.security.internal.spec.TlsECCKeyAgreementParameterSpec;
-import org.openeuler.sdf.wrapper.SDFECCKeyAgreementNative;
 
-import javax.crypto.*;
+import javax.crypto.KeyAgreementSpi;
+import javax.crypto.SecretKey;
 import java.io.IOException;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.InvalidParameterException;
+import java.security.Key;
+import java.security.SecureRandom;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.AlgorithmParameterSpec;
-
-import static org.openeuler.sdf.commons.constant.SDFConstant.ENC_FIXED_KEY_SIZE;
 
 public class SDFECCKeyAgreement extends KeyAgreementSpi {
 
@@ -122,24 +121,22 @@ public class SDFECCKeyAgreement extends KeyAgreementSpi {
             throw new IllegalStateException(
                     "publicKey must be initialized");
         }
-        byte[] preMasterKey = new byte[ENC_FIXED_KEY_SIZE];;
-        byte[] encryptedKey;
-        SDFSession session = SDFSessionManager.getInstance().getSession();
 
+        Object[] publicKeyArr = SDFUtil.getPublicKeyAffineXYBytes(this.publicKey);
+        Object[] encKeyArr = SDFECCKeyAgreementNative.generateECCPreMasterKey(
+                kekInfo.getKekId(), kekInfo.getRegionId(), kekInfo.getCdpId(), kekInfo.getPin(),
+                publicKeyArr, spec.getClientVersion());
+
+        byte[] kekEncCmk = (byte[]) encKeyArr[0];
+        byte[][] pubEncCmkParams = (byte[][]) encKeyArr[1];
+        byte[] pubEncCmk;
         try {
-            SDFECCrefPublicKey publicKey = new SDFECCrefPublicKey(this.publicKey);
-            // generate preMasterKey(encrypted by kek) and encryptedKey (preMasterKey encrypted by public)
-            SDFECCCipherEntity entity = SDFECCKeyAgreementNative.generateECCPreMasterKey(
-                    session.getAddress(), kekInfo.getKekId(), kekInfo.getRegionId(),
-                    kekInfo.getCdpId(), kekInfo.getPIN(), publicKey, preMasterKey, ECC_PREMASTER_KEY_LEN,
-                    spec.getClientVersion());
-            encryptedKey = SDFUtil.encodeECCCipher(SDFSM2CipherMode.C1C3C2, entity);
+            pubEncCmk = SDFUtil.encodeECCCipher(mode, pubEncCmkParams);
         } catch (IOException e) {
-            throw new RuntimeException("encodeECCCipher failed", e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
+            throw new RuntimeException(e);
         }
-        return new ECCPremasterSecretKeySpec(preMasterKey,"TlsEccPremasterSecret", encryptedKey);
+
+        return new ECCPremasterSecretKeySpec(kekEncCmk,"TlsEccPremasterSecret", pubEncCmk);
     }
 
     private ECCPremasterSecretKeySpec decryptSecret() {
@@ -152,22 +149,20 @@ public class SDFECCKeyAgreement extends KeyAgreementSpi {
                     "TlsECCKeyAgreementParameterSpec.encryptedSecret must be initialized");
         }
 
-        SDFSession session = SDFSessionManager.getInstance().getSession();
-        // preMasterKey - SDF preMasterKey Encrypted by KEK;
-        // encryptedKey - preMasterKey Encrypted by publicKey
-        byte[] preMasterKey = null;
-        byte[] encryptedKey = spec.getEncryptedSecret();
+        // kekEncCmk - SDF preMasterKey Encrypted by KEK;
+        // pubEncCmk - preMasterKey Encrypted by publicKey
+        byte[] kekEncCmk;
+        byte[] pubEncCmk = spec.getEncryptedSecret();
         try {
             int curveLength = this.privateKey.getParams().getCurve().getField().getFieldSize();
-            preMasterKey = SDFECCKeyAgreementNative.decodeECCPreMasterKey(session.getAddress(),
-                    SDFUtil.asUnsignedByteArray(privateKey),
-                    SDFUtil.decodeECCCipher(mode, spec.getEncryptedSecret(), curveLength),
-                    curveLength);
+            byte[][] pubEncCmkParams = SDFUtil.decodeECCCipher(mode, pubEncCmk, curveLength);
+
+            kekEncCmk = SDFECCKeyAgreementNative.decodeECCPreMasterKey(
+                    SDFUtil.getPrivateKeyBytes(privateKey),
+                    pubEncCmkParams);
         } catch (Exception e) {
             throw new RuntimeException("decodeECCPreMasterKey failed", e);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
         }
-        return new ECCPremasterSecretKeySpec(preMasterKey,"TlsEccPremasterSecret", encryptedKey);
+        return new ECCPremasterSecretKeySpec(kekEncCmk,"TlsEccPremasterSecret", pubEncCmk);
     }
 }

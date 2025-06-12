@@ -24,22 +24,24 @@
 
 package org.openeuler.sdf.jsse;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
 import org.openeuler.sdf.wrapper.SDFPRFNative;
 import org.openeuler.sun.security.internal.spec.TlsKeyMaterialParameterSpec;
 import org.openeuler.sun.security.internal.spec.TlsKeyMaterialSpec;
-import org.openeuler.sdf.wrapper.entity.SDFKeyPrfParameter;
 
 import javax.crypto.KeyGeneratorSpi;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidParameterException;
+import java.security.ProviderException;
+import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
+import java.util.Arrays;
 
-import static org.openeuler.sdf.jsse.commons.SDFGMTlsConstant.*;
-import static org.openeuler.sdf.commons.constant.SDFConstant.ENC_FIXED_KEY_SIZE;
+import static org.openeuler.sdf.commons.constant.SDFConstant.ENC_SYS_PRIVATE_KEY_SIZE;
+import static org.openeuler.sdf.jsse.commons.SDFGMTlsConstant.LABEL_KEY_EXPANSION;
 
 /**
  * KeyGenerator implementation for the GM TLS master secret derivation.
@@ -101,6 +103,8 @@ public class SDFGMTlsKeyMaterialGenerator extends KeyGeneratorSpi {
     }
 
     private SecretKey engineGenerateKey0() throws GeneralSecurityException {
+        String prfHashAlg = spec.getPRFHashAlg();
+        String cipherAlg = spec.getCipherAlgorithm();
         byte[] masterSecret = spec.getMasterSecret().getEncoded();
         byte[] clientRandom = spec.getClientRandom();
         byte[] serverRandom = spec.getServerRandom();
@@ -123,41 +127,35 @@ public class SDFGMTlsKeyMaterialGenerator extends KeyGeneratorSpi {
         }
 
         // get keyBlock
-        SDFSession session = SDFSessionManager.getInstance().getSession();
-        byte[] keyBlock;
-        try {
-            keyBlock = SDFPRFNative.nativeGMTLSPRF(session.getAddress(), masterSecret, LABEL_KEY_EXPANSION,
-                    clientRandom, serverRandom, new SDFKeyPrfParameter(keyLength, ivLength, macLength), null, null);
-        } finally {
-            SDFSessionManager.getInstance().releaseSession(session);
-        }
+        byte[] keyBlock = SDFPRFNative.nativeGMTLSPRF(prfHashAlg, cipherAlg, masterSecret, LABEL_KEY_EXPANSION,
+                clientRandom, serverRandom, null, macLength, keyLength, ivLength);
 
         // partition keyblock into individual secrets
         int ofs = 0;
         if (macLength != 0) {
-            byte[] tmp = new byte[ENC_FIXED_KEY_SIZE];
+            byte[] tmp = new byte[ENC_SYS_PRIVATE_KEY_SIZE];
 
             // mac keys
-            System.arraycopy(keyBlock, ofs, tmp, 0, ENC_FIXED_KEY_SIZE);
-            ofs += ENC_FIXED_KEY_SIZE;
+            System.arraycopy(keyBlock, ofs, tmp, 0, ENC_SYS_PRIVATE_KEY_SIZE);
+            ofs += ENC_SYS_PRIVATE_KEY_SIZE;
             clientMacKey = new SDFSecretKeySpec(tmp, "Mac", true);
 
-            System.arraycopy(keyBlock, ofs, tmp, 0, ENC_FIXED_KEY_SIZE);
-            ofs += ENC_FIXED_KEY_SIZE;
+            System.arraycopy(keyBlock, ofs, tmp, 0, ENC_SYS_PRIVATE_KEY_SIZE);
+            ofs += ENC_SYS_PRIVATE_KEY_SIZE;
             serverMacKey = new SDFSecretKeySpec(tmp, "Mac", true);
         }
 
         String alg = spec.getCipherAlgorithm();
 
         // cipher keys
-        byte[] clientKeyBytes = new byte[ENC_FIXED_KEY_SIZE];
-        System.arraycopy(keyBlock, ofs, clientKeyBytes, 0, ENC_FIXED_KEY_SIZE);
-        ofs += ENC_FIXED_KEY_SIZE;
+        byte[] clientKeyBytes = new byte[ENC_SYS_PRIVATE_KEY_SIZE];
+        System.arraycopy(keyBlock, ofs, clientKeyBytes, 0, ENC_SYS_PRIVATE_KEY_SIZE);
+        ofs += ENC_SYS_PRIVATE_KEY_SIZE;
         clientCipherKey = new SDFSecretKeySpec(clientKeyBytes, alg, true);
 
-        byte[] serverKeyBytes = new byte[ENC_FIXED_KEY_SIZE];
-        System.arraycopy(keyBlock, ofs, serverKeyBytes, 0, ENC_FIXED_KEY_SIZE);
-        ofs += ENC_FIXED_KEY_SIZE;
+        byte[] serverKeyBytes = new byte[ENC_SYS_PRIVATE_KEY_SIZE];
+        System.arraycopy(keyBlock, ofs, serverKeyBytes, 0, ENC_SYS_PRIVATE_KEY_SIZE);
+        ofs += ENC_SYS_PRIVATE_KEY_SIZE;
         serverCipherKey = new SDFSecretKeySpec(serverKeyBytes, alg, true);
 
         // IV keys if needed.

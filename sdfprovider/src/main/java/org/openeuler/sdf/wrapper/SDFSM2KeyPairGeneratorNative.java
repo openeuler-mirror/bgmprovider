@@ -28,9 +28,8 @@ import org.openeuler.sdf.commons.exception.SDFException;
 
 public class SDFSM2KeyPairGeneratorNative {
     // generate SM2 keypair key
-    public native static byte[][] nativeGenerateKeyPair(long sessionHandleAddr, byte[] kekId, byte[] regionId,
-                                                        byte[] cdpId, byte[] pin)
-            throws SDFException;
+    public native static byte[][] nativeGenerateKeyPair(int keySize, byte[] kekId, byte[] regionId,
+                                                        byte[] cdpId, byte[] pin) throws SDFException;
 
     // get SM2 public key from private key
     public native static byte[][] nativeGeneratePublicKey(byte[] priKeyArr);

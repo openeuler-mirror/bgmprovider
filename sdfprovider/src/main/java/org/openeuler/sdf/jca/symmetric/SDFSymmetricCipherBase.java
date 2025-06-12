@@ -25,11 +25,10 @@
 package org.openeuler.sdf.jca.symmetric;
 
 import org.openeuler.sdf.commons.constant.SDFConstant;
+import org.openeuler.sdf.commons.constant.SDFDataKeyType;
 import org.openeuler.sdf.commons.exception.SDFException;
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
 import org.openeuler.sdf.commons.key.SDFEncryptKey;
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.jca.commons.SDFKeyUtil;
 
 import javax.crypto.BadPaddingException;
@@ -60,7 +59,7 @@ import static org.openeuler.sdf.wrapper.SDFSymmetricCipherNative.nativeCipherIni
 import static org.openeuler.sdf.wrapper.SDFSymmetricCipherNative.nativeCipherUpdate;
 
 public abstract class SDFSymmetricCipherBase extends CipherSpi {
-    private final String algorithm;
+    private final SDFDataKeyType dataKeyType;
     private SDFPadding padding;
     private SDFMode mode;
     private final int blockSize;
@@ -72,16 +71,14 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     private boolean isEncKey = false;
     // SDF Symmetric Context
     private SDFSymmetricContext context = null;
-    // SDF Session
-    private SDFSession session;
     private boolean initialized = false;
     // Do encrypt or decrypt
     private boolean encrypt = false;
     // Cache length need to doFinal
     private int bytesBuffered = 0;
 
-    SDFSymmetricCipherBase(String algorithm, SDFMode mode, SDFPadding padding, int blockSize, int supportedKeySize) {
-        this.algorithm = algorithm;
+    SDFSymmetricCipherBase(SDFDataKeyType dataKeyType, SDFMode mode, SDFPadding padding, int blockSize, int supportedKeySize) {
+        this.dataKeyType = dataKeyType;
         this.mode = mode;
         this.padding = padding;
         this.blockSize = blockSize;
@@ -141,7 +138,7 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
         AlgorithmParameters params;
         spec = new IvParameterSpec(iv.clone());
         try {
-            params = AlgorithmParameters.getInstance(this.algorithm);
+            params = AlgorithmParameters.getInstance(this.dataKeyType.getAlgorithm());
             params.init(spec);
             return params;
         } catch (GeneralSecurityException e) {
@@ -403,11 +400,10 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
 
     protected void ensureInitialized() {
         if (!initialized) {
-            // init session
-            this.session = SDFSessionManager.getInstance().getSession();
             // init cipher context
-            long ctxHandleAddress = getContextHandleAddress(cipherAlgo, encrypt, secretKey.getEncoded(), iv, padding);
-            context = new SDFSymmetricContext(session.getAddress(), ctxHandleAddress);
+            long ctxHandleAddress = getContextHandleAddress(mode.getMode(), padding, secretKey.getEncoded(),
+                    iv, encrypt);
+            context = new SDFSymmetricContext(ctxHandleAddress);
             initialized = true;
         }
     }
@@ -468,7 +464,7 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
         }
         this.secretKey = (SecretKey) key;
         this.iv = ivBytes;
-        this.cipherAlgo = createCipherName(algorithm, mode.getMode());
+        this.cipherAlgo = createCipherName(this.dataKeyType.getAlgorithm(), mode.getMode());
     }
 
     private static String createCipherName(String algorithm, String mode) {
@@ -482,11 +478,11 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
         int outLen;
         try {
             ensureInitialized();
-            outLen = nativeCipherUpdate(session.getAddress(), context.getAddress(), input, inputOffset, inputLen,
+            outLen = nativeCipherUpdate(context.getAddress(), input, inputOffset, inputLen,
                     output, outputOffset, encrypt);
         } catch (SDFException e) {
             reset();
-            throw new SDFRuntimeException("SDFSymmetricCipher nativeUpdate failed for " + algorithm, e);
+            throw new SDFRuntimeException("SDFSymmetricCipher nativeUpdate failed for " + dataKeyType.getAlgorithm(), e);
         }
         bytesBuffered += (inputLen - outLen);
 
@@ -512,10 +508,10 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
                 input = new byte[0];
             }
             ensureInitialized();
-            outLen = nativeCipherFinal(session.getAddress(), context.getAddress(), input, inputOffset, inputLen,
+            outLen = nativeCipherFinal(context.getAddress(), input, inputOffset, inputLen,
                     output, outputOffset, encrypt);
         } catch (SDFException e) {
-            throw new SDFRuntimeException("SDFSymmetricCipher nativeUpdate failed for " + algorithm, e);
+            throw new SDFRuntimeException("SDFSymmetricCipher nativeCipherFinal failed for " + dataKeyType.getAlgorithm(), e);
         } finally {
             reset();
         }
@@ -531,23 +527,16 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
             context.getReference().dispose();
             context = null;
         }
-
-        // free session
-        if (session != null) {
-            SDFSessionManager.getInstance().releaseSession(session);
-            session = null;
-        }
     }
 
     // get new cipher context
-    protected long getContextHandleAddress(String cipherName, boolean encrypt, byte[] keyValue, byte[] iv,
-                                           SDFPadding padding) {
+    protected long getContextHandleAddress(String mode, SDFPadding padding, byte[] keyValue, byte[] iv,
+                                           boolean encrypt) {
         long ctxHandleAddress;
         try {
-            ctxHandleAddress = nativeCipherInit(session.getAddress(), cipherName, encrypt, keyValue, iv,
-                    SDFPadding.PKCS5PADDING.equals(padding));
+            ctxHandleAddress = nativeCipherInit(dataKeyType.getType(), mode, SDFPadding.PKCS5PADDING.equals(padding), keyValue, iv, encrypt);
         } catch (SDFException e) {
-            throw new SDFRuntimeException("SDFSymmetricCipher nativeCipherInit failed for " + cipherName, e);
+            throw new SDFRuntimeException("SDFSymmetricCipher nativeCipherInit failed for " + this.dataKeyType.getAlgorithm(), e);
         }
         return ctxHandleAddress;
     }
@@ -556,8 +545,8 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
         if (key == null) {
             throw new InvalidKeyException("No key given");
         }
-        if (!algorithm.equalsIgnoreCase(key.getAlgorithm())) {
-            throw new InvalidKeyException("Key algorithm must be " + algorithm);
+        if (!dataKeyType.getAlgorithm().equalsIgnoreCase(key.getAlgorithm())) {
+            throw new InvalidKeyException("Key algorithm must be " + dataKeyType.getAlgorithm());
         }
         byte[] keyBytes = key.getEncoded();
         if (keyBytes == null) {
@@ -575,15 +564,15 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     }
 
     private void checkEncKeySize(int keySize) throws InvalidKeyException {
-        if (keySize != SDFConstant.ENC_FIXED_KEY_SIZE) {
-            throw new InvalidKeyException("Invalid " + algorithm + " encrypted key length :" + keySize + "bytes, " +
-                    "only support " + SDFConstant.ENC_FIXED_KEY_SIZE + " bytes");
+        if (keySize != SDFConstant.ENC_SYS_PRIVATE_KEY_SIZE) {
+            throw new InvalidKeyException("Invalid " + dataKeyType.getAlgorithm() + " encrypted key length :" + keySize + " bytes, " +
+                    "only support " + SDFConstant.ENC_SYS_PRIVATE_KEY_SIZE + " bytes");
         }
     }
 
     protected void checkPlainKeySize(int keySize) throws InvalidKeyException {
         if (keySize != supportedKeySize) {
-            throw new InvalidKeyException("Invalid " + algorithm + " plain key length :" + keySize + "bytes, " +
+            throw new InvalidKeyException("Invalid " + dataKeyType.getAlgorithm() + " plain key length :" + keySize + "bytes, " +
                     "only support " + supportedKeySize + " bytes");
         }
     }

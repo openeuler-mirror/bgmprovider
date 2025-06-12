@@ -25,15 +25,28 @@
 package org.openeuler.sdf.wrapper;
 
 import org.openeuler.sdf.commons.exception.SDFException;
-import org.openeuler.sdf.wrapper.entity.SDFECCCipherEntity;
 
 public class SDFSM2CipherNative {
-    // sm2 cipher encrypt
-    public static native SDFECCCipherEntity nativeSM2Encrypt(long sessionHandleAddr,
-                                                             byte[] xArr, byte[] yArr, int bits,
+
+    /**
+     * @param pubKeyArr public key x, y
+     * @param input plain data
+     * @return sm2 enc data params
+     *    {
+     *        c1_x[32],
+     *        c1_y[32],
+     *        c2[input.len],
+     *        c3[32],
+     *    }
+     */
+    public static native byte[][] nativeSM2Encrypt(Object[] pubKeyArr,
                                                              byte[] input) throws SDFException;
 
-    // sm2 cipher decrypt
-    public static native byte[] nativeSM2Decrypt(long sessionHandleAddr, byte[] keyArr,
-                                                 SDFECCCipherEntity eccCipher, int bits) throws SDFException;
+    /**
+     * @param priKeyArr private key
+     * @param sm2CipherParams sm2 enc data params
+     * @return plain data
+     */
+    public static native byte[] nativeSM2Decrypt(byte[] priKeyArr, byte[][] sm2CipherParams)
+            throws SDFException;
 }
