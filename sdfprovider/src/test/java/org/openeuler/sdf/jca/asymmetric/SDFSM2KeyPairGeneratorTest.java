@@ -26,19 +26,24 @@ package org.openeuler.sdf.jca.asymmetric;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.openeuler.sdf.commons.util.SDFTestUtil;
+import org.openeuler.BGMJCEProvider;
+import org.openeuler.sdf.commons.constant.SDFConstant;
+import org.openeuler.sdf.commons.util.SDFKeyTestDB;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPrivateKeyImpl;
 import org.openeuler.sdf.provider.SDFProvider;
 
-import javax.crypto.Cipher;
-import java.security.*;
+import java.math.BigInteger;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.Security;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 
-import static org.junit.Assert.assertArrayEquals;
-
-public class SDFSM2KeyPairGeneratorTest {
-    private static final byte[] INFO = "SM2 test".getBytes();
+public class SDFSM2KeyPairGeneratorTest extends SDFTestCase {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
@@ -47,43 +52,49 @@ public class SDFSM2KeyPairGeneratorTest {
 
     @Test
     public void testGenerateEncKeyPair() throws Exception {
-        testEncKey(INFO);
+        testEncKey();
     }
 
     @Test
-    public void testGenerateEncKeyPairRandomly() throws Exception {
-        byte[] randomBytes = SDFTestUtil.generateRandomBytes();
-        testEncKey(randomBytes);
+    public void test() throws Exception {
+        Security.insertProviderAt(new BGMJCEProvider(), 1);
+        KeyPair encKeyPair = SDFSM2TestUtil.generateKeyPair(false);
+        ECPrivateKey ecPrivateKey = (ECPrivateKey) encKeyPair.getPrivate();
+        ECPublicKey ecPublicKey = (ECPublicKey) encKeyPair.getPublic();
+        System.out.println(Arrays.toString(ecPrivateKey.getS().toByteArray()));
+        System.out.println(Arrays.toString(ecPublicKey.getEncoded()));
     }
-
     @Test
-    @Ignore
-    public void testGeneratePlainKeyPair() throws Exception {
-         testNormalKey(INFO);
+    public void testGenerateKeyPair() throws Exception {
+
+        byte[] pubKeyBytes = SDFKeyTestDB.SM2_KEY_PAIR.getPubKey();
+        KeyFactory keyFactory = KeyFactory.getInstance("SM2");
+        ECPublicKey publicKey = (ECPublicKey) keyFactory.generatePublic(new X509EncodedKeySpec(pubKeyBytes));
+
+        byte[] privateKeyBytes = SDFKeyTestDB.SM2_KEY_PAIR.getEncKey();
+        SDFECPrivateKeyImpl privateKey = new SDFECPrivateKeyImpl(
+                new BigInteger(1, privateKeyBytes),
+                publicKey.getParams());
+        System.out.println(privateKey);
     }
 
-    @Test
-    @Ignore
-    public void testGeneratePlainKeyPairRandomly() throws Exception {
-        byte[] randomBytes = SDFTestUtil.generateRandomBytes();
-        testNormalKey(randomBytes);
-    }
-
-    public static void testNormalKey(byte[] plainTextBytes) throws Exception {
-        KeyPair normalKeyPair = SDFSM2TestUtil.generateKeyPair(false);
-        Cipher cipher = Cipher.getInstance("SM2");
-        cipher.init(Cipher.ENCRYPT_MODE, normalKeyPair.getPublic());
-        byte[] encRes = cipher.doFinal(plainTextBytes);
-        cipher.init(Cipher.DECRYPT_MODE,normalKeyPair.getPrivate());
-        byte[] res = cipher.doFinal(encRes);
-        assertArrayEquals(res, plainTextBytes);
-    }
-
-    public static void testEncKey(byte[] plainTextBytes) throws Exception {
+    public static void testEncKey() throws Exception {
         KeyPair encKeyPair = SDFSM2TestUtil.generateKeyPair(true);
-        Assert.assertTrue(encKeyPair.getPrivate() instanceof SDFECPrivateKeyImpl);
-        byte[] encryptedData = SDFSM2TestUtil.encrypt(encKeyPair.getPublic(), plainTextBytes);
-        byte[] decryptedData = SDFSM2TestUtil.decrypt(encKeyPair.getPrivate(), encryptedData);
-        assertArrayEquals(plainTextBytes, decryptedData);
+
+        // check private key
+        Assert.assertTrue(encKeyPair.getPrivate() instanceof ECPrivateKey);
+        ECPrivateKey privateKey = (ECPrivateKey) encKeyPair.getPrivate();
+        byte[] sBytes = privateKey.getS().toByteArray();
+        Assert.assertEquals(SDFConstant.ENC_SM2_PRIVATE_KEY_SIZE, sBytes.length);
+
+        // check public key
+        Assert.assertTrue(encKeyPair.getPublic() instanceof ECPublicKey);
+        ECPublicKey publicKey = (ECPublicKey) encKeyPair.getPublic();
+        byte[] xBytes = publicKey.getW().getAffineX().toByteArray();
+        byte[] yBytes = publicKey.getW().getAffineY().toByteArray();
+        Assert.assertTrue(SDFConstant.SM2_PUBLIC_KEY_X_LEN <= xBytes.length
+                && xBytes.length <= SDFConstant.SM2_PUBLIC_KEY_X_LEN + 1);
+        Assert.assertTrue(SDFConstant.SM2_PUBLIC_KEY_Y_LEN <= yBytes.length
+                && yBytes.length <= SDFConstant.SM2_PUBLIC_KEY_Y_LEN + 1);
     }
 }

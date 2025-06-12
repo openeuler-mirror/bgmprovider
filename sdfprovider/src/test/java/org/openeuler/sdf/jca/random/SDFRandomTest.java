@@ -27,13 +27,14 @@ package org.openeuler.sdf.jca.random;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
 import java.security.SecureRandom;
 import java.security.Security;
 
-public class SDFRandomTest {
+public class SDFRandomTest extends SDFTestCase {
 
     @BeforeClass
     public static void beforeClass() {

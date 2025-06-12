@@ -140,8 +140,13 @@ public class SDFSSLSocketTestBase {
     }
 
     protected static void init() {
+        initSDKConfig();
         setSDFProperties();
         insertProviders();
+    }
+
+    private static void initSDKConfig() {
+        System.setProperty("sdf.sdkConfig", SDFTestUtil.getSdkConfig());
     }
 
     private static void setSDFProperties() {

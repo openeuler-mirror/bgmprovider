@@ -27,33 +27,32 @@ package org.openeuler.sdf.jsse;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.provider.SDFProvider;
 import org.openeuler.sdf.jsse.util.SDFSM2PreSecretUtil;
 import org.openeuler.sun.security.internal.spec.TlsKeyMaterialSpec;
 
+import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import java.security.Security;
 
-
 @SuppressWarnings("deprecation")
-public class SDFGMTlsKeyMaterialGeneratorTest {
+public class SDFGMTlsKeyMaterialGeneratorTest extends SDFTestCase {
 
-    private static final int ENC_MAC_KEY_LEN = 512;
-    private static final int ENC_CIPHER_KEY_LEN = 512;
+    private static final int ENC_MAC_KEY_LEN = 1024;
+    private static final int ENC_CIPHER_KEY_LEN = 1024;
     private static final int IV_LEN = 16;
+    private static final String MESSAGE = "KeyMaterialGenerator test";
 
     @BeforeClass
     public static void beforeClass() {
         Security.insertProviderAt(new SDFProvider(), 1);
     }
 
-    private static void init() {
-
-    }
-
     @Test
-    public void testGenerateKey() {
+    public void testGenerateKey() throws Exception {
         // client mode
         SecretKey secretKey = SDFSM2PreSecretUtil.getClientBlockKey();
         Assert.assertEquals(secretKey.getClass(), TlsKeyMaterialSpec.class);
@@ -72,9 +71,8 @@ public class SDFGMTlsKeyMaterialGeneratorTest {
         SecretKey serverMacKey1 = tlsKeyMaterialSpec1.getServerMacKey();
         Assert.assertEquals(ENC_MAC_KEY_LEN, clientMacKey1.getEncoded().length);
         Assert.assertEquals(ENC_MAC_KEY_LEN, serverMacKey1.getEncoded().length);
-        Assert.assertArrayEquals(clientMacKey.getEncoded(), clientMacKey1.getEncoded());
-        Assert.assertArrayEquals(serverMacKey.getEncoded(), serverMacKey1.getEncoded());
-
+        checkMacKey(clientMacKey, clientMacKey1);
+        checkMacKey(serverMacKey, serverMacKey1);
 
         // cipher key client mode
         SecretKey clientCipherKey = tlsKeyMaterialSpec.getClientCipherKey();
@@ -86,8 +84,8 @@ public class SDFGMTlsKeyMaterialGeneratorTest {
         SecretKey serverCipherKey1 = tlsKeyMaterialSpec1.getServerCipherKey();
         Assert.assertEquals(ENC_CIPHER_KEY_LEN, clientCipherKey1.getEncoded().length);
         Assert.assertEquals(ENC_CIPHER_KEY_LEN, serverCipherKey1.getEncoded().length);
-        Assert.assertArrayEquals(clientCipherKey.getEncoded(), clientCipherKey1.getEncoded());
-        Assert.assertArrayEquals(serverCipherKey.getEncoded(), serverCipherKey1.getEncoded());
+        checkCipherKey(clientCipherKey, clientCipherKey1);
+        checkCipherKey(serverCipherKey, serverCipherKey1);
 
         // iv client mode
         IvParameterSpec clientIv = tlsKeyMaterialSpec.getClientIv();
@@ -101,6 +99,38 @@ public class SDFGMTlsKeyMaterialGeneratorTest {
         Assert.assertEquals(IV_LEN, serverIv1.getIV().length);
         Assert.assertArrayEquals(clientIv.getIV(), clientIv1.getIV());
         Assert.assertArrayEquals(serverIv.getIV(), serverIv1.getIV());
+    }
+
+    private static void checkMacKey(SecretKey clientMacKey, SecretKey serverMacKey) throws Exception {
+        byte[] clientMac = mac(clientMacKey);
+        byte[] serverMac = mac(serverMacKey);
+        Assert.assertArrayEquals(clientMac, serverMac);
+    }
+
+    private static byte[] mac(SecretKey macKey) throws Exception {
+        Mac mac = Mac.getInstance("HmacSM3");
+        mac.init(macKey);
+        return mac.doFinal(MESSAGE.getBytes());
+    }
+
+    private static void checkCipherKey(SecretKey clientCipherKey, SecretKey serverCipherKey) throws Exception {
+        byte[] data = MESSAGE.getBytes();
+        byte[] encData = encrypt(clientCipherKey, data);
+        byte[] decData = decrypt(serverCipherKey, encData);
+        Assert.assertArrayEquals(data, decData);
+    }
+
+    private static byte[] encrypt(SecretKey cipherKey, byte[] data) throws Exception {
+        System.out.println(new String(cipherKey.getEncoded()));
+        Cipher cipher = Cipher.getInstance("SM4/ECB/PKCS5Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, cipherKey);
+        return cipher.doFinal(data);
+    }
+
+    private static byte[] decrypt(SecretKey cipherKey, byte[] encData) throws Exception {
+        Cipher cipher = Cipher.getInstance("SM4/ECB/PKCS5Padding");
+        cipher.init(Cipher.DECRYPT_MODE, cipherKey);
+        return cipher.doFinal(encData);
     }
 
 }

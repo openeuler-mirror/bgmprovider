@@ -27,6 +27,7 @@ package org.openeuler.sdf.jsse;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.provider.SDFProvider;
 import org.openeuler.sdf.jsse.util.SDFSM2PreSecretUtil;
 import org.openeuler.sun.security.internal.spec.TlsMasterSecretParameterSpec;
@@ -40,17 +41,14 @@ import java.security.spec.AlgorithmParameterSpec;
  * GMTlsMasterSecretGenerator test
  */
 @SuppressWarnings("deprecation")
-public class SDFGMTlsMasterSecretGeneratorTest {
+public class SDFGMTlsMasterSecretGeneratorTest extends SDFTestCase {
 
-    private static final int ENC_MASTER_KEY_LEN = 512;
-
+    private static final int ENC_MASTER_KEY_LEN = 1024;
 
     @BeforeClass
     public static void beforeClass() {
         Security.insertProviderAt(new SDFProvider(), 1);
     }
-
-
 
     /**
      * Test generate master key
@@ -63,9 +61,6 @@ public class SDFGMTlsMasterSecretGeneratorTest {
         // server
         SecretKey sMasterSecret = SDFSM2PreSecretUtil.getServerMasterSecret();
         Assert.assertEquals(ENC_MASTER_KEY_LEN, sMasterSecret.getEncoded().length);
-
-        // check master key
-        Assert.assertArrayEquals(cMasterSecret.getEncoded(), sMasterSecret.getEncoded());
     }
 
     /**

@@ -26,6 +26,7 @@
 package org.openeuler.sdf.jsse.gmtls;
 
 import org.junit.Assert;
+import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.jsse.util.SDFGMTLTestUtil;
 
 import static org.openeuler.sdf.jsse.util.SDFGMTLTestUtil.SERVER_PORT;
@@ -33,6 +34,9 @@ import static org.openeuler.sdf.jsse.util.SDFGMTLTestUtil.getClientCommand;
 import static org.openeuler.sdf.jsse.util.SDFGMTLTestUtil.getServerCommand;
 
 public class SDFGMTLSTestBase {
+    static {
+        System.setProperty("sdf.sdkConfig", SDFTestUtil.getSdkConfig());
+    }
 
     public static void test(boolean serverUseEnc, boolean clientUseEnc, String protocol, String cipherSuite)
             throws Exception {

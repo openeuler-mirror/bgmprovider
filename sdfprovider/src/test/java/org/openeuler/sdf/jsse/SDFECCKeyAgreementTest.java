@@ -27,32 +27,44 @@ package org.openeuler.sdf.jsse;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openeuler.BGMJCEProvider;
+import org.openeuler.BGMJSSEProvider;
+import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.jca.asymmetric.SDFSM2GenParameterSpec;
 import org.openeuler.sdf.provider.SDFProvider;
 import org.openeuler.spec.ECCPremasterSecretKeySpec;
-import org.openeuler.sun.security.internal.spec.TlsECCKeyAgreementParameterSpec;
+import org.openeuler.sun.security.internal.spec.TlsKeyMaterialSpec;
 
 import javax.crypto.Cipher;
-import javax.crypto.KeyAgreement;
-import javax.crypto.spec.SecretKeySpec;
-import java.security.*;
+import javax.crypto.SecretKey;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.Provider;
+import java.security.Security;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 
-public class SDFECCKeyAgreementTest {
+import static org.openeuler.sdf.jsse.util.SDFGMTLSKeyGenUtil.checkKeyMaterial;
+import static org.openeuler.sdf.jsse.util.SDFGMTLSKeyGenUtil.generateECCPremasterSecretKeySpec;
+import static org.openeuler.sdf.jsse.util.SDFGMTLSKeyGenUtil.generateKeyMaterial;
+import static org.openeuler.sdf.jsse.util.SDFGMTLSKeyGenUtil.generateMasterSecret;
 
-    private static int GMTLSProtocolVersion = 0x0101;
+public class SDFECCKeyAgreementTest extends SDFTestCase {
+    private static Provider sdfProvider;
+    private static final Provider bmgJSSEProvider = new BGMJSSEProvider();
+    private static final Provider bmgJCEProvider = new BGMJCEProvider();
     private static ECPublicKey publicKey;
     private static ECPrivateKey privateKey;
-
 
     @BeforeClass
     public static void beforeClass() throws Exception {
         System.setProperty("sdf.defaultKEKId", new String(SDFTestUtil.getTestKekId()));
         System.setProperty("sdf.defaultRegionId", new String(SDFTestUtil.getTestRegionId()));
-        System.setProperty("sdf.defaultCpdId", new String(SDFTestUtil.getTestCdpId()));
-        Security.insertProviderAt(new SDFProvider(), 1);
+        System.setProperty("sdf.defaultCdpId", new String(SDFTestUtil.getTestCdpId()));
+        sdfProvider = new SDFProvider();
+        Security.insertProviderAt(sdfProvider, 1);
         initParameters();
     }
 
@@ -72,44 +84,54 @@ public class SDFECCKeyAgreementTest {
 
     @Test
     public void test() throws Exception {
-        beforeClass();
         Cipher sm2Cipher = Cipher.getInstance("SM2");
         sm2Cipher.init(Cipher.DECRYPT_MODE, privateKey);
-        ECCPremasterSecretKeySpec encryptSecret = (ECCPremasterSecretKeySpec) generateSecret();
-        sm2Cipher.update(encryptSecret.getEncryptedKey());
-        byte[] clientPreMasterKey = sm2Cipher.doFinal();
+        ECCPremasterSecretKeySpec clientPremasterSecretSpec =
+                generateECCPremasterSecretKeySpec(true, null,
+                publicKey, privateKey, sdfProvider);
+        sm2Cipher.update(clientPremasterSecretSpec.getEncryptedKey());
+        byte[] clientPlainPreMasterKeyBytes = sm2Cipher.doFinal();
 
-        ECCPremasterSecretKeySpec decryptSecret = (ECCPremasterSecretKeySpec) decode(encryptSecret.getEncryptedKey());
-        sm2Cipher.update(decryptSecret.getEncryptedKey());
-        byte[] serverPreMasterKey = sm2Cipher.doFinal();
-        Assert.assertArrayEquals(clientPreMasterKey, serverPreMasterKey);
+        ECCPremasterSecretKeySpec serverPremasterSecretSpec =
+                generateECCPremasterSecretKeySpec(false, clientPremasterSecretSpec.getEncryptedKey(),
+                        publicKey, privateKey, sdfProvider);
+        sm2Cipher.update(serverPremasterSecretSpec.getEncryptedKey());
+        byte[] serverPlainPreMasterKeyBytes = sm2Cipher.doFinal();
+
+        Assert.assertEquals(clientPlainPreMasterKeyBytes.length, 48);
+        Assert.assertArrayEquals(clientPlainPreMasterKeyBytes, serverPlainPreMasterKeyBytes);
+
+        byte[] clientPreMasterKeyBytes = clientPremasterSecretSpec.getEncoded();
+        byte[] serverPreMasterKeyBytes = serverPremasterSecretSpec.getEncoded();
+
+        // enc key
+        SecretKey clientPreMasterKey = new SDFSecretKeySpec(clientPreMasterKeyBytes,
+                "GmTlsEccPremasterSecret", true);
+        SecretKey serverPreMasterKey = new SDFSecretKeySpec(serverPreMasterKeyBytes,
+                "GmTlsEccPremasterSecret", true);
+        SecretKey clientMasterKey = generateMasterSecret(clientPreMasterKey, sdfProvider);
+        SecretKey serverMasterKey = generateMasterSecret(serverPreMasterKey, sdfProvider);
+        System.out.println("------------------------------------------------------------");
+        TlsKeyMaterialSpec clientKeyMaterial = generateKeyMaterial(clientMasterKey, sdfProvider);
+        System.out.println("------------------------------------------------------------");
+        TlsKeyMaterialSpec serverKeyMaterial = generateKeyMaterial(serverMasterKey, sdfProvider);
+        checkKeyMaterial(clientKeyMaterial, sdfProvider, serverKeyMaterial, sdfProvider);
+
+        // plain key
+        SecretKey clientPlainPreMasterKey = new SDFSecretKeySpec(clientPlainPreMasterKeyBytes,
+                "GmTlsEccPremasterSecret", false);
+        SecretKey serverPlainPreMasterKey = new SDFSecretKeySpec(serverPlainPreMasterKeyBytes,
+                "GmTlsEccPremasterSecret", false);
+        SecretKey clientPlainMasterKey = generateMasterSecret(clientPlainPreMasterKey, bmgJSSEProvider);
+        SecretKey serverPlainMasterKey = generateMasterSecret(serverPlainPreMasterKey, bmgJSSEProvider);
+
+
+        TlsKeyMaterialSpec clientPlainKeyMaterial = generateKeyMaterial(clientPlainMasterKey, bmgJSSEProvider);
+        TlsKeyMaterialSpec serverPlainKeyMaterial = generateKeyMaterial(serverPlainMasterKey, bmgJSSEProvider);
+        checkKeyMaterial(clientPlainKeyMaterial, bmgJCEProvider, serverPlainKeyMaterial, bmgJCEProvider);
+
+        checkKeyMaterial(clientPlainKeyMaterial, bmgJCEProvider, clientKeyMaterial, sdfProvider);
+        checkKeyMaterial(serverPlainKeyMaterial, bmgJCEProvider, serverKeyMaterial, sdfProvider);
     }
-
-    public static SecretKeySpec generateSecret() throws Exception {
-        String algorithm = "GmTlsEccPremasterSecret";
-        KeyAgreement keyAgreement = KeyAgreement.getInstance(algorithm);
-
-        TlsECCKeyAgreementParameterSpec spec =
-                new TlsECCKeyAgreementParameterSpec(
-                        GMTLSProtocolVersion,
-                        GMTLSProtocolVersion);
-        keyAgreement.init(publicKey, spec);
-        return (ECCPremasterSecretKeySpec) keyAgreement.generateSecret("TlsEccPremasterSecret");
-    }
-
-    @SuppressWarnings("deprecation")
-    static SecretKeySpec decode(byte[] encrypted) throws GeneralSecurityException {
-        String algorithm = "GmTlsEccPremasterSecret";
-        KeyAgreement keyAgreement = KeyAgreement.getInstance(algorithm);
-        TlsECCKeyAgreementParameterSpec spec =
-                new TlsECCKeyAgreementParameterSpec(
-                        encrypted,
-                        GMTLSProtocolVersion,
-                        GMTLSProtocolVersion,
-                        false);
-        keyAgreement.init(privateKey, spec);
-        return (ECCPremasterSecretKeySpec) keyAgreement.generateSecret("TlsEccPremasterSecret");
-    }
-
 
 }

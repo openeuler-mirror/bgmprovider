@@ -26,22 +26,41 @@ package org.openeuler.sdf.jsse;
 
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
+
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.openeuler.BGMJCEProvider;
+import org.openeuler.BGMJSSEProvider;
+import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
+import org.openeuler.sdf.commons.util.SDFTestCase;
+import org.openeuler.sdf.commons.util.SDFTestEncKeyGenUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.jca.asymmetric.SDFSM2GenParameterSpec;
 import org.openeuler.spec.SM2KeyExchangeParameterSpec;
+import org.openeuler.sun.security.internal.spec.TlsKeyMaterialSpec;
 
 import javax.crypto.KeyAgreement;
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
 import java.security.*;
+import java.util.Arrays;
+
+import static org.openeuler.sdf.jsse.util.SDFGMTLSKeyGenUtil.checkKeyMaterial;
+import static org.openeuler.sdf.jsse.util.SDFGMTLSKeyGenUtil.generateKeyMaterial;
+import static org.openeuler.sdf.jsse.util.SDFGMTLSKeyGenUtil.generateMasterSecret;
 
 /**
  * SM2KeyAgreement test
  */
-public class SDFSM2KeyAgreementTest {
+public class SDFSM2KeyAgreementTest extends SDFTestCase {
+    private static final Provider sdfProvider = new SDFProvider();
+    private static final Provider bgmJCEProvider = new BGMJCEProvider();
+    private static final Provider bgmJSSEProvider = new BGMJSSEProvider();
+
+    private static final String CHECK_MESSAGE = "SM2 KeyAgreement test";
 
     private static byte[] localId;
     private static ECPublicKey localPublicKey;
@@ -59,7 +78,7 @@ public class SDFSM2KeyAgreementTest {
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Security.insertProviderAt(new SDFProvider(), 1);
+        Security.insertProviderAt(sdfProvider, 1);
         initParameters();
     }
 
@@ -90,24 +109,79 @@ public class SDFSM2KeyAgreementTest {
     }
 
     @Test
-    public void testGenerateSecret() throws Exception {
+    public void testGenerateSecretBaseline() throws Exception {
+        testGenerateSecretBaseline(false);
+        testGenerateSecretBaseline(true);
+    }
+
+    private static byte[] testGenerateSecretBaseline(boolean isEncKey) throws Exception {
+        ECPublicKey localPublicKey = SDFTestUtil.getSM2PublicKey();
+        ECPrivateKey localPrivateKey = SDFTestUtil.getSM2PrivateKey(isEncKey);
+
+        ECPublicKey localTempPublicKey = SDFTestUtil.getSM2PublicKey();
+        ECPrivateKey localTempPrivateKey = SDFTestUtil.getSM2PrivateKey(isEncKey);
+
+        ECPublicKey peerPublicKey = SDFTestUtil.getSM2PublicKey();
+        ECPrivateKey peerPrivateKey = SDFTestUtil.getSM2PrivateKey(isEncKey);
+
+        ECPublicKey peerTempPublicKey = SDFTestUtil.getSM2PublicKey();
+        ECPrivateKey peerTempPrivateKey = SDFTestUtil.getSM2PrivateKey(isEncKey);
+
+
+        return generateSharedSecret(localPublicKey, localPrivateKey,
+                localTempPublicKey, localTempPrivateKey,
+                peerPublicKey, peerPrivateKey,
+                peerTempPublicKey, peerTempPrivateKey,
+                isEncKey);
+    }
+
+    private static byte[] generateSharedSecret(ECPublicKey localPublicKey, ECPrivateKey localPrivateKey,
+                                               ECPublicKey localTempPublicKey, ECPrivateKey localTempPrivateKey,
+                                               ECPublicKey peerPublicKey, ECPrivateKey peerPrivateKey,
+                                               ECPublicKey peerTempPublicKey, ECPrivateKey peerTempPrivateKey,
+                                               boolean isEncKey) throws Exception {
+
+        Provider kaProvider = isEncKey ? sdfProvider : bgmJCEProvider;
+
         SM2KeyExchangeParameterSpec parameterSpec = new SM2KeyExchangeParameterSpec(
                 localId, localPublicKey, localTempPrivateKey, localTempPublicKey,
                 peerId, peerTempPublicKey, secretLen, true);
-
-        KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
-        keyAgreement.init(localPrivateKey, parameterSpec,   null);
+        KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2", kaProvider);
+        keyAgreement.init(localPrivateKey, parameterSpec, null);
         keyAgreement.doPhase(peerPublicKey, true);
-        byte[] sharedSecret = keyAgreement.generateSecret();
+        byte[] localSharedSecret = keyAgreement.generateSecret();
 
         SM2KeyExchangeParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(
                 peerId, peerPublicKey, peerTempPrivateKey, peerTempPublicKey,
                 localId, localTempPublicKey, secretLen, false);
-        KeyAgreement peerKeyAgreement = KeyAgreement.getInstance("SM2");
+        KeyAgreement peerKeyAgreement = KeyAgreement.getInstance("SM2", kaProvider);
         peerKeyAgreement.init(peerPrivateKey, peerParameterSpec, null);
         peerKeyAgreement.doPhase(localPublicKey, true);
         byte[] peerSharedSecret = peerKeyAgreement.generateSecret();
-        Assert.assertArrayEquals(sharedSecret, peerSharedSecret);
+
+        Provider keProvider = isEncKey ? sdfProvider : bgmJSSEProvider;
+
+
+        SecretKey clientPreMasterKey = new SDFSecretKeySpec(localSharedSecret,
+                "GmTlsEccPremasterSecret", true);
+        SecretKey serverPreMasterKey = new SDFSecretKeySpec(peerSharedSecret,
+                "GmTlsEccPremasterSecret", true);
+        SecretKey clientMasterKey = generateMasterSecret(clientPreMasterKey, keProvider);
+        SecretKey serverMasterKey = generateMasterSecret(serverPreMasterKey, keProvider);
+        System.out.println("------------------------------------------------------------");
+        TlsKeyMaterialSpec clientKeyMaterial = generateKeyMaterial(clientMasterKey, keProvider);
+        System.out.println("------------------------------------------------------------");
+        TlsKeyMaterialSpec serverKeyMaterial = generateKeyMaterial(serverMasterKey, keProvider);
+        checkKeyMaterial(clientKeyMaterial, kaProvider, serverKeyMaterial, kaProvider);
+
+        return localSharedSecret;
+    }
+
+    @Test
+    public void testGenerateSecret() throws Exception {
+        generateSharedSecret(localPublicKey, localPrivateKey, localTempPublicKey, localTempPrivateKey,
+                peerPublicKey, peerPrivateKey, peerTempPublicKey, peerTempPrivateKey, true);
+
     }
 
     @Test
@@ -118,7 +192,7 @@ public class SDFSM2KeyAgreementTest {
         KeyAgreement keyAgreement = KeyAgreement.getInstance("SM2");
         keyAgreement.init(localPrivateKey, parameterSpec, null);
         keyAgreement.doPhase(peerPublicKey, true);
-        byte[] sharedSecret = keyAgreement.generateSecret();
+        byte[] localSharedSecret = keyAgreement.generateSecret();
 
         SM2KeyExchangeParameterSpec peerParameterSpec = new SM2KeyExchangeParameterSpec(
                 peerId, null, peerTempPrivateKey, peerTempPublicKey,
@@ -127,7 +201,19 @@ public class SDFSM2KeyAgreementTest {
         peerKeyAgreement.init(peerPrivateKey, peerParameterSpec, null);
         peerKeyAgreement.doPhase(localPublicKey, true);
         byte[] peerSharedSecret = peerKeyAgreement.generateSecret();
-        Assert.assertArrayEquals(sharedSecret, peerSharedSecret);
+
+        SecretKey clientPreMasterKey = new SDFSecretKeySpec(localSharedSecret,
+                "GmTlsEccPremasterSecret", true);
+        SecretKey serverPreMasterKey = new SDFSecretKeySpec(peerSharedSecret,
+                "GmTlsEccPremasterSecret", true);
+        SecretKey clientMasterKey = generateMasterSecret(clientPreMasterKey, sdfProvider);
+        SecretKey serverMasterKey = generateMasterSecret(serverPreMasterKey, sdfProvider);
+        System.out.println("------------------------------------------------------------");
+        TlsKeyMaterialSpec clientKeyMaterial = generateKeyMaterial(clientMasterKey, sdfProvider);
+        System.out.println("------------------------------------------------------------");
+        TlsKeyMaterialSpec serverKeyMaterial = generateKeyMaterial(serverMasterKey, sdfProvider);
+        checkKeyMaterial(clientKeyMaterial, sdfProvider, serverKeyMaterial, sdfProvider);
+
     }
 
     @Test(expected = InvalidKeyException.class)

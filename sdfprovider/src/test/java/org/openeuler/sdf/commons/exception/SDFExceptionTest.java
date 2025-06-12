@@ -44,7 +44,7 @@ public class SDFExceptionTest {
 
     @Test
     public void testInvalidErrorCode() {
-        long[] invalidErrorCodes = new long[]{0x01000016L, 0x01010009L, 0x01020105L, 0x01030001L, 0x80000000L};
+        long[] invalidErrorCodes = new long[]{0x01010009L, 0x01020105L, 0x01030001L, 0x80000000L};
         for (long invalidErrorCode : invalidErrorCodes) {
             SDFException exception = new SDFException(invalidErrorCode);
             String expectedMessage = getInvalidMessage(invalidErrorCode);

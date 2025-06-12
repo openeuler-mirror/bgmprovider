@@ -26,6 +26,7 @@ package org.openeuler.sdf.jsse.gmtls;
 
 import org.openeuler.BGMJCEProvider;
 import org.openeuler.BGMJSSEProvider;
+import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
 import javax.net.ssl.SSLContext;
@@ -38,6 +39,10 @@ import java.security.Provider;
 import java.security.Security;
 
 public class SDFGMTLSClient {
+    static {
+        System.setProperty("sdf.sdkConfig", SDFTestUtil.getSdkConfig());
+    }
+
     /**
      * @param args  serverPort useEncMode
      */

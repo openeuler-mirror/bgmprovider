@@ -163,10 +163,12 @@ public class SDFGMTLTestUtil {
                 STORE_PASSWORD);
         if ((serverUseEnc && isServer) | (clientUseEnc && !isServer)) {
             args = String.format("%s " +
+                            "-Dsdf.sdkConfig=%s " +
                             "-Dsdf.defaultKEKId=%s " +
                             "-Dsdf.defaultRegionId=%s " +
                             "-Dsdf.defaultCdpId=%s",
                     args,
+                    SDFTestUtil.getSdkConfig(),
                     new String(SDFTestUtil.getTestKekId()),
                     new String(SDFTestUtil.getTestRegionId()),
                     new String(SDFTestUtil.getTestCdpId()));

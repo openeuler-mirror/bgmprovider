@@ -26,6 +26,7 @@ package org.openeuler.sdf.jca.symmetric;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.provider.SDFProvider;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.jca.symmetric.SDFSymmetricParameterSpec;
@@ -38,31 +39,27 @@ import java.security.Security;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 
-public class SDFKeyGeneratorDefaultSizeTest {
+public class SDFKeyGeneratorDefaultSizeTest extends SDFTestCase {
     private static final byte[] PLAIN_BYTES = "hellohelloworld!".getBytes();
 
-    private static  Provider  sdfProvider;
-
-    @BeforeClass
-    public static void beforeClass() {
-        SDFTestUtil.setKEKInfoSysPros();
-        sdfProvider = new SDFProvider();
-    }
+    private static  Provider sdfProvider = new SDFProvider();
 
     @Test
     public void testEncKeyDefault() throws Exception {
-        testEncKeyDefault("SM4", "SM4/ECB/NOPADDING",true);
+        testEncKeyDefault("SM4", "SM4/ECB/NOPADDING");
     }
 
 
-
-    public void testEncKeyDefault(String keyalgo, String algo,boolean isEncKey) throws Exception {
+    public void testEncKeyDefault(String keyalgo, String algo) throws Exception {
         // test enc key encrypt and decrypt
         testKeyGeneratorDefault(keyalgo, algo, sdfProvider);
     }
 
     private void testKeyGeneratorDefault(String keyalgo,String algo, Provider provider) throws Exception {
         KeyGenerator keyGenerator = KeyGenerator.getInstance(keyalgo, provider);
+        AlgorithmParameterSpec spec = new SDFSymmetricParameterSpec(SDFTestUtil.getTestKekId(),
+                SDFTestUtil.getTestRegionId(), SDFTestUtil.getTestCdpId(), SDFTestUtil.getTestPin());
+        keyGenerator.init(spec);
         SecretKey encKey = keyGenerator.generateKey();
         testCipher(encKey, algo, provider);
     }

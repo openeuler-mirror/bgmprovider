@@ -31,6 +31,7 @@ import org.openeuler.BGMJCEProvider;
 import org.openeuler.sdf.commons.spec.SDFKeyGeneratorParameterSpec;
 import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
 import org.openeuler.sdf.commons.util.SDFKeyTestDB;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
@@ -41,13 +42,14 @@ import java.nio.ByteBuffer;
 import java.security.Provider;
 import java.security.Security;
 
-public class SDFHmacTest {
+public class SDFHmacTest extends SDFTestCase {
     private static final Provider sdfProvider = new SDFProvider();
+    private static final Provider bgmJCEProvider = new BGMJCEProvider();
 
     @BeforeClass
     public static void beforeClass() {
-        Security.insertProviderAt(new SDFProvider(), 1);
-        Security.insertProviderAt(new BGMJCEProvider(), 2);
+        Security.insertProviderAt(sdfProvider, 1);
+        Security.insertProviderAt(bgmJCEProvider, 2);
     }
 
     private static SDFHmacAlgorithm[] getHmacAlgorithms() {
@@ -136,7 +138,7 @@ public class SDFHmacTest {
 
     @Test
     public void testBaseLine() throws Exception {
-        Mac sdfMac = Mac.getInstance("HmacSM3", "SDFProvider");
+        Mac sdfMac = Mac.getInstance("HmacSM3", sdfProvider);
         sdfMac.init(new SDFSecretKeySpec(SDFKeyTestDB.HMAC_SM3_KEY.getEncKey(), "HmacSM3",true));
         byte[] additional = new byte[]{0, 0, 0, 0, 0, 0, 0, 0, 22, 1, 1, 0, 16};
         byte[] bb = new byte[]{20, 0, 0, 12, -18, 19, 92, 125, 64, -109, 76, -79, -31, 21, 13, 59};
@@ -144,7 +146,7 @@ public class SDFHmacTest {
         sdfMac.update(bb);
         byte[] sdfMacBytes = sdfMac.doFinal();
 
-        Mac bgmMac = Mac.getInstance("HmacSM3","BGMJCEProvider");
+        Mac bgmMac = Mac.getInstance("HmacSM3",bgmJCEProvider);
         bgmMac.init(new SDFSecretKeySpec(SDFKeyTestDB.HMAC_SM3_KEY.getPlainKey(), "HmacSM3",false));
         bgmMac.update(additional);
         bgmMac.update(bb);
@@ -177,7 +179,8 @@ public class SDFHmacTest {
 
     private static SecretKey getKey(SDFHmacAlgorithm hmacAlgorithm, boolean isEncKey) throws Exception {
         KeyGenerator keyGenerator = KeyGenerator.getInstance(hmacAlgorithm.algoName, sdfProvider);
-        int keySize = SDFTestUtil.generateRandomInt() + 40;
+        // data key of hmac, should limit outKeyBitsLen in [1, 1024]
+        int keySize = SDFTestUtil.generateRandomInt(1024) + 1;
         if (isEncKey) {
             SDFKeyGeneratorParameterSpec parameterSpec = new SDFKeyGeneratorParameterSpec(
                     SDFTestUtil.getTestKekId(),

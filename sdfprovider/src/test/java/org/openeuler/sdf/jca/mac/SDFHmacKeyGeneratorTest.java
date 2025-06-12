@@ -24,33 +24,29 @@
 
 package org.openeuler.sdf.jca.mac;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.openeuler.sdf.commons.exception.SDFErrorCode;
-import org.openeuler.sdf.commons.exception.SDFException;
-import org.openeuler.sdf.commons.exception.SDFRuntimeException;
-import org.openeuler.sdf.provider.SDFProvider;
-import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
 import org.openeuler.sdf.commons.spec.SDFKeyGeneratorParameterSpec;
+import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
+import org.openeuler.sdf.provider.SDFProvider;
 
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
-
+import java.security.InvalidParameterException;
 import java.security.Security;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class SDFHmacKeyGeneratorTest {
+public class SDFHmacKeyGeneratorTest extends SDFTestCase {
 
-    private static final int EXPECTED_DEFAULT_PLAIN_HMAC_KEY_LEN = 32;
-
-    private static final int MIN_HMAC_KEY_SIZE = 40;
-    private static final int MAX_HMAC_KEY_SIZE = 1024 * 8;
-    private static final int EXPECTED_ENC_HMAC_KEY_LEN = 3584;
+    private static final int MIN_HMAC_KEY_SIZE = 0;
+    // data key of hmac, should limit outKeyBitsLen in [1, 1024]
+    private static final int MAX_HMAC_KEY_SIZE = 1151;
+    private static final int EXPECTED_ENC_HMAC_KEY_LEN = 1024;
 
     @BeforeClass
     public static void beforeClass() {
@@ -88,36 +84,24 @@ public class SDFHmacKeyGeneratorTest {
     public void testValidKeySizeRandomly() throws Exception {
         SDFHmacAlgorithm[] hmacAlgorithms = getHmacAlgorithms();
         for (SDFHmacAlgorithm hmacAlgorithm : hmacAlgorithms) {
-            int keySize = SDFTestUtil.generateRandomInt(MAX_HMAC_KEY_SIZE - 39) + 40;
+            int keySize = SDFTestUtil.generateRandomInt(EXPECTED_ENC_HMAC_KEY_LEN + 1);
             testGenerateEncKey(hmacAlgorithm, keySize);
         }
     }
 
     @Test
-    public void testInvalidKeySize() throws Exception {
+    public void testInvalidKeySize() {
         SDFHmacAlgorithm[] hmacAlgorithms = getHmacAlgorithms();
         for (SDFHmacAlgorithm hmacAlgorithm : hmacAlgorithms) {
             boolean hasException = false;
-            int keySize = SDFTestUtil.generateRandomInt(MIN_HMAC_KEY_SIZE);
-            try {
-                testGenerateEncKey(hmacAlgorithm, keySize);
-            } catch (IllegalArgumentException e) {
-                hasException = true;
-                Assert.assertEquals("Key length must be at least 40 bits", e.getMessage());
-            }
-            if (!hasException) {
-                throw new RuntimeException("test " + keySize + " failed, cannot be reach here");
-            }
 
-            hasException = false;
-            keySize = SDFTestUtil.generateRandomInt(MAX_HMAC_KEY_SIZE) + MAX_HMAC_KEY_SIZE;
+            int keySize = SDFTestUtil.generateRandomInt(MAX_HMAC_KEY_SIZE) + MAX_HMAC_KEY_SIZE + 1;
+            System.out.println("TEST keyAlgo = " + hmacAlgorithm.getAlgoName() + ", keySize=" + keySize);
             try {
                 testGenerateEncKey(hmacAlgorithm, keySize);
             } catch (Exception e) {
                 hasException = true;
-                Assert.assertTrue(e.getCause() instanceof SDFException);
-                Assert.assertEquals(SDFErrorCode.SWR_CARD_PARAMENT_ERR.getCode(),
-                        ((SDFException) e.getCause()).getErrorCode());
+                assertTrue(e instanceof InvalidParameterException);
             }
             if (!hasException) {
                 throw new RuntimeException("test " + keySize + " failed, cannot be reach here");

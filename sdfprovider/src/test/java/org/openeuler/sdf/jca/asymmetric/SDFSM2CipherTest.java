@@ -26,70 +26,37 @@ package org.openeuler.sdf.jca.asymmetric;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
+import org.openeuler.BGMJCEProvider;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPrivateKeyImpl;
-import org.openeuler.sdf.jca.commons.SDFUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
 import javax.crypto.Cipher;
-import java.security.*;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.Key;
+import java.security.KeyPair;
+import java.security.Provider;
+import java.security.Security;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.util.Arrays;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-public class SDFSM2CipherTest {
+public class SDFSM2CipherTest extends SDFTestCase {
 
-    private static final byte[] INFO = "SM2 test".getBytes();
-    private static final byte[] PUBLIC_KEY_BYTES = new byte[]{
-            48, 89, 48, 19, 6, 7, 42, -122, 72, -50, 61, 2, 1, 6, 8, 42,
-            -127, 28, -49, 85, 1, -126, 45, 3, 66, 0, 4, 10, -36, -22, -20, 17,
-            26, 86, -114, -52, -78, 79, -22, 116, -47, -70, -33, 112, 32, -18, 92, -45,
-            -58, 20, 36, -5, 55, 68, -95, -57, -121, 10, 33, -76, 54, 24, -119, -104,
-            61, -24, -113, 46, -57, 36, -78, -37, -95, -113, -52, -88, -5, 22, -67, 101,
-            94, 37, 2, -58, 55, -35, 15, -21, 31, -49, -80
-    };
-    private static final byte[] PRIVATE_KEY_BYTES = new byte[]{
-            48, -127, -109, 2, 1, 0, 48, 19, 6, 7, 42, -122, 72, -50, 61, 2,
-            1, 6, 8, 42, -127, 28, -49, 85, 1, -126, 45, 4, 121, 48, 119, 2,
-            1, 1, 4, 32, -104, 71, 54, -41, 24, 66, 82, -45, 114, -113, -121, -105,
-            -35, 35, 9, 49, -8, 119, 44, 118, 80, -20, 47, -38, -69, -47, 121, -8,
-            -73, -33, 4, 54, -96, 10, 6, 8, 42, -127, 28, -49, 85, 1, -126, 45,
-            -95, 68, 3, 66, 0, 4, 10, -36, -22, -20, 17, 26, 86, -114, -52, -78,
-            79, -22, 116, -47, -70, -33, 112, 32, -18, 92, -45, -58, 20, 36, -5, 55,
-            68, -95, -57, -121, 10, 33, -76, 54, 24, -119, -104, 61, -24, -113, 46, -57,
-            36, -78, -37, -95, -113, -52, -88, -5, 22, -67, 101, 94, 37, 2, -58, 55,
-            -35, 15, -21, 31, -49, -80
-    };
-
-    private static final byte[] ENCRYPTED_BYTES = new byte[]{
-            48, 113, 2, 33, 0, -91, 51, 29, -122, -26, 120, 43, 27, 115, -57, -98,
-            -124, 114, -30, -83, 69, -69, -38, -54, -38, 127, 90, -89, -40, 114, -9, 99,
-            111, 121, 55, -81, 109, 2, 32, 6, -103, 108, -59, -11, -108, -7, 116, 34,
-            -8, -29, 58, -43, -109, -121, -66, -62, -82, 92, 117, 100, -28, 63, -103, -32,
-            -81, 10, 4, -46, 114, 49, 34, 4, 32, 18, 66, 110, 22, -3, -101, -122,
-            46, 21, 25, 29, 35, -82, -119, 38, -10, -19, -30, 69, -100, -118, -105, 116,
-            -105, -65, -110, -24, -42, -17, 84, -66, 82, 4, 8, 7, 14, 4, 64, 95, 31, 87, 93
-    };
-
-
-    private static PrivateKey privateKey;
-
-    private static PublicKey publicKey;
+    private static final Provider sdfProvider = new SDFProvider();
+    private static final Provider bgmJCEProvider = new BGMJCEProvider();
 
     @BeforeClass
     public static void beforeClass() throws Exception {
-        Security.insertProviderAt(new SDFProvider(), 1);
-        KeyFactory keyFactory = KeyFactory.getInstance("SM2");
-        publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(PUBLIC_KEY_BYTES));
-        privateKey = keyFactory.generatePrivate(new PKCS8EncodedKeySpec(PRIVATE_KEY_BYTES));
+        Security.insertProviderAt(sdfProvider, 1);
     }
 
     @Test
-    public void testDecryptByEncKeyRandomly() throws Exception {
+    public void testEncAndDecRandomly() throws Exception {
         byte[] data = SDFTestUtil.generateRandomBytes();
         KeyPair encKeyPair = SDFSM2TestUtil.generateKeyPair(true);
         Assert.assertTrue(encKeyPair.getPrivate() instanceof SDFECPrivateKeyImpl);
@@ -98,33 +65,60 @@ public class SDFSM2CipherTest {
         assertArrayEquals(data, decryptedData);
     }
 
-    /**
-     * Test plain private key decryption
-     */
     @Test
-    @Ignore
-    public void testDecryptByPlainPriKey() throws Exception {
-        byte[] decryptBytes = SDFSM2TestUtil.decrypt(privateKey, ENCRYPTED_BYTES);
-        assertArrayEquals(INFO, decryptBytes);
+    public void testEncAndDecSample() throws Exception {
+        KeyPair encKeyPair = SDFSM2TestUtil.generateKeyPair(true);
+        Assert.assertTrue(encKeyPair.getPrivate() instanceof SDFECPrivateKeyImpl);
+
+        int[] sizes = {1, 8, 16, 33, 132, 160, 200};
+        for (int size : sizes) {
+            byte[] data = SDFTestUtil.generateRandomBytes(size);
+            System.out.println("TEST data=" + Arrays.toString(data));
+            byte[] encryptedData = SDFSM2TestUtil.encrypt(encKeyPair.getPublic(), data);
+            byte[] decryptedData = SDFSM2TestUtil.decrypt(encKeyPair.getPrivate(), encryptedData);
+            assertArrayEquals(data, decryptedData);
+        }
     }
 
-    /**
-     * Test public key encryption and plain private key decryption
-     */
     @Test
-    @Ignore
-    public void testEncryptByPublicKey() throws Exception {
-        byte[] encryptBytes = SDFSM2TestUtil.encrypt(publicKey, INFO);
-        byte[] decryptBytes = SDFSM2TestUtil.decrypt(privateKey, encryptBytes);
-        assertArrayEquals(INFO, decryptBytes);
+    public void testEncAndDecEmpty() throws Exception {
+        KeyPair encKeyPair = SDFSM2TestUtil.generateKeyPair(true);
+        Assert.assertTrue(encKeyPair.getPrivate() instanceof SDFECPrivateKeyImpl);
+        byte[] data = new byte[0];
+        Exception exception = null;
+        try {
+            SDFSM2TestUtil.encrypt(encKeyPair.getPublic(), data);
+        } catch (Exception e) {
+            exception = e;
+        }
+        Assert.assertTrue(exception instanceof IllegalArgumentException);
+
+        byte[] encryptedData = new byte[0];
+        try {
+            SDFSM2TestUtil.decrypt(encKeyPair.getPrivate(), encryptedData);
+        } catch (Exception e) {
+            exception = e;
+        }
+        Assert.assertTrue(exception instanceof IllegalArgumentException);
     }
 
-    /**
-     * Test plain private key encryption and public key decryption
-     */
-    @Test(expected = InvalidKeyException.class)
-    public void testEncryptByPrivateKey() throws Exception {
-        SDFSM2TestUtil.encrypt(privateKey, INFO);
+    @Test
+    public void testEncByBGMJCEProviderDecBySDFProvider() throws Exception {
+        byte[] data = SDFTestUtil.generateRandomBytes();
+        KeyPair encKeyPair = SDFSM2TestUtil.generateKeyPair(true);
+        byte[] encryptedData = SDFSM2TestUtil.encrypt(bgmJCEProvider, encKeyPair.getPublic(), data);
+        byte[] decryptedData = SDFSM2TestUtil.decrypt(sdfProvider, encKeyPair.getPrivate(), encryptedData);
+        assertArrayEquals(data, decryptedData);
+    }
+
+    @Test
+    public void testEncBySDFProviderDecByBGMJCEProvider() throws Exception {
+        Provider bgmJCEProvider = new BGMJCEProvider();
+        byte[] data = SDFTestUtil.generateRandomBytes();
+        KeyPair encKeyPair = SDFSM2TestUtil.generateKeyPair(false, bgmJCEProvider);
+        byte[] encryptedData = SDFSM2TestUtil.encrypt(sdfProvider, encKeyPair.getPublic(), data);
+        byte[] decryptedData = SDFSM2TestUtil.decrypt(bgmJCEProvider, encKeyPair.getPrivate(), encryptedData);
+        assertArrayEquals(data, decryptedData);
     }
 
     @Test
