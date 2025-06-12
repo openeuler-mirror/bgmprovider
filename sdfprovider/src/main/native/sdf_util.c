@@ -678,3 +678,34 @@ unsigned int SDF_GetSymmetricKeyType(const char *algoName) {
         return SDF_INVALID_VALUE;
     }
 }
+
+void *SDF_CreateSM9PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr) {
+    void *keyHandle = NULL;
+    const char *priKey = NULL;
+    unsigned int priKeyLen;
+    SGD_RV rv;
+
+    priKeyLen = (*env)->GetArrayLength(env, priKeyArr);
+    if ((priKey = malloc(priKeyLen)) == NULL) {
+        throwOutOfMemoryError(env, "malloc priKey failed");
+        goto cleanup;
+    }
+    (*env)->GetByteArrayRegion(env, priKeyArr, 0, priKeyLen, priKey);
+    if ((rv = CDM_ImportKeyHandle(priKey, priKeyLen, NULL, 0, &keyHandle)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_ImportKeyHandle");
+        goto cleanup;
+    }
+
+cleanup:
+    if (priKey) {
+        free(priKey);
+    }
+    return keyHandle;
+}
+
+void SDF_FreeSM9PriKeyHandle(void *keyHandle) {
+    if (keyHandle == NULL) {
+        return;
+    }
+    CDM_DestroyKeyHandle(keyHandle);
+}
