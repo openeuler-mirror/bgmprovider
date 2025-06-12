@@ -145,6 +145,9 @@
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFPRFNative</javahClassName>
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFInternalNative</javahClassName>
                                 <javahClassName>org.openeuler.sdf.wrapper.SDFPBKDF2Native</javahClassName>
+                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM9KeyPairGeneratorNative</javahClassName>
+                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM9CipherNative</javahClassName>
+                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM9SignatureNative</javahClassName>
                             </javahClassNames>
                             <javahOutputDirectory>${project.build.directory}/include</javahOutputDirectory>
                         </configuration>
@@ -181,6 +184,9 @@
                                         <include>sdf_keyagreement_sm2.c</include>
                                         <include>sdf_keyagreement_ecc.c</include>
                                         <include>sdf_prf.c</include>
+                                        <include>sdf_keypairgenerator_sm9.c</include>
+                                        <include>sdf_cipher_sm9.c</include>
+                                        <include>sdf_signature_sm9.c</include>
                                     </includes>
                                 </source>
                             </sources>
@@ -243,6 +249,9 @@
                                         <include>sdf_keyagreement_sm2.c</include>
                                         <include>sdf_keyagreement_ecc.c</include>
                                         <include>sdf_prf.c</include>
+                                        <include>sdf_keypairgenerator_sm9.c</include>
+                                        <include>sdf_cipher_sm9.c</include>
+                                        <include>sdf_signature_sm9.c</include>
                                     </includes>
                                 </source>
                             </sources>
