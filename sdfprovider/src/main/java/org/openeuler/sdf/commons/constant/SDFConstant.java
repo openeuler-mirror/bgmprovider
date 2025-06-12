@@ -6,6 +6,9 @@ public interface SDFConstant {
     // SM1/SM4/SM7/Hmac Encrypted key size
     int ENC_SYS_PRIVATE_KEY_SIZE = 1024;  // key size in bytes
 
+    // XTS Encrypted key size
+    int XTS_SYS_PRIVATE_KEY_SIZE = 2048;  // key size in bytes
+
     // SM2 Encrypted key size
     int ENC_SM2_PRIVATE_KEY_SIZE = 1024;  // key size in bytes
 

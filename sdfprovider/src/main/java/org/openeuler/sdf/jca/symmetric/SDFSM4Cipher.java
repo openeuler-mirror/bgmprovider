@@ -32,6 +32,9 @@ import org.openeuler.sdf.commons.constant.SDFDataKeyType;
  * - SM4/ECB/PKCS5PADDING
  * - SM4/CBC/NOPADDING
  * - SM4/CBC/PKCS5PADDING
+ * - SM4/CTR/NOPADDING
+ * - SM4/XTS/NOPADDING
+ * - SM4/GCM/NOPADDING
  */
 abstract class SDFSM4Cipher extends SDFSymmetricCipherBase {
     public static final class SM4_ECB_NoPadding extends SDFSM4Cipher {
@@ -55,6 +58,24 @@ abstract class SDFSM4Cipher extends SDFSymmetricCipherBase {
     public static final class SM4_CBC_PKCS5Padding extends SDFSM4Cipher {
         public SM4_CBC_PKCS5Padding() {
             super(SDFMode.CBC, SDFPadding.PKCS5PADDING);
+        }
+    }
+
+    public static final class SM4_CTR_NoPadding extends SDFSM4Cipher {
+        public SM4_CTR_NoPadding() {
+            super(SDFMode.CTR, SDFPadding.NOPADDING);
+        }
+    }
+
+    public static final class SM4_XTS_NoPadding extends SDFSM4Cipher {
+        public SM4_XTS_NoPadding() {
+            super(SDFMode.XTS, SDFPadding.NOPADDING);
+        }
+    }
+
+    public static final class SM4_GCM_NoPadding extends SDFSM4Cipher {
+        public SM4_GCM_NoPadding() {
+            super(SDFMode.GCM, SDFPadding.NOPADDING);
         }
     }
 

@@ -30,14 +30,14 @@
 #include "sdf_util.h"
 
 JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFKeyGeneratorNative_nativeGenerateSecretKey (
-        JNIEnv *env, jclass cls, jbyteArray kekIdArr, jbyteArray regionIdArr,
-        jbyteArray cdpIdArr, jbyteArray pinArr, jstring algoName,jint keySize, jboolean isHmac) {
+        JNIEnv *env, jclass cls, jbyteArray kekIdArr, jbyteArray regionIdArr, jbyteArray cdpIdArr,
+        jbyteArray pinArr, jstring algoName,jint keySize, jboolean isHmac, jboolean isXts) {
     const char *algoNameUTF = NULL;
     unsigned int algId = ALG_SM4;
     unsigned int ivLen = 16;
     unsigned char iv[ivLen];
     unsigned int keyType;
-    unsigned int isXts = 0;
+    unsigned int xtsFlag;
     unsigned int encKeyLen = 0 ;
     unsigned char *encKey = NULL;
     void *dekParams = NULL;
@@ -50,6 +50,11 @@ JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFKeyGeneratorNativ
         keyType = SDF_GetHmacKeyType(algoNameUTF);
     } else {
         keyType = SDF_GetSymmetricKeyType(algoNameUTF);
+    }
+    if (isXts) {
+        xtsFlag = 1;
+    } else {
+        xtsFlag = 0;
     }
 
     // generate iv
@@ -65,7 +70,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFKeyGeneratorNativ
 
     // compute key size
     if ((rv = CDM_CreateDataKeyWithoutPlaintext(algId, iv, ivLen, dekParams,
-            keyType, isXts, keySize, encKey, &encKeyLen)) != SDR_OK) {
+            keyType, xtsFlag, keySize, encKey, &encKeyLen)) != SDR_OK) {
         throwSDFException(env, rv, "CDM_CreateDataKeyWithoutPlaintext");
         goto cleanup;
     }
@@ -75,7 +80,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFKeyGeneratorNativ
     }
 
     if ((rv = CDM_CreateDataKeyWithoutPlaintext(algId, iv, ivLen, dekParams,
-            keyType, isXts, keySize, encKey, &encKeyLen)) != SDR_OK) {
+            keyType, xtsFlag, keySize, encKey, &encKeyLen)) != SDR_OK) {
         throwSDFException(env, rv, "CDM_CreateDataKeyWithoutPlaintext");
         goto cleanup;
     }

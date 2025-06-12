@@ -37,10 +37,11 @@ public class SDFKeyGeneratorNative {
      * @param algoName algo name , such as SM1,SM4,SM7,HmacSM3 ...
      * @param keySize  key size in bits
      * @param isHmac is Hmac
+     * @param isXts is XTS
      * @return Secret key
      * @throws SDFException
      */
     public native static byte[] nativeGenerateSecretKey(byte[] kekIdArr, byte[] regionIdArr, byte[] cdpIdArr,
-                                                        byte[] pinArr, String algoName, int keySize, boolean isHmac)
-            throws SDFException;
+                                                        byte[] pinArr, String algoName, int keySize, boolean isHmac,
+                                                        boolean isXts) throws SDFException;
 }

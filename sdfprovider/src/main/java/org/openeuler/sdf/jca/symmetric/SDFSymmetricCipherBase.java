@@ -67,6 +67,9 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     private String cipherAlgo;
     private SecretKey secretKey;
     private byte[] iv;
+    // GCM tag
+    private byte[] tag = null;
+    private SDFGCMParameterSpec paramSpec;
     // Use encrypted secret Key
     private boolean isEncKey = false;
     // SDF Symmetric Context
@@ -416,15 +419,17 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
         byte[] ivBytes = null;
         if (params != null) {
             if (mode == SDFMode.GCM) {
-                if (params instanceof GCMParameterSpec) {
-                    int tagLen = ((GCMParameterSpec)params).getTLen();
+                if (params instanceof SDFGCMParameterSpec) {
+                    paramSpec = (SDFGCMParameterSpec) params;
+                    int tagLen = paramSpec.getTLen();
                     if (tagLen < 96 || tagLen > 128 || ((tagLen & 0x07) != 0)) {
                         throw new InvalidAlgorithmParameterException
                                 ("Unsupported TLen value; must be one of " +
                                         "{128, 120, 112, 104, 96}");
                     }
                     tagLen = tagLen >> 3;
-                    ivBytes = ((GCMParameterSpec)params).getIV();
+                    ivBytes = paramSpec.getIV();
+                    this.tag = paramSpec.getTag();
                 } else {
                     throw new InvalidAlgorithmParameterException
                             ("Unsupported parameter: " + params);
@@ -508,8 +513,11 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
                 input = new byte[0];
             }
             ensureInitialized();
-            outLen = nativeCipherFinal(context.getAddress(), input, inputOffset, inputLen,
+            outLen = nativeCipherFinal(context.getAddress(), input, inputOffset, inputLen, tag,
                     output, outputOffset, encrypt);
+            if (mode == SDFMode.GCM) {
+                paramSpec.setTag(tag);
+            }
         } catch (SDFException e) {
             throw new SDFRuntimeException("SDFSymmetricCipher nativeCipherFinal failed for " + dataKeyType.getAlgorithm(), e);
         } finally {
@@ -534,7 +542,7 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
                                            boolean encrypt) {
         long ctxHandleAddress;
         try {
-            ctxHandleAddress = nativeCipherInit(dataKeyType.getType(), mode, SDFPadding.PKCS5PADDING.equals(padding), keyValue, iv, encrypt);
+            ctxHandleAddress = nativeCipherInit(dataKeyType.getType(), mode, SDFPadding.PKCS5PADDING.equals(padding), keyValue, iv, tag, encrypt);
         } catch (SDFException e) {
             throw new SDFRuntimeException("SDFSymmetricCipher nativeCipherInit failed for " + this.dataKeyType.getAlgorithm(), e);
         }
@@ -564,6 +572,13 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     }
 
     private void checkEncKeySize(int keySize) throws InvalidKeyException {
+        if (mode == SDFMode.XTS) {
+            if (keySize != SDFConstant.XTS_SYS_PRIVATE_KEY_SIZE) {
+                throw new InvalidKeyException("XTS Invalid " + dataKeyType.getAlgorithm() + " encrypted key length: "
+                        + keySize + " bytes, only support " + SDFConstant.XTS_SYS_PRIVATE_KEY_SIZE + " bytes");
+            }
+            return;
+        }
         if (keySize != SDFConstant.ENC_SYS_PRIVATE_KEY_SIZE) {
             throw new InvalidKeyException("Invalid " + dataKeyType.getAlgorithm() + " encrypted key length :" + keySize + " bytes, " +
                     "only support " + SDFConstant.ENC_SYS_PRIVATE_KEY_SIZE + " bytes");
