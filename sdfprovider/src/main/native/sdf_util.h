@@ -115,3 +115,6 @@ void SDF_Print_Chars(const char *attrName, unsigned char *p, unsigned int len);
 unsigned int SDF_GetSymmetricKeyType(const char *algoName);
 unsigned int SDF_GetHmacKeyType(const char *algoName);
 unsigned int SDF_GetAsymmetricKeyType(const char *algoName);
+
+void *SDF_CreateSM9PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr);
+void SDF_FreeSM9PriKeyHandle(void *keyHandle);
