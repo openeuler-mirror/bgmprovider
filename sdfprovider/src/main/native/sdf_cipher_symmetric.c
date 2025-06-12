@@ -43,7 +43,8 @@ static void FreeMemoryFromInit(JNIEnv *env, jbyteArray ivArr, jbyte *iv, jbyteAr
 }
 
 JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherInit(JNIEnv *env,
-        jclass cls, jint keyType, jstring mode, jboolean isPadding, jbyteArray keyArr, jbyteArray ivArr, jboolean encrypt) {
+        jclass cls, jint keyType, jstring mode, jboolean isPadding, jbyteArray keyArr, jbyteArray ivArr,
+        jbyteArray tagArr, jboolean encrypt) {
     void *keyHandle = NULL;
     void *sysCipher = NULL;
     int ctxType = CTX_TYPE_SYMM;
@@ -53,9 +54,9 @@ JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_
     jbyte *iv = NULL;
     int ivLen = 0;
     unsigned char *aad = NULL;
-    int aadLen = 0;
+    int aadLen = 16;
     unsigned char *tag = NULL;
-    int tagLen = 0;
+    int tagLen = 16;
     int dataUnitLen = 0;
     const char *modeName = NULL;
     unsigned int modeType;
@@ -71,6 +72,13 @@ JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_
     if (ivArr != NULL) {
         iv = (*env)->GetByteArrayElements(env, ivArr, NULL);
         ivLen = (*env)->GetArrayLength(env, ivArr);
+    }
+    if ((aad = (unsigned char *) malloc(aadLen)) == NULL) {
+        throwOutOfMemoryError(env, "malloc aad failed.");
+        goto cleanup;
+    }
+    if (tagArr != NULL) {
+        tag = (*env)->GetByteArrayElements(env, tagArr, NULL);
     }
 
     // mode
@@ -115,6 +123,12 @@ cleanup:
     }
     if (sysCipher) {
         CDM_MemoryFree(ctxType, sysCipher);
+    }
+    if (aad != NULL) {
+        free(aad);
+    }
+    if (tag != NULL) {
+        (*env)->ReleaseByteArrayElements(env, tagArr, tag, 0);
     }
     FreeMemoryFromInit(env, ivArr, iv, keyArr, key, keyLen, mode, modeName);
     return 0;
@@ -187,12 +201,14 @@ cleanup:
  */
 JNIEXPORT jint JNICALL
 Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherFinal(JNIEnv *env, jclass cls,
-        jlong ctxAddress, jbyteArray inArr, jint inOfs, jint inLen, jbyteArray outArr, jint outOfs, jboolean encrypt) {
+        jlong ctxAddress, jbyteArray inArr, jint inOfs, jint inLen, jbyteArray tagArr,
+        jbyteArray outArr, jint outOfs, jboolean encrypt) {
     void* cipherHandle = (void *) ctxAddress;
     unsigned char *in = NULL;
     unsigned char *out = NULL;
     unsigned int outLen = 0;
     unsigned char *tag = NULL;
+    int tagLen = 16;
     SGD_RV rv;
 
     if (cipherHandle == NULL || outArr == NULL || inArr == NULL) {
@@ -215,11 +231,18 @@ Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherFinal(JNIEnv
     memset(out, 0, outLen);
 
     if (encrypt) {
+        if ((tag = (unsigned char *) malloc(tagLen)) == NULL) {
+            throwOutOfMemoryError(env, "NativeCipherFinal failed. Unable to allocate in 'tag' buffer");
+            goto cleanup;
+        }
         if ((rv = CDM_SymmEncryptFinal(in, inLen, cipherHandle, out, &outLen, tag)) != SDR_OK) {
             throwSDFException(env, rv, "CDM_SymmEncryptFinal");
             goto cleanup;
         }
-    }else {
+        if (tagArr != NULL) {
+            (*env)->SetByteArrayRegion(env, tagArr, 0, tagLen, (jbyte *) tag);
+        }
+    } else {
         if ((rv = CDM_SymmDecryptFinal(cipherHandle, in, inLen, out, &outLen)) != SDR_OK) {
             throwSDFException(env, rv, "CDM_SymmDecryptFinal");
             goto cleanup;
@@ -232,6 +255,9 @@ cleanup:
     }
     if (out != NULL) {
         free(out);
+    }
+    if (tag != NULL) {
+        free(tag);
     }
     return outLen;
 }

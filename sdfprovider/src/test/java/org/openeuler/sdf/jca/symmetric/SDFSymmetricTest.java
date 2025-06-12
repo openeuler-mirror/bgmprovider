@@ -9,6 +9,7 @@ import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -147,6 +148,45 @@ public class SDFSymmetricTest extends SDFTestCase {
                 SDFTestUtil.generateRandomBytes(), ivBytes);
     }
 
+    protected void testCTR(String algorithm, int blockSize, int keySize, int ivLen) throws Exception {
+        SecretKey secretKey = SDFSymmetricTestUtil.generateKey(algorithm, sdf, keySize, true);
+        byte[] ivBytes = SDFTestUtil.generateRandomBytes(ivLen);
+
+        String transformation = algorithm + "/CTR/NoPadding";
+        test(transformation, secretKey, new byte[0], ivBytes);
+        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes);
+        test(transformation, secretKey,
+                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes);
+    }
+
+    protected void testXTS(String algorithm, int blockSize, int keySize, int ivLen) throws Exception {
+        KeyGenerator keyGenerator = SDFSymmetricTestUtil.getKeyGenerator(algorithm, sdf);
+        keyGenerator.init(new SDFXTSParameterSpec(SDFTestUtil.getTestKekId(),
+                SDFTestUtil.getTestRegionId(),
+                SDFTestUtil.getTestCdpId(),
+                SDFTestUtil.getTestPin(),
+                keySize));
+        SecretKey secretKey = keyGenerator.generateKey();
+        byte[] ivBytes = SDFTestUtil.generateRandomBytes(ivLen);
+
+        String transformation = algorithm + "/XTS/NoPadding";
+        test(transformation, secretKey, new byte[0], ivBytes);
+        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes);
+        test(transformation, secretKey,
+                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes);
+    }
+
+    protected void testGCM(String algorithm, int blockSize, int keySize, int ivLen) throws Exception {
+        SecretKey secretKey = SDFSymmetricTestUtil.generateKey(algorithm, sdf, keySize, true);
+        byte[] ivBytes = SDFTestUtil.generateRandomBytes(ivLen);
+
+        String transformation = algorithm + "/GCM/NoPadding";
+        test(transformation, secretKey, new byte[0], ivBytes);
+        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes);
+        test(transformation, secretKey,
+                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes);
+    }
+
     private static void test(String algorithm, SecretKey secretKey, byte[] data, byte[] ivBytes) throws Exception {
         System.out.println("----------------------------------------------------------");
         System.out.println("algorithm=" + algorithm);
@@ -158,6 +198,9 @@ public class SDFSymmetricTest extends SDFTestCase {
         AlgorithmParameterSpec spec = null;
         if (ivBytes != null) {
             spec = new IvParameterSpec(ivBytes);
+        }
+        if (algorithm.contains("GCM")) {
+            spec = new SDFGCMParameterSpec(128, ivBytes);
         }
         byte[] encData;
         byte[] decData;

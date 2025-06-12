@@ -25,6 +25,7 @@
 package org.openeuler.sdf.jca.symmetric;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.openeuler.sdf.provider.SDFProvider;
 
@@ -49,5 +50,21 @@ public class SDFSM7Test extends SDFSymmetricTest {
     @Test
     public void testCBC() throws Exception {
         testCBC(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN);
+    }
+
+    @Test
+    public void testCTR() throws Exception {
+        testCTR(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN);
+    }
+
+    @Test
+    @Ignore
+    public void testXTS() throws Exception {
+        testXTS(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN);
+    }
+
+    @Test
+    public void testGCM() throws Exception {
+        testGCM(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN);
     }
 }

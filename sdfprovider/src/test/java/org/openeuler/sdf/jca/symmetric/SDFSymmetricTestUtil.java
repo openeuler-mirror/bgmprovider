@@ -30,7 +30,7 @@ public class SDFSymmetricTestUtil {
         return keyGenerator.generateKey();
     }
 
-    private static KeyGenerator getKeyGenerator(String algorithm, Provider provider) throws Exception {
+    public static KeyGenerator getKeyGenerator(String algorithm, Provider provider) throws Exception {
         KeyGenerator keyGenerator;
         if (provider != null) {
             keyGenerator = KeyGenerator.getInstance(algorithm, provider);

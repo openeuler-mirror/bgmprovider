@@ -43,6 +43,7 @@ public abstract class SDFKeyGeneratorCore extends KeyGeneratorSpi {
     private int keySize;
     private SecureRandom random;
     private boolean isHmac;
+    private boolean isXts;
     private SDFKEKInfoEntity kekInfo = SDFKEKInfoEntity.getDefaultKEKInfo();
 
     protected SDFKeyGeneratorCore(String algorithm, int defaultKeySize) {
@@ -57,6 +58,13 @@ public abstract class SDFKeyGeneratorCore extends KeyGeneratorSpi {
 
     protected void initKekInfo(SDFKeyGeneratorParameterSpec parameterSpec){
         this.kekInfo = parameterSpec.getKekInfo();
+    }
+
+    protected void initIsXts(SDFKeyGeneratorParameterSpec parameterSpec) {
+        if (parameterSpec instanceof SDFXTSParameterSpec) {
+            SDFXTSParameterSpec spec = (SDFXTSParameterSpec) parameterSpec;
+            this.isXts = spec.isXts();
+        }
     }
 
     @Override
@@ -77,6 +85,7 @@ public abstract class SDFKeyGeneratorCore extends KeyGeneratorSpi {
         if (params instanceof SDFKeyGeneratorParameterSpec) {
             SDFKeyGeneratorParameterSpec parameterSpec = (SDFKeyGeneratorParameterSpec) params;
             initKekInfo(parameterSpec);
+            initIsXts(parameterSpec);
             engineInit(parameterSpec.getKeySize(), random);
         } else {
             throw new InvalidAlgorithmParameterException("Only support SDFKeyGeneratorParameterSpec");
@@ -105,7 +114,7 @@ public abstract class SDFKeyGeneratorCore extends KeyGeneratorSpi {
                     kekInfo.getPin(),
                     algorithm,
                     keySize << 3,
-                    isHmac);
+                    isHmac, isXts);
         } catch (Exception e) {
             throw new SDFRuntimeException("engineGenerateKey failed.", e);
         }
