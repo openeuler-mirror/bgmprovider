@@ -59,6 +59,7 @@ public class SDFEntries extends AbstractEntries {
 
     private void putAsymmetric(Provider provider) {
         putSM2(provider);
+        putSM9(provider);
         if (enableNonSM) {
             putRSA(provider);
         }
@@ -137,6 +138,13 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFSM1Cipher$SM1_CBC_PKCS5Padding");
         add(provider, "Cipher", "SM1/CBC/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFSM1Cipher$SM1_CBC_NoPadding");
+
+        add(provider, "Cipher", "SM1/CTR/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM1Cipher$SM1_CTR_NoPadding");
+        add(provider, "Cipher", "SM1/XTS/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM1Cipher$SM1_XTS_NoPadding");
+        add(provider, "Cipher", "SM1/GCM/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM1Cipher$SM1_GCM_NoPadding");
     }
 
     private void putSM4(Provider provider) {
@@ -155,6 +163,13 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFSM4Cipher$SM4_CBC_PKCS5Padding");
         add(provider, "Cipher", "SM4/CBC/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFSM4Cipher$SM4_CBC_NoPadding");
+
+        add(provider, "Cipher", "SM4/CTR/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM4Cipher$SM4_CTR_NoPadding");
+        add(provider, "Cipher", "SM4/XTS/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM4Cipher$SM4_XTS_NoPadding");
+        add(provider, "Cipher", "SM4/GCM/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM4Cipher$SM4_GCM_NoPadding");
     }
 
 
@@ -174,6 +189,13 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_CBC_PKCS5Padding");
         add(provider, "Cipher", "SM7/CBC/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_CBC_NoPadding");
+
+        add(provider, "Cipher", "SM7/CTR/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_CTR_NoPadding");
+        add(provider, "Cipher", "SM7/XTS/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_XTS_NoPadding");
+        add(provider, "Cipher", "SM7/GCM/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_GCM_NoPadding");
     }
 
     private void putAES(Provider provider) {
@@ -238,6 +260,17 @@ public class SDFEntries extends AbstractEntries {
                 createAliasesWithOid("1.2.156.10197.1.501"));
         add(provider, "KeyAgreement", "SM2",
                 "org.openeuler.sdf.jsse.SDFSM2KeyAgreement");
+    }
+
+    private void putSM9(Provider provider) {
+        add(provider, "Cipher", "SM9", "org.openeuler.sdf.jca.asymmetric.SDFSM9Cipher");
+        add(provider, "KeyPairGenerator", "SM9Enc", "org.openeuler.sdf.jca.asymmetric.SDFSM9KeyPairGenerator");
+        add(provider, "KeyPairGenerator", "SM9Sign", "org.openeuler.sdf.jca.asymmetric.SDFSM9SignKeyPairGenerator");
+
+        add(provider, "Signature", "SM9", "org.openeuler.sdf.jca.signature.SDFSM9Signature",
+                createAliasesWithOid("1.2.156.10197.1.601"));
+        add(provider, "KeyFactory", "SM9",
+                "org.openeuler.sdf.jca.asymmetric.sun.security.sm9.SDFSM9KeyFactory");
     }
 
     private void putRSA(Provider provider) {
