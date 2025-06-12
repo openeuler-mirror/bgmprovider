@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.openeuler.BGMJCEProvider;
 import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
 import org.openeuler.sdf.commons.util.SDFKeyTestDB;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
@@ -16,7 +17,7 @@ import java.security.Provider;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 
-public class SDFSymmetricTest {
+public class SDFSymmetricTest extends SDFTestCase {
     private static final Provider sdf = new SDFProvider();
     private static final Provider bgm = new BGMJCEProvider();
 
@@ -48,6 +49,7 @@ public class SDFSymmetricTest {
         testEncryptBaseLine(transformation, key, data, splitOffset, null);
 
         data = new byte[1021];
+        Arrays.fill(data, (byte) 1);
         splitOffset = 80;
         testEncryptBaseLine(transformation, key, data, splitOffset, null);
 
@@ -93,6 +95,7 @@ public class SDFSymmetricTest {
 
     protected void testECB(String algorithm, int blockSize, int keySize) throws Exception {
         SecretKey secretKey = SDFSymmetricTestUtil.generateKey(algorithm, sdf, keySize, true);
+        System.out.println("secretKey=" + new String(secretKey.getEncoded()));
 
         String transformation = algorithm + "/ECB/NoPadding";
         // test empty bytes
@@ -107,6 +110,15 @@ public class SDFSymmetricTest {
         // test empty bytes
         test(transformation, secretKey,
                 new byte[0], null);
+        // test 15 bytes
+        test(transformation, secretKey,
+                new byte[15], null);
+        // test 31 bytes
+        test(transformation, secretKey,
+                new byte[31], null);
+
+        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), null);
+
         // test bytes less than BLOCK_SIZE
         test(transformation, secretKey,
                 SDFTestUtil.generateRandomBytesByBound(blockSize), null);
@@ -153,16 +165,16 @@ public class SDFSymmetricTest {
         System.out.println("case 1: test doFinal");
         encData = SDFSymmetricTestUtil.encryptDoFinal(algorithm, sdf, secretKey, spec, data);
         decData = SDFSymmetricTestUtil.decryptDoFinal(algorithm, sdf, secretKey, spec, encData);
+        System.out.println("case 1 encData.length= " + encData.length + " encData=" + Arrays.toString(encData));
+        System.out.println("case 1 decData.length= " + decData.length + " decData=" + Arrays.toString(decData));
         Assert.assertArrayEquals("test case 1 failed", data, decData);
-        System.out.println("case 1 encData=" + Arrays.toString(encData));
-        System.out.println("case 1 decData=" + Arrays.toString(decData));
 
         System.out.println("case 2: test update and doFinal");
         encData = SDFSymmetricTestUtil.encryptUpdateAndDoFinal(algorithm, sdf, secretKey, spec, data);
         decData = SDFSymmetricTestUtil.decryptUpdateAndDoFinal(algorithm, sdf, secretKey, spec, encData);
+        System.out.println("case 2 encData.length= " + encData.length + " encData=" + Arrays.toString(encData));
+        System.out.println("case 2 decData.length= " + decData.length + " decData=" + Arrays.toString(decData));
         Assert.assertArrayEquals("test case 2 failed", data, decData);
-        System.out.println("case 2 encData=" + Arrays.toString(encData));
-        System.out.println("case 2 decData=" + Arrays.toString(decData));
         System.out.println("----------------------------------------------------------");
     }
 
@@ -263,7 +275,7 @@ public class SDFSymmetricTest {
 
         bgmDecData = bgmCipher.doFinal(bgmEncAllData);
 
-        sdfDecData = bgmCipher.doFinal(sdfEncAllData);
+        sdfDecData = sdfCipher.doFinal(sdfEncAllData);
         System.out.println("bgmDecData=" + Arrays.toString(bgmDecData));
         System.out.println("sdfDecData=" + Arrays.toString(sdfDecData));
         Assert.assertArrayEquals("test failed", bgmDecData, sdfDecData);

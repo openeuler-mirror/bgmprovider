@@ -123,17 +123,19 @@ public class SDFSM2PreSecretUtil {
         KeyGenerator keyGenerator1 = KeyGenerator.getInstance("GMTlsMasterSecret");
         keyGenerator1.init(cParameterSpec);
         clientMasterSecret = keyGenerator1.generateKey();
+        System.out.println("clientMasterSecret=" + new String(clientMasterSecret.getEncoded()));
 
         // serverMasterSecret
         TlsMasterSecretParameterSpec sParameterSpec = createMasterSecretParameterSpec(1, 1, false);
         KeyGenerator keyGenerator2 = KeyGenerator.getInstance("GMTlsMasterSecret");
         keyGenerator2.init(sParameterSpec);
         serverMasterSecret = keyGenerator2.generateKey();
+        System.out.println("serverMasterSecret=" + new String(serverMasterSecret.getEncoded()));
 
         // clientBlockKey;
         TlsKeyMaterialParameterSpec cTlsKeyMaterialParameterSpec = new TlsKeyMaterialParameterSpec(clientMasterSecret,
                 1, 1, CLIENT_RANDOM_BYTES, SERVER_RANDOM_BYTES,
-                "SM4/CBC/NoPadding", 16, 0, 16,
+                "SM4", 16, 0, 16,
                 32, "SM3", 32, 64);
         KeyGenerator keyGenerator3 = KeyGenerator.getInstance("GMTlsKeyMaterial");
         keyGenerator3.init(cTlsKeyMaterialParameterSpec);
@@ -142,7 +144,7 @@ public class SDFSM2PreSecretUtil {
         // serverBlockKey;
         TlsKeyMaterialParameterSpec sTlsKeyMaterialParameterSpec = new TlsKeyMaterialParameterSpec(serverMasterSecret,
                 1, 1, CLIENT_RANDOM_BYTES, SERVER_RANDOM_BYTES,
-                "SM4/CBC/NoPadding", 16, 0, 16,
+                "SM4", 16, 0, 16,
                 32, "SM3", 32, 64);
         KeyGenerator keyGenerator4 = KeyGenerator.getInstance("GMTlsKeyMaterial");
         keyGenerator4.init(sTlsKeyMaterialParameterSpec);

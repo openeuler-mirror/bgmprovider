@@ -26,7 +26,6 @@ package org.openeuler.sdf.commons.config;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.openeuler.sdf.commons.config.SDFConfig;
 import org.openeuler.sdf.commons.log.SDFLogLevel;
 
 public class SDFConfigDefaultTest {
@@ -44,7 +43,16 @@ public class SDFConfigDefaultTest {
         Assert.assertTrue(sdfConfig.isUseEncDEK());
 
         // test sdf.defaultKEKId
-        Assert.assertEquals("", sdfConfig.getDefaultKEKId());
+        Assert.assertNull(sdfConfig.getDefaultKEKId());
+
+        // test sdf.defaultRegionId
+        Assert.assertNull(sdfConfig.getDefaultRegionId());
+
+        // test sdf.defaultCdpId
+        Assert.assertNull(sdfConfig.getDefaultCdpId());
+
+        // test sdf.defaultPin
+        Assert.assertNull(sdfConfig.getDefaultPin());
 
         // test sdf.logPath
         Assert.assertNull(sdfConfig.getLogPath());
@@ -57,8 +65,5 @@ public class SDFConfigDefaultTest {
 
         // test sdf.cleaner.longInterval
         Assert.assertEquals(60000L, sdfConfig.getLongInterval());
-
-        // test sdf.session.pool.capacity
-        Assert.assertEquals(1024L, sdfConfig.getSessionCapacity());
     }
 }

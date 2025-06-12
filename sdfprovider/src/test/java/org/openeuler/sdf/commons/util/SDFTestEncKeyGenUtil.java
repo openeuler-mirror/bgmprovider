@@ -24,25 +24,41 @@
 
 package org.openeuler.sdf.commons.util;
 
-import org.openeuler.sdf.commons.session.SDFSession;
-import org.openeuler.sdf.commons.session.SDFSessionManager;
 import org.openeuler.sdf.wrapper.SDFInternalNative;
 
-import static org.openeuler.sdf.commons.util.SDFTestEncKeyGenUtil.SDFTestKeyType.HW_HMAC;
-import static org.openeuler.sdf.commons.util.SDFTestEncKeyGenUtil.SDFTestKeyType.HW_SYM;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SDFTestEncKeyGenUtil {
-    enum SDFTestKeyType {
-        HW_SM2(0),
-        HW_RSA(1),
-        HW_ECC(2),
-        HW_SM9(3),
-        HW_SYM(4),
-        HW_HMAC(5);
+    private enum SDFTestKeyType {
+        DATA_KEY_SM2("SM2",0),
+        DATA_KEY_RSA("RSA",1),
+        DATA_KEY_ECC("ECC",2),
+        DATA_KEY_SM4("SM4",3),
+        DATA_KEY_SM1("SM1",4),
+        DATA_KEY_SM7("SM7",5),
+        DATA_KEY_AES("AES",6),
+        DATA_KEY_3DES("3DES",7),
+        DATA_KEY_HMAC_SM3("HmacSM3",8),
+        DATA_KEY_HMAC_SHA1("HmacSHA1",9),
+        DATA_KEY_HMAC_SHA224("HmacSHA224",10),
+        DATA_KEY_HMAC_SHA256("HmacSHA256",11),
+        DATA_KEY_HMAC_SHA384("HmacSHA384",12),
+        DATA_KEY_HMAC_SHA512("HmacSHA512",13),
+        DATA_KEY_SM9_MASTER_SIGN("SM9MasterSign",14),
+        DATA_KEY_SM9_MASTER_ENC("SM9MasterEnc",15),
+        DATA_KEY_SM9_USER_SIGN("SM9UserSign",16),
+        DATA_KEY_SM9_USER_ENC("SM9UserEnc",17);
+        final String algorithm;
         final int type;
 
-        SDFTestKeyType(int type) {
+        SDFTestKeyType(String algorithm, int type) {
+            this.algorithm = algorithm;
             this.type = type;
+        }
+
+        public String getAlgorithm() {
+            return algorithm;
         }
 
         public int getType() {
@@ -50,19 +66,28 @@ public class SDFTestEncKeyGenUtil {
         }
     }
 
+    private static final Map<String, SDFTestKeyType> keyTypeMap = new HashMap<>();
+    static  {
+        init();
+    }
+    static void init() {
+        SDFTestKeyType[] sdfTestKeyTypes = SDFTestKeyType.values();
+        for (SDFTestKeyType sdfTestKeyType : sdfTestKeyTypes) {
+            keyTypeMap.put(sdfTestKeyType.algorithm.toUpperCase(), sdfTestKeyType);
+        }
+    }
+
     public static byte[] encKey(String algorithm, byte[] plainKey) {
         algorithm = algorithm.toUpperCase();
-        if ("SM1".equals(algorithm) || "SM4".equals(algorithm) || "SM7".equals(algorithm)) {
-            return encSymmetricKey(plainKey);
+        SDFTestKeyType sdfTestKeyType = keyTypeMap.get(algorithm);
+        if (sdfTestKeyType == null) {
+            throw new IllegalArgumentException("Not support " + algorithm);
         }
-        if (algorithm.startsWith("HMAC")) {
-            return encHmacKey(plainKey);
-        }
-        throw new IllegalArgumentException("Not support " + algorithm);
+        return encKey(sdfTestKeyType, plainKey);
     }
-    public static byte[] encKey(SDFTestKeyType uiType, byte[] plainKey) {
-        SDFSession session = SDFSessionManager.getInstance().getSession();
-        return SDFInternalNative.encryptKey(session.getAddress(),
+
+    private static byte[] encKey(SDFTestKeyType uiType, byte[] plainKey) {
+        return SDFInternalNative.encryptKey(
                 SDFTestUtil.getTestKekId(),
                 SDFTestUtil.getTestRegionId(),
                 SDFTestUtil.getTestCdpId(),
@@ -70,13 +95,5 @@ public class SDFTestEncKeyGenUtil {
                 uiType.getType(),
                 plainKey
         );
-    }
-
-    public static byte[] encSymmetricKey(byte[] plainKey) {
-        return encKey(HW_SYM, plainKey);
-    }
-
-    public static byte[] encHmacKey(byte[] plainKey) {
-        return encKey(HW_HMAC, plainKey);
     }
 }

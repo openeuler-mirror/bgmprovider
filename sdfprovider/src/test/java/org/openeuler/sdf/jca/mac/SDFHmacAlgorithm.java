@@ -58,4 +58,8 @@ enum SDFHmacAlgorithm {
             this.macLen = macLen;
             this.defaultPlainKeySize = macLen;
         }
+
+    public String getAlgoName() {
+        return algoName;
     }
+}

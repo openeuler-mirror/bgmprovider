@@ -59,6 +59,13 @@ public class SDFSM2TestUtil {
         return keyPairGenerator.generateKeyPair();
     }
 
+    public static byte[] encrypt(Provider provider, Key publicKey, byte[] data) throws Exception {
+        Cipher cipher = Cipher.getInstance("SM2", provider);
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+        cipher.update(data);
+        return cipher.doFinal();
+    }
+
     public static byte[] encrypt(Key publicKey, byte[] data) throws Exception {
         Cipher cipher = Cipher.getInstance("SM2");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
@@ -68,6 +75,13 @@ public class SDFSM2TestUtil {
 
     public static byte[] decrypt(Key privateKey, byte[] data) throws Exception {
         Cipher cipher = Cipher.getInstance("SM2");
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        cipher.update(data);
+        return cipher.doFinal();
+    }
+
+    public static byte[] decrypt(Provider provider, Key privateKey, byte[] data) throws Exception {
+        Cipher cipher = Cipher.getInstance("SM2", provider);
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
         cipher.update(data);
         return cipher.doFinal();

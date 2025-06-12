@@ -27,6 +27,7 @@ package org.openeuler.sdf.jca.digest;
 import org.junit.Assert;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
@@ -38,7 +39,7 @@ import java.security.Provider;
 /**
  * Test digest SM3/MD5/SHA-1/SHA-224/SHA-256/SHA-384/SHA-512
  */
-public class SDFDigestTest {
+public class SDFDigestTest extends SDFTestCase {
     private static final Provider sdfProvider = new SDFProvider();
     private static final Provider bgmJCEProvider = new BGMJCEProvider();
 

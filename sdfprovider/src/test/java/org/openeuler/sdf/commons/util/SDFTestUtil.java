@@ -24,12 +24,22 @@
 
 package org.openeuler.sdf.commons.util;
 
+import org.openeuler.BGMJCEProvider;
 import org.openeuler.sdf.commons.config.SDFConfig;
+import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPrivateKeyImpl;
+import org.openeuler.sdf.provider.SDFProvider;
+import org.openeuler.sun.security.ec.BGECPrivateKey;
 
+import java.math.BigInteger;
 import java.net.URL;
+import java.security.KeyFactory;
 import java.security.Provider;
 import java.security.SecureRandom;
 import java.security.Signature;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Objects;
 
 public class SDFTestUtil {
@@ -42,36 +52,50 @@ public class SDFTestUtil {
     private static byte[] TEST_CDP_ID;
     private static byte[] TEST_PIN;
 
+    private static String SDK_CONFIG;
+
+    private static final String DEFAULT_KEK_ID = "aaaa-aaaa-aaaa-aaaa-aaaa-aaaa-aaaa-a";
+    private static final String DEFAULT_REGION_ID = "RegionID1";
+
+    // CDP ID length require: 32
+    private static final String DEFAULT_CDP_ID = "cdp_id_length_need_32_0000000000";
+    private static final String DEFAULT_PIN = null;
 
     static {
         init();
     }
 
     private static void initTestKeKId() {
-        String kekId = System.getProperty("sdf.test.kekId", "KekId123456789012345678901234567");
+        String kekId = System.getProperty("sdf.test.kekId", DEFAULT_KEK_ID);
         TEST_KEK_ID = kekId.getBytes();
     }
 
     private static void initTestRegionId() {
-        String regionId = System.getProperty("sdf.test.regionId", "RegionID1");
+        String regionId = System.getProperty("sdf.test.regionId", DEFAULT_REGION_ID);
         TEST_REGION_ID = regionId.getBytes();
     }
 
     private static void initTestCdpId() {
-        String cdpId = System.getProperty("sdf.test.cdpId", "CdpID1");
+        String cdpId = System.getProperty("sdf.test.cdpId", DEFAULT_CDP_ID);
         TEST_CDP_ID = cdpId.getBytes();
     }
     private static void initTestPin() {
-        String pin = System.getProperty("sdf.test.pin", "");
-        TEST_PIN = pin.getBytes();
+        String pin = System.getProperty("sdf.test.pin", DEFAULT_PIN);
+        TEST_PIN = (pin == null) ? null : pin.getBytes();
+    }
+
+    private static void initSDKConfig() {
+        String defaultSDKConfig = getResource("sdk.config");
+        SDK_CONFIG = System.getProperty("sdf.sdkConfig", defaultSDKConfig);
     }
 
 
-    static void init() {
+    public static void init() {
         initTestKeKId();
         initTestRegionId();
         initTestCdpId();
         initTestPin();
+        initSDKConfig();
     }
 
     public static String getResource(String name) {
@@ -93,6 +117,10 @@ public class SDFTestUtil {
 
     public static byte[] getTestPin() {
         return TEST_PIN;
+    }
+
+    public static String getSdkConfig() {
+        return SDK_CONFIG;
     }
 
     public static byte[] generateRandomBytes(int randomLen) {
@@ -119,11 +147,11 @@ public class SDFTestUtil {
     }
 
     public static void main(String[] args) {
-        for (int i = 0; i < 100 ; i++) {
-            int t = generateRandomInt(1);
-            System.out.println(t);
-        }
+        SDFTestCase sdfTestCase = new SDFTestCase();
+        SDFProvider sdfProvider = new SDFProvider();
+//        encSM4SecretKey(new byte[16]);
 
+        SDFTestEncKeyGenUtil.encKey("HmacSM3", new byte[48]);
     }
 
     public static String toHexString(byte[] bytes) {
@@ -170,6 +198,34 @@ public class SDFTestUtil {
 
     public static boolean isEnableNonSM() {
         return SDFConfig.getInstance().isEnableNonSM();
+    }
+
+    public static ECPublicKey getSM2PublicKey() throws Exception {
+        byte[] pubKeyBytes = SDFKeyTestDB.SM2_KEY_PAIR.getPubKey();
+        KeyFactory keyFactory = KeyFactory.getInstance("SM2");
+        return (ECPublicKey) keyFactory.generatePublic(new X509EncodedKeySpec(pubKeyBytes));
+    }
+
+    public static ECPrivateKey getSM2PrivateKey(boolean isEncKey) throws Exception {
+        ECPublicKey publicKey = getSM2PublicKey();
+        ECParameterSpec params = publicKey.getParams();
+        ECPrivateKey privateKey;
+        if (isEncKey) {
+            BigInteger s = new BigInteger(1, SDFKeyTestDB.SM2_KEY_PAIR.getEncKey());
+            privateKey = new SDFECPrivateKeyImpl(s, params, true);
+        } else  {
+            BigInteger s = new BigInteger(1, SDFKeyTestDB.SM2_KEY_PAIR.getPlainKey());
+            privateKey = new BGECPrivateKey(s, params);
+        }
+        return privateKey;
+    }
+
+    public static byte[] encSM2PriKey(byte[] plainKey) {
+        return SDFTestEncKeyGenUtil.encKey("SM2", plainKey);
+    }
+
+    public static byte[] encSM4SecretKey(byte[] plainKey) {
+        return SDFTestEncKeyGenUtil.encKey("SM4", plainKey);
     }
 
 }

@@ -26,6 +26,7 @@ package org.openeuler.sdf.jsse.gmtls;
 
 import org.openeuler.BGMJCEProvider;
 import org.openeuler.BGMJSSEProvider;
+import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
 import javax.net.ssl.SSLContext;
@@ -39,6 +40,10 @@ import java.security.Provider;
 import java.security.Security;
 
 public class SDFGMTLSServer {
+    static {
+        System.setProperty("sdf.sdkConfig", SDFTestUtil.getSdkConfig());
+    }
+
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
             throw new IllegalArgumentException("args len should not less than 2");

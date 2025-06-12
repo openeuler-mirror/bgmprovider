@@ -39,7 +39,7 @@ fi
 
 cdpid=$4
 if [ ! $cdpid ]; then
-    cdpid="CdpID1"
+    cdpid="cdp_id_length_need_32_0000000000"
 fi
 
 
@@ -61,68 +61,68 @@ removeFile $name.truststore
 
 ############# CA #############
 # Generate CA key
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -genkey -keyalg SM2 -sigalg SM3withSM2  -keysize 256 -ext KeyUsage=DigitalSignature,nonRepudiation,keyCertSign,crlSign -ext BasicConstraints=CA:true -keystore $name-rootca.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias $name-rootca -dname "CN=$name-rootca" -validity 3650 -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -genkey -keyalg SM2 -sigalg SM3withSM2  -keysize 256 -ext KeyUsage=DigitalSignature,nonRepudiation,keyCertSign,crlSign -ext BasicConstraints=CA:true -keystore $name-rootca.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias $name-rootca -dname "CN=$name-rootca" -validity 3650 -storetype pkcs12
 
 # Export CA certificate
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -exportcert -keystore $name-rootca.keystore -alias $name-rootca -file $name-rootca.crt -storepass 12345678 -trustcacerts -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -exportcert -keystore $name-rootca.keystore -alias $name-rootca -file $name-rootca.crt -storepass 12345678 -trustcacerts -storetype pkcs12
 
 # Import the CA certificate into $JAVA_HOME/jre/lib/security/cacerts
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -import -alias $name-rootca -file $name-rootca.crt -keystore  $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -trustcacerts -noprompt
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importcert -file $name-rootca.crt -alias $name-rootca -keystore $name.truststore -storepass 12345678 -trustcacerts -noprompt -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -import -alias $name-rootca -file $name-rootca.crt -keystore  $JAVA_HOME/jre/lib/security/cacerts -storepass changeit -trustcacerts -noprompt
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importcert -file $name-rootca.crt -alias $name-rootca -keystore $name.truststore -storepass 12345678 -trustcacerts -noprompt -storetype pkcs12
 
 ############# SM2 Enc #############
 # Generate SM2 encryption key
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -genkey -keyalg SM2 -sigalg SM3withSM2  -keysize 256 -ext KeyUsage=keyEncipherment,dataEncipherment,keyAgreement  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -keystore $name.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias $name-sm2-enc -dname "CN=$name/sm2/enc" -validity 3650 -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -genkey -keyalg SM2 -sigalg SM3withSM2  -keysize 256 -ext KeyUsage=keyEncipherment,dataEncipherment,keyAgreement  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -keystore $name.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias $name-sm2-enc -dname "CN=$name/sm2/enc" -validity 3650 -storetype pkcs12
 
 # SM2 encryption certificate request
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -certreq -alias $name-sm2-enc -sigAlg SM3withSM2 -keystore $name.keystore -file $name-sm2-enc.csr -storepass 12345678 -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -certreq -alias $name-sm2-enc -sigAlg SM3withSM2 -keystore $name.keystore -file $name-sm2-enc.csr -storepass 12345678 -storetype pkcs12
 
 # Issue SM2 encryption certificate
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -gencert -ext KeyUsage=keyEncipherment,dataEncipherment,keyAgreement  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -sigalg SM3withSM2  -alias $name-rootca -keystore $name-rootca.keystore -infile $name-sm2-enc.csr -outfile $name-sm2-enc.crt -storepass 12345678 -validity 3650 -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -gencert -ext KeyUsage=keyEncipherment,dataEncipherment,keyAgreement  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -sigalg SM3withSM2  -alias $name-rootca -keystore $name-rootca.keystore -infile $name-sm2-enc.csr -outfile $name-sm2-enc.crt -storepass 12345678 -validity 3650 -storetype pkcs12
 
 # Import SM2 encryption certificate to keystore to generate certificate chain
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -import -alias $name-sm2-enc -file $name-sm2-enc.crt -keystore $name.keystore -trustcacerts -storepass 12345678 -trustcacerts -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -import -alias $name-sm2-enc -file $name-sm2-enc.crt -keystore $name.keystore -trustcacerts -storepass 12345678 -trustcacerts -storetype pkcs12
 
 # Import SM2 encryption certificate to truststore
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importcert -file $name-sm2-enc.crt -alias $name-sm2-enc  -keystore $name.truststore -storepass 12345678 -trustcacerts  -noprompt -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importcert -file $name-sm2-enc.crt -alias $name-sm2-enc  -keystore $name.truststore -storepass 12345678 -trustcacerts  -noprompt -storetype pkcs12
 
 # Import SM2 encryption key to $name-sm2-enc.keystore
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importkeystore -srckeystore $name.keystore -srcalias $name-sm2-enc -destalias $name-sm2-enc -destkeystore $name-sm2-enc.keystore -srckeypass 12345678 -destkeypass 12345678 -srcstorepass 12345678 -deststorepass 12345678 -deststoretype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importkeystore -srckeystore $name.keystore -srcalias $name-sm2-enc -destalias $name-sm2-enc -destkeystore $name-sm2-enc.keystore -srckeypass 12345678 -destkeypass 12345678 -srcstorepass 12345678 -deststorepass 12345678 -deststoretype pkcs12
 
 # Import SM2 encryption certificate to $name-sm2-enc.truststore
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importcert -file $name-sm2-enc.crt -alias $name-sm2-enc  -keystore $name-sm2-enc.truststore -storepass 12345678 -trustcacerts  -noprompt -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importcert -file $name-sm2-enc.crt -alias $name-sm2-enc  -keystore $name-sm2-enc.truststore -storepass 12345678 -trustcacerts  -noprompt -storetype pkcs12
 
 # Import rootca certificate to $name-sm2-enc.truststore
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importcert -file $name-rootca.crt -alias $name-rootca -keystore $name-sm2-enc.truststore -storepass 12345678 -trustcacerts -noprompt -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importcert -file $name-rootca.crt -alias $name-rootca -keystore $name-sm2-enc.truststore -storepass 12345678 -trustcacerts -noprompt -storetype pkcs12
 
 ############# SM2 Sig #############
 
 # Generate SM2 signature key
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -genkey -keyalg SM2 -sigalg SM3withSM2  -keysize 256 -ext KeyUsage=digitalSignature  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -keystore $name.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias $name-sm2-sig -dname "CN=$name/sm2/sig" -validity 3650  -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -genkey -keyalg SM2 -sigalg SM3withSM2  -keysize 256 -ext KeyUsage=digitalSignature  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1  -keystore $name.keystore -storepass 12345678 -keypass 12345678 -storetype pkcs12 -alias $name-sm2-sig -dname "CN=$name/sm2/sig" -validity 3650  -storetype pkcs12
 
 # SM2 signature certificate request
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -certreq -alias $name-sm2-sig -sigAlg SM3withSM2 -keystore $name.keystore -file $name-sm2-sig.csr -storepass 12345678  -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -certreq -alias $name-sm2-sig -sigAlg SM3withSM2 -keystore $name.keystore -file $name-sm2-sig.csr -storepass 12345678  -storetype pkcs12
 
 # Issue SM2 signature certificate
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -gencert -ext KeyUsage=digitalSignature  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1   -sigalg SM3withSM2 -alias $name-rootca -keystore $name-rootca.keystore -infile $name-sm2-sig.csr -outfile $name-sm2-sig.crt -storepass 12345678 -validity 3650  -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -gencert -ext KeyUsage=digitalSignature  -ext SubjectAlternativeName=dns:localhost,ip:127.0.0.1   -sigalg SM3withSM2 -alias $name-rootca -keystore $name-rootca.keystore -infile $name-sm2-sig.csr -outfile $name-sm2-sig.crt -storepass 12345678 -validity 3650  -storetype pkcs12
 
 # Import SM2 signature certificate to keystore to generate certificate chain
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -import -alias $name-sm2-sig -file $name-sm2-sig.crt -keystore $name.keystore -trustcacerts -storepass 12345678 -trustcacerts -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -import -alias $name-sm2-sig -file $name-sm2-sig.crt -keystore $name.keystore -trustcacerts -storepass 12345678 -trustcacerts -storetype pkcs12
 
 # Import SM2 signature certificate to truststore
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importcert -file $name-sm2-sig.crt -alias $name-sm2-sig  -keystore $name.truststore -storepass 12345678 -trustcacerts  -noprompt -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importcert -file $name-sm2-sig.crt -alias $name-sm2-sig  -keystore $name.truststore -storepass 12345678 -trustcacerts  -noprompt -storetype pkcs12
 
 # Import SM2 signature key to $name-sm2-sig.keystore
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importkeystore -srckeystore $name.keystore -srcalias $name-sm2-sig -destalias $name-sm2-sig -destkeystore $name-sm2-sig.keystore -srckeypass 12345678 -destkeypass 12345678 -srcstorepass 12345678 -deststorepass 12345678 -deststoretype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importkeystore -srckeystore $name.keystore -srcalias $name-sm2-sig -destalias $name-sm2-sig -destkeystore $name-sm2-sig.keystore -srckeypass 12345678 -destkeypass 12345678 -srcstorepass 12345678 -deststorepass 12345678 -deststoretype pkcs12
 
 # Import SM2 signature certificate to $name-sm2-sig.truststore
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importcert -file $name-sm2-sig.crt -alias $name-sm2-sig  -keystore $name-sm2-sig.truststore -storepass 12345678 -trustcacerts  -noprompt -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importcert -file $name-sm2-sig.crt -alias $name-sm2-sig  -keystore $name-sm2-sig.truststore -storepass 12345678 -trustcacerts  -noprompt -storetype pkcs12
 
 # Import rootca certificate to $name-sm2-sig.truststore
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -importcert -file $name-rootca.crt -alias $name-rootca -keystore $name-sm2-sig.truststore -storepass 12345678 -trustcacerts -noprompt -storetype pkcs12
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -importcert -file $name-rootca.crt -alias $name-rootca -keystore $name-sm2-sig.truststore -storepass 12345678 -trustcacerts -noprompt -storetype pkcs12
 
 # Delete $name-rootca from $JAVA_HOME/jre/lib/security/cacerts
-keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCpdId=$cdpid -delete -alias $name-rootca -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit
+keytool -J-Dsdf.useEncDEK=true -J-Dsdf.defaultKEKId=$kekid -J-Dsdf.defaultRegionId=$regionid -J-Dsdf.defaultCdpId=$cdpid -delete -alias $name-rootca -keystore $JAVA_HOME/jre/lib/security/cacerts -storepass changeit
 
 # Remove crt and csr file
 removeFile $name-rootca.crt

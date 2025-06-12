@@ -25,6 +25,7 @@
 package org.openeuler.sdf.jca.symmetric;
 
 import org.junit.Test;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
@@ -35,7 +36,7 @@ import java.security.Provider;
 import java.security.spec.AlgorithmParameterSpec;
 import java.util.Arrays;
 
-public class SDFKeyGeneratorTest {
+public class SDFKeyGeneratorTest extends SDFTestCase {
     private static final byte[] PLAIN_BYTES = "hellohelloworld!".getBytes();
 
     private static final Provider sdfProvider = new SDFProvider();

@@ -28,6 +28,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
@@ -39,7 +40,7 @@ import java.security.Security;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
 
-public class SDFPBKDF2Test {
+public class SDFPBKDF2Test extends SDFTestCase {
     private static final Provider sdfProvider = new SDFProvider();
     private static final Provider bgmJCEProvider = new BGMJCEProvider();
     private static final String[] algorithms =
@@ -73,7 +74,8 @@ public class SDFPBKDF2Test {
 
     @Test
     public void generateSecretSaltTest() throws Exception {
-        int[] saltLens = new int[]{1, 2, 3, 9, 10, 100, 200, 500};
+        // Arg: salt length need: 1 <= saltLen <= 60
+        int[] saltLens = new int[]{1, 2, 3, 9, 10, 20, 50, 60};
         for (int saltLen : saltLens) {
             byte[] salt = SDFTestUtil.generateRandomBytes(saltLen);
             generateSecretTest(algorithms, PASSWORD, salt, ITERATION_COUNT, KEY_LEN);
@@ -90,7 +92,8 @@ public class SDFPBKDF2Test {
 
     @Test
     public void generateSecretKeyLenTest() throws Exception {
-        int[] keyLens = new int[]{1, 7, 8, 9, 16, 32, 1024};
+        // Arg: keyLen need: 14 <= keyLen <= 64
+        int[] keyLens = new int[]{112, 128, 256, 512};
         for (int keyLen : keyLens) {
             generateSecretTest(algorithms, PASSWORD, SALT, ITERATION_COUNT, keyLen);
         }
@@ -148,9 +151,9 @@ public class SDFPBKDF2Test {
 
     private static void generateSecretRandomlyTest(String algorithm) throws Exception {
         char[] password = new String(SDFTestUtil.generateRandomBytes()).toCharArray();
-        byte[] salt = SDFTestUtil.generateRandomBytes();
+        byte[] salt = SDFTestUtil.generateRandomBytes(60);
         int iterationCount = SDFTestUtil.generateRandomInt();
-        int keyLen = SDFTestUtil.generateRandomInt() + 8;
+        int keyLen = SDFTestUtil.generateRandomInt(400) + 112;
         generateSecretTest(algorithm, password, salt, iterationCount, keyLen);
     }
 

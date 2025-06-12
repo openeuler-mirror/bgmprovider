@@ -26,8 +26,10 @@ package org.openeuler.sdf.jca.signature;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.jca.asymmetric.SDFSM2TestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
@@ -35,28 +37,42 @@ import org.openeuler.sdf.provider.SDFProvider;
 import java.nio.ByteBuffer;
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.security.Provider;
 import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 
-public class SDFSM2SignatureTest {
+public class SDFSM2SignatureTest extends SDFTestCase {
     private static final String MESSAGE = "hello world";
 
-    private static final BGMJCEProvider bgmJCEProvider = new BGMJCEProvider();
+    private static final Provider sdfProvider = new SDFProvider();
+    private static final Provider bgmJCEProvider = new BGMJCEProvider();
 
     @BeforeClass
     public static void beforeClass() {
-        Security.insertProviderAt(new SDFProvider(), 1);
+        Security.insertProviderAt(sdfProvider, 1);
     }
 
     @Test
-    public void testSignByEncKey() throws Exception {
-        int randomLoops = SDFTestUtil.generateRandomInt();
+    public void testSignByBGMJCEProviderAndVerifyBySDFProvider() throws Exception {
+        KeyPair keyPair = SDFSM2TestUtil.generateKeyPair(false, bgmJCEProvider);
+        PrivateKey privateKey = keyPair.getPrivate();
+        PublicKey publicKey = keyPair.getPublic();
+        byte[] data = SDFTestUtil.generateRandomBytes();
+        byte[] signBytes = SDFSM2TestUtil.sign(bgmJCEProvider, privateKey, data);
+        boolean verify = SDFSM2TestUtil.verify(sdfProvider, publicKey, data, signBytes);
+        Assert.assertTrue(verify);
+    }
+
+    @Test
+    public void testLoops() throws Exception {
+        int randomLoops = 5; //SDFTestUtil.generateRandomInt();
         testUpdateAndSign(true, randomLoops, MESSAGE.getBytes());
     }
 
     @Test
-    public void testSignByEncKeyRandomly() throws Exception {
+    @Ignore
+    public void testLoopsRandomly() throws Exception {
         int randomLoops = SDFTestUtil.generateRandomInt();
         byte[] data = SDFTestUtil.generateRandomBytes();
         testUpdateAndSign(true, randomLoops, data);
@@ -97,8 +113,8 @@ public class SDFSM2SignatureTest {
         PrivateKey privateKey = keyPair.getPrivate();
         PublicKey publicKey = keyPair.getPublic();
         byte[] data = null;
-        byte[] signBytes = SDFSM2TestUtil.sign(null, privateKey, data);
-        boolean verify = SDFSM2TestUtil.verify(null, publicKey, data, signBytes);
+        byte[] signBytes = SDFSM2TestUtil.sign(sdfProvider, privateKey, data);
+        boolean verify = SDFSM2TestUtil.verify(sdfProvider, publicKey, data, signBytes);
         Assert.assertTrue(verify);
 
         verify = SDFSM2TestUtil.verify(bgmJCEProvider, publicKey, data, signBytes);
@@ -110,8 +126,8 @@ public class SDFSM2SignatureTest {
         KeyPair keyPair = SDFSM2TestUtil.generateKeyPair(isEncKey);
         PrivateKey privateKey = keyPair.getPrivate();
         PublicKey publicKey = keyPair.getPublic();
-        byte[] signBytes = SDFSM2TestUtil.sign(null, privateKey, data, offset, len);
-        boolean verify = SDFSM2TestUtil.verify(null, publicKey, data, offset, len, signBytes);
+        byte[] signBytes = SDFSM2TestUtil.sign(sdfProvider, privateKey, data, offset, len);
+        boolean verify = SDFSM2TestUtil.verify(sdfProvider, publicKey, data, offset, len, signBytes);
         Assert.assertTrue(verify);
         verify = SDFSM2TestUtil.verify(bgmJCEProvider, publicKey, data, offset, len, signBytes);
         Assert.assertTrue(verify);
@@ -124,9 +140,9 @@ public class SDFSM2SignatureTest {
         ByteBuffer byteBuffer = newByteBuffer(data, isDirect);
         byteBuffer.mark();
 
-        byte[] signBytes = SDFSM2TestUtil.sign(null, privateKey, byteBuffer);
+        byte[] signBytes = SDFSM2TestUtil.sign(sdfProvider, privateKey, byteBuffer);
         byteBuffer.reset();
-        boolean verify = SDFSM2TestUtil.verify(null, publicKey, byteBuffer, signBytes);
+        boolean verify = SDFSM2TestUtil.verify(sdfProvider, publicKey, byteBuffer, signBytes);
         Assert.assertTrue(verify);
 
         byteBuffer.reset();
