@@ -211,7 +211,7 @@
                     </execution>
 
                     <!-- aarch64 -->
-                    <!-- <execution>
+                    <execution>
                         <id>compile_linux_aarch64</id>
                         <phase>compile</phase>
                         <goals>
@@ -270,7 +270,7 @@
                             <linkerFinalNameExt>so</linkerFinalNameExt>
                             <linkerOutputDirectory>${project.build.directory}</linkerOutputDirectory>
                         </configuration>
-                    </execution> -->
+                    </execution>
                 </executions>
             </plugin>
 

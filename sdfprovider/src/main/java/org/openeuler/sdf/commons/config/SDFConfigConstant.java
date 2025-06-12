@@ -31,7 +31,7 @@ interface SDFConfigConstant {
     String SDF_USEENCDEK = "sdf.useEncDEK";
     String SDF_DEFAULT_KEK_ID = "sdf.defaultKEKId";
     String SDF_DEFAULT_REGION_ID = "sdf.defaultRegionId";
-    String SDF_DEFAULT_CDP_ID = "sdf.defaultCpdId";
+    String SDF_DEFAULT_CDP_ID = "sdf.defaultCdpId";
     String SDF_DEFAULT_PIN = "sdf.defaultPin";
     String SDF_LOG_PATH = "sdf.logPath";
     // valid log level : OFF,ERROR,WARNING,INFO,DEBUG
