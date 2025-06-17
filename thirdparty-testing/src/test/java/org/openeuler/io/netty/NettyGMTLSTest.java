@@ -40,10 +40,8 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.ReferenceCountUtil;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openeuler.BGMProvider;
-import org.openeuler.commons.TestUtils;
+import org.openeuler.commons.BaseTest;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -53,29 +51,25 @@ import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
-import java.security.Security;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
-public class NettyGMTLSTest {
-    private static final String trustStorePath = TestUtils.getPath("server.truststore");
-    private static final String keyStorePath = TestUtils.getPath("server.keystore");
-    private static final char[] PASSWORD = "12345678".toCharArray();
-
-    @BeforeClass
-    public static void beforeClass() {
-        Security.insertProviderAt(new BGMProvider(), 1);
+public class NettyGMTLSTest extends BaseTest {
+    @Test
+    public void test() throws Throwable {
+        super.initBGMProvider();
+        testGMTLSHandshake();
     }
 
     @Test
-    public void test() throws Throwable {
+    public void testWithSDFProvider() throws Throwable {
+        super.initSDFProvider();
         testGMTLSHandshake();
     }
 
     private static TrustManager getTrustManager() throws Throwable {
         KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        try (FileInputStream fileInputStream = new FileInputStream(Objects.requireNonNull(trustStorePath))) {
-            keyStore.load(fileInputStream, PASSWORD);
+        try (FileInputStream fileInputStream = new FileInputStream(Objects.requireNonNull(serverTrustStorePath))) {
+            keyStore.load(fileInputStream, serverTrustStorePass.toCharArray());
         }
 
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(
@@ -88,11 +82,11 @@ public class NettyGMTLSTest {
 
     private static KeyManager getKeyManager() throws Throwable {
         KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        try (FileInputStream fileInputStream = new FileInputStream(Objects.requireNonNull(keyStorePath))) {
-            keyStore.load(fileInputStream, PASSWORD);
+        try (FileInputStream fileInputStream = new FileInputStream(Objects.requireNonNull(serverKeyStorePath))) {
+            keyStore.load(fileInputStream, serverKeyStorePass.toCharArray());
         }
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        keyManagerFactory.init(keyStore, PASSWORD);
+        keyManagerFactory.init(keyStore, serverKeyStorePass.toCharArray());
         KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
         return keyManagers[0];
     }
