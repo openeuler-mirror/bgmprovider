@@ -36,4 +36,16 @@ public class HttpClient5DefaultGMTLSTest extends HttpClient5DefaultBaseTest {
     public void testTwoWay() throws Exception {
         test("GMTLS", true);
     }
+
+    @Test
+    public void testOneWayWithSDFProvider() throws Exception {
+        super.setUpWithSDFProvider();
+        test("GMTLS", false);
+    }
+
+    @Test
+    public void testTwoWayWithSDFProvider() throws Exception {
+        super.setUpWithSDFProvider();
+        test("GMTLS", true);
+    }
 }

@@ -42,4 +42,15 @@ public class TestConstants {
     public static final String CLIENT_KEYSTORE_PASSWORD = "12345678";
     public static final String CLIENT_TRUSTSTORE_PATH = TestUtils.getPath("client.truststore");
     public static final String CLIENT_TRUSTSTORE_PASSWORD = "12345678";
+
+    public static final String SDK_CONFIG_PATH = "sdf/sdk.config";
+    public static final String ENC_SERVER_KEYSTORE_PATH = TestUtils.getPath("sdf/server.keystore");
+    public static final String ENC_SERVER_KEYSTORE_PASSWORD = "12345678";
+    public static final String ENC_SERVER_TRUSTSTORE_PATH = TestUtils.getPath("sdf/server.truststore");
+    public static final String ENC_SERVER_TRUSTSTORE_PASSWORD = "12345678";
+
+    public static final String ENC_CLIENT_KEYSTORE_PATH = TestUtils.getPath("sdf/client.keystore");
+    public static final String ENC_CLIENT_KEYSTORE_PASSWORD = "12345678";
+    public static final String ENC_CLIENT_TRUSTSTORE_PATH = TestUtils.getPath("sdf/client.truststore");
+    public static final String ENC_CLIENT_TRUSTSTORE_PASSWORD = "12345678";
 }

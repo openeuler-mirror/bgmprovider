@@ -72,6 +72,19 @@ public class HttpClient5DefaultBaseTest extends BaseTest {
         System.setProperty("javax.net.ssl.trustStorePassword", PASSWORD);
     }
 
+    protected void setUpWithSDFProvider() {
+        super.initSDFProvider();
+        System.setProperty("javax.net.debug", "all");
+        System.setProperty("jdk.tls.server.protocols", "GMTLS,TLSv1.2,TLSv1.3");
+        System.setProperty("javax.net.ssl.keyStore", serverKeyStorePath);
+        System.setProperty("javax.net.ssl.keyStoreType", KEYSTORE_TYPE);
+        System.setProperty("javax.net.ssl.keyStorePassword", serverKeyStorePass);
+
+        System.setProperty("javax.net.ssl.trustStore", serverTrustStorePath);
+        System.setProperty("javax.net.ssl.trustStoreType", KEYSTORE_TYPE);
+        System.setProperty("javax.net.ssl.trustStorePassword", serverTrustStorePass);
+    }
+
     protected void prepare(String tlsVersion, boolean clientAuth)
             throws Exception {
         System.setProperty("jdk.tls.client.protocols", tlsVersion);
