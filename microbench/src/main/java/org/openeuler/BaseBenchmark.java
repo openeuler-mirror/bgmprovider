@@ -44,10 +44,18 @@ public class BaseBenchmark {
 
     protected Provider provider;
 
+    // SDFProvider flag
+    protected boolean sdfProviderFlag = false;
+
     protected void setUp() throws Exception {
         String providerName = System.getProperty("benchmark.provider.name");
         if (providerName == null || providerName.isEmpty()) {
             providerName = DEFAULT_PROVIDER_NAME;
+        }
+        System.out.println("provider=" + providerName);
+        if (providerName.contains("SDFProvider")) {
+            sdfProviderFlag = true;
+            initKekInfo();
         }
         try {
             Class<?> clazz = Class.forName(providerName);
@@ -56,6 +64,13 @@ public class BaseBenchmark {
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void initKekInfo() {
+        System.setProperty("sdf.sdkConfig", System.getProperty("sdf.sdkConfig"));
+        System.setProperty("sdf.defaultKEKId", System.getProperty("sdf.defaultKEKId"));
+        System.setProperty("sdf.defaultRegionId", System.getProperty("sdf.defaultRegionId"));
+        System.setProperty("sdf.defaultCdpId", System.getProperty("sdf.defaultCdpId"));
     }
 
     protected byte[][] fillRandom(byte[][] data) {

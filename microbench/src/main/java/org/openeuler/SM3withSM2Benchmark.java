@@ -25,6 +25,8 @@
 
 package org.openeuler;
 
+import org.openeuler.sdf.commons.spec.SDFKEKInfoEntity;
+import org.openeuler.sdf.jca.asymmetric.SDFSM2GenParameterSpec;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
@@ -67,7 +69,13 @@ public class SM3withSM2Benchmark extends BaseBenchmark {
     public void setup() throws Exception {
         super.setUp();
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("SM2");
-        keyPairGenerator.initialize(keySize);
+        if (sdfProviderFlag) {
+            keyPairGenerator.initialize(
+                    new SDFSM2GenParameterSpec(SDFKEKInfoEntity.getDefaultKEKInfo(), "sm2p256v1"));
+        } else {
+            keyPairGenerator.initialize(keySize);
+        }
+
         keyPair = keyPairGenerator.generateKeyPair();
         data = new byte[SET_SIZE][dataSize];
         sigData = getSigBytes(data);
