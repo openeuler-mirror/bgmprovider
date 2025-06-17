@@ -60,6 +60,11 @@
             <artifactId>jca</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.openeuler</groupId>
+            <artifactId>sdfprovider</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

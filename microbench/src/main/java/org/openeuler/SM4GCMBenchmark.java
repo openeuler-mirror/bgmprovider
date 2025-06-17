@@ -24,14 +24,20 @@
 
 package org.openeuler;
 
+import org.openeuler.sdf.commons.spec.SDFKEKInfoEntity;
+import org.openeuler.sdf.commons.spec.SDFKeyGeneratorParameterSpec;
+import org.openeuler.sdf.jca.symmetric.SDFGCMParameterSpec;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Setup;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.spec.AlgorithmParameterSpec;
 
 public class SM4GCMBenchmark extends BaseBenchmark {
 
@@ -57,17 +63,26 @@ public class SM4GCMBenchmark extends BaseBenchmark {
 
     private Cipher decryptCipher;
 
-    private SecretKeySpec ks;
+    private SecretKey ks;
+
+    private AlgorithmParameterSpec[] specs;
 
     @Setup
     public void setup() throws Exception {
         super.setUp();
 
         byte[] keyBytes = fillRandom(new byte[keyLength / 8]);
-        ks = new SecretKeySpec(keyBytes, "SM4");
+        if (sdfProviderFlag) {
+            KeyGenerator keyGenerator = KeyGenerator.getInstance("SM4", provider);
+            keyGenerator.init(new SDFKeyGeneratorParameterSpec(SDFKEKInfoEntity.getDefaultKEKInfo(), keyLength));
+            ks = keyGenerator.generateKey();
+        } else {
+            ks = new SecretKeySpec(keyBytes, "SM4");
+        }
         ivData = new byte[SET_SIZE][dataSize];
         data = fillRandom(new byte[SET_SIZE][dataSize]);
         encryptedData = new byte[SET_SIZE][dataSize];
+        specs = new AlgorithmParameterSpec[SET_SIZE];
         fillEncrypted(data, ivData, encryptedData);
     }
 
@@ -95,18 +110,19 @@ public class SM4GCMBenchmark extends BaseBenchmark {
 
     private void encryptTest() throws Exception {
         byte[] d = data[index];
+        AlgorithmParameterSpec spec = specs[index];
         index = (index + 1) % SET_SIZE;
         Cipher encryptCipher = (provider == null) ? Cipher.getInstance(algorithm) : Cipher.getInstance(algorithm, provider);
-        encryptCipher.init(Cipher.ENCRYPT_MODE, ks);
+        encryptCipher.init(Cipher.ENCRYPT_MODE, ks, spec);
         encryptCipher.doFinal(d);
     }
 
     public byte[] decryptTest() throws Exception {
         byte[] e = encryptedData[index];
-        byte[] iv = ivData[index];
+        AlgorithmParameterSpec spec = specs[index];
         index = (index + 1) % SET_SIZE;
         Cipher decryptCipher = (provider == null) ? Cipher.getInstance(algorithm) : Cipher.getInstance(algorithm, provider);
-        decryptCipher.init(Cipher.DECRYPT_MODE, ks, new IvParameterSpec(iv));
+        decryptCipher.init(Cipher.DECRYPT_MODE, ks, spec);
         return decryptCipher.doFinal(e);
     }
 
@@ -116,8 +132,13 @@ public class SM4GCMBenchmark extends BaseBenchmark {
         for (int i = 0; i < encryptedData.length; i++) {
             Cipher encryptCipher = (provider == null) ? Cipher.getInstance(algorithm)
                     : Cipher.getInstance(algorithm, provider);
-            encryptCipher.init(Cipher.ENCRYPT_MODE, ks);
-            ivData[i] = encryptCipher.getIV();
+            ivData[i] = fillRandom(new byte[16]);
+            if (sdfProviderFlag) {
+                specs[i] = new SDFGCMParameterSpec(keyLength, ivData[i]);
+            } else {
+                specs[i] = new IvParameterSpec(ivData[i]);
+            }
+            encryptCipher.init(Cipher.ENCRYPT_MODE, ks, specs[i]);
             encryptedData[i] = encryptCipher.doFinal(data[i]);
         }
     }
