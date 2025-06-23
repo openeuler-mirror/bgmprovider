@@ -40,6 +40,7 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.ReferenceCountUtil;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.openeuler.commons.BaseTest;
 
@@ -60,7 +61,9 @@ public class NettyGMTLSTest extends BaseTest {
         testGMTLSHandshake();
     }
 
+    // If run this testcase, prepare certs to resources/sdf/xxx
     @Test
+    @Ignore
     public void testWithSDFProvider() throws Throwable {
         super.initSDFProvider();
         testGMTLSHandshake();

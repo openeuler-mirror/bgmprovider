@@ -31,6 +31,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.openeuler.commons.BaseTest;
 
@@ -113,7 +114,9 @@ public class JettyTest extends BaseTest {
         }
     }
 
+    // If run this testcase, prepare certs to resources/sdf/xxx
     @Test
+    @Ignore
     public void testSDFGMTLSWithClientAuth() throws Exception {
         super.initSDFProvider();
         Server server = null;
@@ -129,7 +132,9 @@ public class JettyTest extends BaseTest {
         }
     }
 
+    // If run this testcase, prepare certs to resources/sdf/xxx
     @Test
+    @Ignore
     public void testSDFGMTLSWithNoClientAuth() throws Exception {
         super.initSDFProvider();
         Server server = null;

@@ -55,14 +55,4 @@ public class SDFSM1Test extends SDFSymmetricTest {
     public void testCTR() throws Exception {
         testCTR(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN);
     }
-
-    @Test
-    public void testXTS() throws Exception {
-        testXTS(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN);
-    }
-
-    @Test
-    public void testGCM() throws Exception {
-        testGCM(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN);
-    }
 }
