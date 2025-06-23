@@ -68,7 +68,7 @@ public class BaseTest {
         System.setProperty("sdf.sdkConfig", System.getProperty("sdf.sdkConfig", SDK_CONFIG_PATH));
         System.setProperty("sdf.defaultKEKId",
                 System.getProperty("sdf.defaultKEKId", "aaaa-aaaa-aaaa-aaaa-aaaa-aaaa-aaaa-a"));
-        System.setProperty("sdf.defaultRegionId", System.getProperty("sdf.defaultRegionId", "RegionId1"));
+        System.setProperty("sdf.defaultRegionId", System.getProperty("sdf.defaultRegionId", "RegionID1"));
         System.setProperty("sdf.defaultCdpId",
                 System.getProperty("sdf.defaultCdpId", "cdp_id_length_need_32_0000000000"));
 

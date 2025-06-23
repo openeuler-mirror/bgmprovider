@@ -33,8 +33,6 @@ import org.openeuler.sdf.commons.constant.SDFDataKeyType;
  * - SM7/CBC/NOPADDING
  * - SM7/CBC/PKCS5PADDING
  * - SM7/CTR/NOPADDING
- * - SM7/XTS/NOPADDING
- * - SM7/GCM/NOPADDING
  */
 abstract class SDFSM7Cipher extends SDFSymmetricCipherBase {
 
@@ -65,18 +63,6 @@ abstract class SDFSM7Cipher extends SDFSymmetricCipherBase {
     public static final class SM7_CTR_NoPadding extends SDFSM7Cipher {
         public SM7_CTR_NoPadding() {
             super(SDFMode.CTR, SDFPadding.NOPADDING);
-        }
-    }
-
-    public static final class SM7_XTS_NoPadding extends SDFSM7Cipher {
-        public SM7_XTS_NoPadding() {
-            super(SDFMode.XTS, SDFPadding.NOPADDING);
-        }
-    }
-
-    public static final class SM7_GCM_NoPadding extends SDFSM7Cipher {
-        public SM7_GCM_NoPadding() {
-            super(SDFMode.GCM, SDFPadding.NOPADDING);
         }
     }
 

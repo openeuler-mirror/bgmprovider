@@ -35,6 +35,8 @@ import java.security.InvalidKeyException;
  * - AES/ECB/PKCS5PADDING
  * - AES/CBC/NOPADDING
  * - AES/CBC/PKCS5PADDING
+ * - AES/XTS/NOPADDING
+ * - AES/GCM/NOPADDING
  */
 abstract class SDFAESCipher extends SDFSymmetricCipherBase {
 
@@ -58,6 +60,16 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
             super(SDFMode.CBC, SDFPadding.PKCS5PADDING, -1);
         }
     }
+    public static final class AES_XTS_NoPadding extends SDFAESCipher {
+        public AES_XTS_NoPadding() {
+            super(SDFMode.XTS, SDFPadding.NOPADDING, -1);
+        }
+    }
+    public static final class AES_GCM_NoPadding extends SDFAESCipher {
+        public AES_GCM_NoPadding() {
+            super(SDFMode.GCM, SDFPadding.NOPADDING, -1);
+        }
+    }
 
     public static final class AES128_ECB_NoPadding extends SDFAESCipher {
         public AES128_ECB_NoPadding() {
@@ -77,6 +89,16 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
     public static final class AES128_CBC_PKCS5Padding extends SDFAESCipher {
         public AES128_CBC_PKCS5Padding() {
             super(SDFMode.CBC, SDFPadding.PKCS5PADDING, 16);
+        }
+    }
+    public static final class AES128_XTS_NoPadding extends SDFAESCipher {
+        public AES128_XTS_NoPadding() {
+            super(SDFMode.XTS, SDFPadding.NOPADDING, 16);
+        }
+    }
+    public static final class AES128_GCM_NoPadding extends SDFAESCipher {
+        public AES128_GCM_NoPadding() {
+            super(SDFMode.GCM, SDFPadding.NOPADDING, 16);
         }
     }
 
@@ -100,6 +122,16 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
             super(SDFMode.CBC, SDFPadding.PKCS5PADDING, 24);
         }
     }
+    public static final class AES192_XTS_NoPadding extends SDFAESCipher {
+        public AES192_XTS_NoPadding() {
+            super(SDFMode.XTS, SDFPadding.NOPADDING, 24);
+        }
+    }
+    public static final class AES192_GCM_NoPadding extends SDFAESCipher {
+        public AES192_GCM_NoPadding() {
+            super(SDFMode.GCM, SDFPadding.NOPADDING, 24);
+        }
+    }
 
     public static final class AES256_ECB_NoPadding extends SDFAESCipher {
         public AES256_ECB_NoPadding() {
@@ -119,6 +151,16 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
     public static final class AES256_CBC_PKCS5Padding extends SDFAESCipher {
         public AES256_CBC_PKCS5Padding() {
             super(SDFMode.CBC, SDFPadding.PKCS5PADDING, 32);
+        }
+    }
+    public static final class AES256_XTS_NoPadding extends SDFAESCipher {
+        public AES256_XTS_NoPadding() {
+            super(SDFMode.XTS, SDFPadding.NOPADDING, 32);
+        }
+    }
+    public static final class AES256_GCM_NoPadding extends SDFAESCipher {
+        public AES256_GCM_NoPadding() {
+            super(SDFMode.GCM, SDFPadding.NOPADDING, 32);
         }
     }
 

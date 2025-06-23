@@ -141,10 +141,6 @@ public class SDFEntries extends AbstractEntries {
 
         add(provider, "Cipher", "SM1/CTR/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFSM1Cipher$SM1_CTR_NoPadding");
-        add(provider, "Cipher", "SM1/XTS/NoPadding",
-                "org.openeuler.sdf.jca.symmetric.SDFSM1Cipher$SM1_XTS_NoPadding");
-        add(provider, "Cipher", "SM1/GCM/NoPadding",
-                "org.openeuler.sdf.jca.symmetric.SDFSM1Cipher$SM1_GCM_NoPadding");
     }
 
     private void putSM4(Provider provider) {
@@ -192,10 +188,6 @@ public class SDFEntries extends AbstractEntries {
 
         add(provider, "Cipher", "SM7/CTR/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_CTR_NoPadding");
-        add(provider, "Cipher", "SM7/XTS/NoPadding",
-                "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_XTS_NoPadding");
-        add(provider, "Cipher", "SM7/GCM/NoPadding",
-                "org.openeuler.sdf.jca.symmetric.SDFSM7Cipher$SM7_GCM_NoPadding");
     }
 
     private void putAES(Provider provider) {
@@ -210,6 +202,10 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES_ECB_PKCS5Padding");
         add(provider, "Cipher", "AES/ECB/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES_ECB_NoPadding");
+        add(provider, "Cipher", "AES/XTS/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES_XTS_NoPadding");
+        add(provider, "Cipher", "AES/GCM/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES_GCM_NoPadding");
 
         add(provider, "Cipher", "AES_128/CBC/PKCS5Padding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_CBC_PKCS5Padding");
@@ -219,6 +215,10 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_ECB_PKCS5Padding");
         add(provider, "Cipher", "AES_128/ECB/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_ECB_NoPadding");
+        add(provider, "Cipher", "AES_128/XTS/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_XTS_NoPadding");
+        add(provider, "Cipher", "AES_128/GCM/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_GCM_NoPadding");
 
         add(provider, "Cipher", "AES_192/CBC/PKCS5Padding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_CBC_PKCS5Padding");
@@ -228,6 +228,10 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_ECB_PKCS5Padding");
         add(provider, "Cipher", "AES_192/ECB/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_ECB_NoPadding");
+        add(provider, "Cipher", "AES_192/XTS/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_XTS_NoPadding");
+        add(provider, "Cipher", "AES_192/GCM/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_GCM_NoPadding");
 
         add(provider, "Cipher", "AES_256/CBC/PKCS5Padding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_CBC_PKCS5Padding");
@@ -237,6 +241,10 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_ECB_PKCS5Padding");
         add(provider, "Cipher", "AES_256/ECB/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_ECB_NoPadding");
+        add(provider, "Cipher", "AES_256/XTS/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_XTS_NoPadding");
+        add(provider, "Cipher", "AES_256/GCM/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_GCM_NoPadding");
     }
 
     private void putSM2(Provider provider) {

@@ -26,6 +26,7 @@ package org.openeuler.sdf.jca.symmetric;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.provider.SDFProvider;
 import org.openeuler.sdf.commons.spec.SDFKeyGeneratorParameterSpec;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
@@ -45,7 +46,7 @@ import javax.crypto.spec.IvParameterSpec;
  */
 
 @Ignore
-public class SDFAESTest {
+public class SDFAESTest extends SDFTestCase {
     private static final String[] ALGORITHMS = {"AES", "AES_128", "AES_192", "AES_256"};
     private static final String[] MODES = {"ECB", "CBC"};
     private static final String[] PADDINGS = {"NoPadding", "PKCS5Padding"};
@@ -57,6 +58,7 @@ public class SDFAESTest {
 
     @BeforeClass
     public static void beforeClass() {
+        System.setProperty("sdf.enableNonSM", "true");
         Security.insertProviderAt(new SDFProvider(), 1);
     }
 
@@ -72,18 +74,33 @@ public class SDFAESTest {
         }
     }
 
+    @Test
+    public void testXTS() throws Exception {
+        for (String algo : ALGORITHMS) {
+            System.out.println("TEST:" + algo + "/XTS/NoPadding");
+            testAES(algo, "XTS", "NoPadding", true);
+        }
+    }
+
+    @Test
+    public void testGCM() throws Exception {
+        for (String algo : ALGORITHMS) {
+            System.out.println("TEST:" + algo + "/GCM/NoPadding");
+            testAES(algo, "GCM", "NoPadding", true);
+        }
+    }
+
     private static void testAES(String algo, String mo, String pad, boolean isEncKey) throws Exception {
         AlgorithmParameterSpec aps = null;
 
         Cipher cipher = Cipher.getInstance(algo + "/" + mo + "/" + pad);
-        SecretKey key = isEncKey ? getEncSecretKey(algo) : getNormalSecretKey(algo);
+        SecretKey key = isEncKey ? getEncSecretKey(algo, mo) : getNormalSecretKey(algo);
 
         // encrypt
-        if (!mo.equalsIgnoreCase("GCM")) {
-            cipher.init(Cipher.ENCRYPT_MODE, key, aps);
-        } else {
-            cipher.init(Cipher.ENCRYPT_MODE, key);
+        if (mo.equalsIgnoreCase("GCM")) {
+            aps = new SDFGCMParameterSpec(128, new byte[16]);
         }
+        cipher.init(Cipher.ENCRYPT_MODE, key, aps);
 
         String cipherString = null;
         if (!pad.equalsIgnoreCase("NoPadding")) {
@@ -92,18 +109,15 @@ public class SDFAESTest {
             cipherString = plainText;
         }
         byte[] cipherText = cipher.doFinal(cipherString.getBytes(StandardCharsets.UTF_8));
-        if (!mo.equalsIgnoreCase("ECB")) {
+        if (mo.equalsIgnoreCase("GCM")) {
+            // use gcm param again.
+        } else if (!mo.equalsIgnoreCase("ECB")) {
             aps = new IvParameterSpec(cipher.getIV());
         } else {
             aps = null;
         }
 
-        if (!mo.equalsIgnoreCase("GCM")) {
-            cipher.init(Cipher.DECRYPT_MODE, key, aps);
-        } else {
-            cipher.init(Cipher.DECRYPT_MODE, key, cipher.getParameters());
-        }
-
+        cipher.init(Cipher.DECRYPT_MODE, key, aps);
         String decryptPlainText = new String(cipher.doFinal(cipherText));
 
         if (!cipherString.equals(decryptPlainText)) {
@@ -111,19 +125,24 @@ public class SDFAESTest {
         }
     }
 
-    private static SecretKey getEncSecretKey(String algo) throws Exception {
+    private static SecretKey getEncSecretKey(String algo, String mod) throws Exception {
         KeyGenerator kg = KeyGenerator.getInstance("AES");
         SDFKeyGeneratorParameterSpec parameterSpec;
 
+        int keySize;
         if (algo.equalsIgnoreCase("AES_192")) {
-            parameterSpec = new SDFKeyGeneratorParameterSpec(SDFTestUtil.getTestKekId(),
-                    SDFTestUtil.getTestRegionId(), SDFTestUtil.getTestCdpId(), SDFTestUtil.getTestPin(), AES_192_KEY_LENGTH);
+            keySize = AES_192_KEY_LENGTH;
         } else if (algo.equalsIgnoreCase("AES_256")) {
-            parameterSpec = new SDFKeyGeneratorParameterSpec(SDFTestUtil.getTestKekId(),
-                    SDFTestUtil.getTestRegionId(), SDFTestUtil.getTestCdpId(), SDFTestUtil.getTestPin(), AES_256_KEY_LENGTH);
+            keySize = AES_256_KEY_LENGTH;
+        } else {
+            keySize = AES_128_KEY_LENGTH;
+        }
+        if (mod.equalsIgnoreCase("XTS")) {
+            parameterSpec = new SDFXTSParameterSpec(SDFTestUtil.getTestKekId(),
+                    SDFTestUtil.getTestRegionId(), SDFTestUtil.getTestCdpId(), SDFTestUtil.getTestPin(), keySize);
         } else {
             parameterSpec = new SDFKeyGeneratorParameterSpec(SDFTestUtil.getTestKekId(),
-                    SDFTestUtil.getTestRegionId(), SDFTestUtil.getTestCdpId(), SDFTestUtil.getTestPin(), AES_128_KEY_LENGTH);
+                    SDFTestUtil.getTestRegionId(), SDFTestUtil.getTestCdpId(), SDFTestUtil.getTestPin(), keySize);
         }
         kg.init(parameterSpec);
         return kg.generateKey();
