@@ -25,6 +25,7 @@
 package org.openeuler.gm;
 
 import org.junit.Test;
+import org.openeuler.adaptor.X509CertImplAdapter;
 import sun.security.util.ConstraintsParameters;
 import sun.security.util.DisabledAlgorithmConstraints;
 import sun.security.x509.AlgorithmId;
@@ -57,7 +58,8 @@ public class DisabledAlgorithmConstraintsHandlerTest extends BaseTest {
         KeyStore trustStore = getTrustStore();
         Certificate cert = trustStore.getCertificate("server-sm2-sig");
         X509CertImpl x509Cert = X509CertImpl.toImpl((X509Certificate) cert);
-        AlgorithmId algorithmId = (AlgorithmId) x509Cert.get(X509CertImpl.SIG_ALG);
+        X509CertImplAdapter adapter = new X509CertImplAdapter(x509Cert);
+        AlgorithmId algorithmId = adapter.getSigAlg();
         AlgorithmParameters currSigAlgParams = algorithmId.getParameters();
         String currSigAlg = x509Cert.getSigAlgName();
         ConstraintsParameters cp = new TestConstraintsParameters(cert);
