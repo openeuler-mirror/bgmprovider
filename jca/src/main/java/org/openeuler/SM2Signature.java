@@ -24,6 +24,8 @@
 
 package org.openeuler;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
+import org.openeuler.adaptor.ObjectIdentifierHandler;
 import org.openeuler.constant.GMConstants;
 import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 import org.openeuler.sun.security.ec.ECKeyFactory;
@@ -339,8 +341,9 @@ public class SM2Signature extends SignatureSpi {
 
     private byte[] encodeSignature(BigInteger r, BigInteger s) throws IOException {
         DerOutputStream out = new DerOutputStream();
-        out.putInteger(r);
-        out.putInteger(s);
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+        outAdapter.putInteger(r);
+        outAdapter.putInteger(s);
         DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
 
         return result.toByteArray();

@@ -25,7 +25,6 @@
 
 package org.openeuler.sun.security.provider.certpath;
 
-import java.lang.reflect.Method;
 import java.security.AlgorithmConstraints;
 import java.security.CryptoPrimitive;
 import java.util.Collection;
@@ -52,6 +51,7 @@ import java.security.interfaces.DSAParams;
 import java.security.interfaces.DSAPublicKey;
 import java.security.spec.DSAPublicKeySpec;
 
+import org.openeuler.adaptor.X509CertImplAdapter;
 import org.openeuler.gm.DisabledAlgorithmConstraintsHandler;
 import sun.security.util.ConstraintsParameters;
 import sun.security.util.Debug;
@@ -224,8 +224,9 @@ public final class AlgorithmChecker extends PKIXCertPathChecker {
         AlgorithmId algorithmId;
         try {
             x509Cert = X509CertImpl.toImpl((X509Certificate)cert);
-            algorithmId = (AlgorithmId)x509Cert.get(X509CertImpl.SIG_ALG);
-        } catch (CertificateException ce) {
+            X509CertImplAdapter adapter = new X509CertImplAdapter(x509Cert);
+            algorithmId = adapter.getSigAlg();
+        } catch (CertificateException | AssertionError ce) {
             throw new CertPathValidatorException(ce);
         }
 

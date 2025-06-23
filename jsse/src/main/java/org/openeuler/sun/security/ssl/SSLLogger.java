@@ -42,6 +42,8 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 import java.util.Map;
 
+import org.openeuler.adaptor.X509CertImplAdapter;
+import org.openeuler.adaptor.X509CertInfoAdapter;
 import sun.security.action.GetPropertyAction;
 import org.openeuler.sun.misc.HexDumpEncoder;
 import sun.security.x509.*;
@@ -460,11 +462,10 @@ public final class SSLLogger {
             try {
                 X509CertImpl x509 =
                     X509CertImpl.toImpl((X509Certificate)certificate);
-                X509CertInfo certInfo =
-                        (X509CertInfo)x509.get(X509CertImpl.NAME + "." +
-                                                       X509CertImpl.INFO);
-                CertificateExtensions certExts = (CertificateExtensions)
-                        certInfo.get(X509CertInfo.EXTENSIONS);
+                X509CertImplAdapter implAdapter = new X509CertImplAdapter(x509);
+                X509CertInfo certInfo = implAdapter.getInfo();
+                X509CertInfoAdapter infoAdapter = new X509CertInfoAdapter(certInfo);
+                CertificateExtensions certExts = infoAdapter.getExtensions();
                 if (certExts == null) {
                     Object[] certFields = {
                         x509.getVersion(),

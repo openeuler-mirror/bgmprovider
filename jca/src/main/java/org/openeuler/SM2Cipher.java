@@ -634,7 +634,7 @@ public class SM2Cipher extends CipherSpi {
         DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
         try {
             return result.toByteArray();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IOException("DERSequence getEncoded failed", e);
         }
     }
