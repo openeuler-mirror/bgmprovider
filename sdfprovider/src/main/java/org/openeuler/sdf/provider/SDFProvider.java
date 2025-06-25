@@ -132,6 +132,7 @@ public class SDFProvider extends AbstractProvider {
         AccessController.doPrivileged(new PrivilegedAction<Object>() {
             @Override
             public Object run() {
+                File absoluteFile = null;
                 try {
                     // create temporary directory. default directory "/tmp"
                     String tmpPath = System.getProperty("java.io.tmpdir") + "/";
@@ -155,7 +156,7 @@ public class SDFProvider extends AbstractProvider {
                     if (cryptoInputStream == null) {
                         throw new FileNotFoundException(library);
                     }
-                    File absoluteFile = tmpLibFile.getAbsoluteFile();
+                    absoluteFile = tmpLibFile.getAbsoluteFile();
                     Files.copy(cryptoInputStream,
                             absoluteFile.toPath(),
                             StandardCopyOption.REPLACE_EXISTING);
@@ -171,6 +172,10 @@ public class SDFProvider extends AbstractProvider {
                     // skip
                     if (debug != null) {
                         debug.println(e.getMessage());
+                    }
+                } finally {
+                    if (absoluteFile != null) {
+                        absoluteFile.deleteOnExit();
                     }
                 }
                 return null;

@@ -77,6 +77,8 @@ JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_
         throwOutOfMemoryError(env, "malloc aad failed.");
         goto cleanup;
     }
+    // encrypt and decrypt should have same aad
+    memset(aad, 1, aadLen);
     if (tagArr != NULL) {
         tag = (*env)->GetByteArrayElements(env, tagArr, NULL);
     }

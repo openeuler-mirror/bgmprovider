@@ -15,6 +15,7 @@
         <module>tomcat-adaptor</module>
         <module>thirdparty-testing</module>
         <module>commons</module>
+        <module>sdfprovider</module>
     </modules>
 
     <name>gmssl</name>
