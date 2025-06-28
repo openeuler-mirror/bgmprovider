@@ -113,7 +113,6 @@
                 <argLine>
                     --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
                     --add-exports=java.base/jdk.internal.ref=ALL-UNNAMED
-                    --add-exports=java.base/jdk.internal.access=ALL-UNNAMED
                 </argLine>
             </properties>
         </profile>

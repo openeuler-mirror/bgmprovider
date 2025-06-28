@@ -180,7 +180,8 @@ public class SDFHmacTest extends SDFTestCase {
     private static SecretKey getKey(SDFHmacAlgorithm hmacAlgorithm, boolean isEncKey) throws Exception {
         KeyGenerator keyGenerator = KeyGenerator.getInstance(hmacAlgorithm.algoName, sdfProvider);
         // data key of hmac, should limit outKeyBitsLen in [1, 1024]
-        int keySize = SDFTestUtil.generateRandomInt(1024) + 1;
+        // keySize >> 3 then << 3, the result must between [1, 1024]
+        int keySize = SDFTestUtil.generateRandomInt(1016) + 8;
         if (isEncKey) {
             SDFKeyGeneratorParameterSpec parameterSpec = new SDFKeyGeneratorParameterSpec(
                     SDFTestUtil.getTestKekId(),

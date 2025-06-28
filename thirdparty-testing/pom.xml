@@ -132,7 +132,6 @@
             <properties>
                 <surefire.argLine>
                     --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
-                    --add-exports=java.base/jdk.internal.access=ALL-UNNAMED
                 </surefire.argLine>
             </properties>
         </profile>
