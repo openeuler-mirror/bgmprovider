@@ -11,8 +11,8 @@ or
 export SDF_EXECUTABLE_X86_64="gcc"
 export SDF_EXECUTABLE_AARCH64="${SDF_EXECUTABLE_X86_64}"
 
-export SDF_LIBRARY_PATH_X86_64="/home/user/workspace/v1.1.7_v2/lib/x86_64"
-export SDF_LIBRARY_PATH_AARCH64="${SDF_LIBRARY_PATH_X86_64}"
+export SDF_LIBRARY_PATH_X86_64="/usr/lib64/cryptocard/x86_64"
+export SDF_LIBRARY_PATH_AARCH64="/usr/lib64/cryptocard/aarch64"
 ```
 
 2.Build package
@@ -25,7 +25,7 @@ mvn -Dmaven.test.skip=true clean package
 
 - configure environment variables
 ```
-export LD_LIBRARY_PATH="/home/user/workspace/v1.1.7_v2/lib/x86_64"
+export LD_LIBRARY_PATH="/usr/lib64/cryptocard"
 ```
 - run test
 ```
@@ -47,13 +47,11 @@ https://publishing-ie-linaro-org.s3.amazonaws.com/releases/components/toolchain/
 - Place `libswsds` and `libboundscheck` in the aarch64 and x86_64 directories
 
 ```
-$ tree /home/user/workspace/v1.1.7_v2/lib
+$ tree /usr/lib64/cryptocard
 ├── aarch64
-│   ├── libboundscheck.so
-│   └── libswsds.so
+│   ├── libcrypto_card_sdk.so
 └── x86_64
-    ├── libboundscheck.so
-    └── libswsds.so
+    ├── libcrypto_card_sdk.so
 ```
 
 - Configure cross-compilation toolchain environment variables
@@ -70,8 +68,8 @@ When cross compiling on an x86_64 machine, use `aarch64-linux-gnu-gcc` to compil
 export SDF_EXECUTABLE_X86_64="gcc"
 export SDF_EXECUTABLE_AARCH64="aarch64-linux-gnu-gcc"
 
-export SDF_LIBRARY_PATH_X86_64="/home/user/workspace/v1.1.7_v2/lib/x86_64"
-export SDF_LIBRARY_PATH_AARCH64="/home/user/workspace/v1.1.7_v2/lib/aarch64"
+export SDF_LIBRARY_PATH_X86_64="/usr/lib64/cryptocard/x86_64"
+export SDF_LIBRARY_PATH_AARCH64="/usr/lib64/cryptocard/aarch64"
 ```
 
 - Build package
