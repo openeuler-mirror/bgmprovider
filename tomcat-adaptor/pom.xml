@@ -11,6 +11,7 @@
 
     <artifactId>tomcat-adaptor</artifactId>
     <packaging>jar</packaging>
+    <name>tomcat-adaptor</name>
 
     <properties>
         <tomcat.version>9.0.83</tomcat.version>
