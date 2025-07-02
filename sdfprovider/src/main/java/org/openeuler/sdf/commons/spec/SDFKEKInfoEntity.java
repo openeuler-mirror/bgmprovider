@@ -28,6 +28,8 @@ import org.openeuler.sdf.commons.config.SDFConfig;
 
 import java.security.InvalidParameterException;
 
+import static org.openeuler.sdf.commons.constant.SDFConstant.*;
+
 public class SDFKEKInfoEntity {
     private static SDFKEKInfoEntity defaultKEKInfo;
 
@@ -48,8 +50,11 @@ public class SDFKEKInfoEntity {
     protected byte[] pin;
 
     public SDFKEKInfoEntity(byte[] kekId, byte[] regionId, byte[] cdpId, byte[] pin) {
-        if (kekId == null || regionId == null && cdpId == null) {
+        if (kekId == null || regionId == null || cdpId == null) {
             throw new InvalidParameterException("kekId, regionId and cdpId cannot be empty.");
+        }
+        if (kekId.length > KEK_ID_MAX_LEN || regionId.length > REGION_ID_MAX_LEN || cdpId.length > CDP_ID_MAX_LEN) {
+            throw new InvalidParameterException("kekId, regionId and cdpId length is invalid.");
         }
         this.kekId = kekId;
         this.regionId = regionId;

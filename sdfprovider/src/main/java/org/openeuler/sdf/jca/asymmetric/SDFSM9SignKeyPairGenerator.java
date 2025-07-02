@@ -29,8 +29,8 @@ public class SDFSM9SignKeyPairGenerator extends SDFKeyPairGeneratorCore {
     public void initialize(int keySize, SecureRandom random) {
         super.initialize(keySize, random);
         try {
-            initialize(new SDFSM9ParameterSpec(SDFSM9KeyParam.DEFAULT_HID, SDFSM9KeyParam.DEFAULT_USERID,
-                    SDFSM9KeyParam.DEFAULT_ENC_MODE), random);
+            initialize(new SDFSM9ParameterSpec(SDFKEKInfoEntity.getDefaultKEKInfo(), SDFSM9KeyParam.DEFAULT_HID,
+                    SDFSM9KeyParam.DEFAULT_USERID, SDFSM9KeyParam.DEFAULT_ENC_MODE), random);
         } catch (InvalidAlgorithmParameterException e) {
             throw new InvalidParameterException(e.getMessage());
         }

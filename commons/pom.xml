@@ -9,6 +9,7 @@
 
     <artifactId>commons</artifactId>
     <packaging>jar</packaging>
+    <name>commons</name>
 
     <build>
         <plugins>

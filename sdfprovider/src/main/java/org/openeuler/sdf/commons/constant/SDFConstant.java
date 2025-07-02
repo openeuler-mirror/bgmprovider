@@ -14,4 +14,8 @@ public interface SDFConstant {
 
     int SM2_PUBLIC_KEY_X_LEN = 32;
     int SM2_PUBLIC_KEY_Y_LEN = 32;
+
+    int KEK_ID_MAX_LEN = 36;
+    int REGION_ID_MAX_LEN = 32;
+    int CDP_ID_MAX_LEN = 32;
 }

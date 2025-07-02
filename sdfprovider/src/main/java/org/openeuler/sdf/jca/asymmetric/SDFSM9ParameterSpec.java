@@ -17,8 +17,8 @@ public class SDFSM9ParameterSpec implements SDFEncKeyGenParameterSpec {
     // enc mode: 0-key, 1-SM4_ecb_enc_pkcs#5
     private int encMode = SDFSM9KeyParam.DEFAULT_ENC_MODE;
 
-    public SDFSM9ParameterSpec(KeyPair keyPair, byte[] hId, byte[] userId, int encMode) {
-        this.kekInfo = SDFKEKInfoEntity.getDefaultKEKInfo();
+    public SDFSM9ParameterSpec(SDFKEKInfoEntity kekInfo, KeyPair keyPair, byte[] hId, byte[] userId, int encMode) {
+        this.kekInfo = kekInfo;
         this.publicKey = keyPair.getPublic();
         this.privateKey = keyPair.getPrivate();
         this.hId = hId.clone();
@@ -26,14 +26,14 @@ public class SDFSM9ParameterSpec implements SDFEncKeyGenParameterSpec {
         this.encMode = encMode;
     }
 
-    public SDFSM9ParameterSpec(KeyPair keyPair) {
-        this.kekInfo = SDFKEKInfoEntity.getDefaultKEKInfo();
+    public SDFSM9ParameterSpec(SDFKEKInfoEntity kekInfo, KeyPair keyPair) {
+        this.kekInfo = kekInfo;
         this.publicKey = keyPair.getPublic();
         this.privateKey = keyPair.getPrivate();
     }
 
-    public SDFSM9ParameterSpec(byte[] hId, byte[] userId, int encMode) {
-        this.kekInfo = SDFKEKInfoEntity.getDefaultKEKInfo();
+    public SDFSM9ParameterSpec(SDFKEKInfoEntity kekInfo, byte[] hId, byte[] userId, int encMode) {
+        this.kekInfo = kekInfo;
         this.hId = hId.clone();
         this.userId = userId.clone();
         this.encMode = encMode;

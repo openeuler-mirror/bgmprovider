@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
-import org.openeuler.sdf.commons.constant.SDFDataKeyType;
+import org.openeuler.sdf.commons.spec.SDFKEKInfoEntity;
 import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
@@ -15,6 +15,9 @@ import java.security.*;
 import java.util.Arrays;
 
 public class SDFSM9CipherTest extends SDFTestCase {
+    private static final byte[] HID = new byte[] {3};
+    private static final byte[] USER_ID = "SM9_DEFAULT_USER".getBytes();
+    private static final int ENC = 0;
     private static PublicKey publicKey;
     private static PrivateKey privateKey;
     private static PublicKey signPublicKey;
@@ -33,13 +36,13 @@ public class SDFSM9CipherTest extends SDFTestCase {
         Security.insertProviderAt(new BGMJCEProvider(), 1);
         Security.insertProviderAt(new SDFProvider(), 1);
         KeyPairGenerator sm9EncMaster = KeyPairGenerator.getInstance("SM9Enc");
-        sm9EncMaster.initialize(256);
+        sm9EncMaster.initialize(new SDFSM9ParameterSpec(SDFKEKInfoEntity.getDefaultKEKInfo(), HID, USER_ID, ENC));
         KeyPair keyPair = sm9EncMaster.generateKeyPair();
         publicKey = keyPair.getPublic();
         privateKey = keyPair.getPrivate();
 
         KeyPairGenerator sm9SignMaster = KeyPairGenerator.getInstance("SM9Sign");
-        sm9SignMaster.initialize(256);
+        sm9SignMaster.initialize(new SDFSM9ParameterSpec(SDFKEKInfoEntity.getDefaultKEKInfo(), HID, USER_ID, ENC));
         KeyPair signKeyPair = sm9SignMaster.generateKeyPair();
         signPublicKey = signKeyPair.getPublic();
         signPrivateKey = signKeyPair.getPrivate();
@@ -67,7 +70,8 @@ public class SDFSM9CipherTest extends SDFTestCase {
     @Test
     public void testSDFSM9Sign() throws Exception {
         Signature signature = Signature.getInstance("SM9");
-        signature.setParameter(new SDFSM9ParameterSpec(new KeyPair(signPublicKey, signPrivateKey)));
+        signature.setParameter(new SDFSM9ParameterSpec(SDFKEKInfoEntity.getDefaultKEKInfo(),
+                new KeyPair(signPublicKey, signPrivateKey)));
         signature.initSign(signPrivateKey);
         byte[] data = "Test data".getBytes();
         signature.update(data);
