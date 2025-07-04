@@ -20,6 +20,10 @@ If you want to test algorithms implemented by other Providers, you can specify t
 ```
 java -jar target/benchmarks.jar -jvmArgsPrepend "-Dbenchmark.provider.name=org.openeuler.security.openssl.KAEProvider"
 ```
+If you want to test algorithms implemented by SDFProvider, you can specify the Provider through the system property `benchmark.provider.name`.
+```
+java -Dbenchmark.provider.name=org.openeuler.sdf.provider.SDFProvider -Dsdf.sdkConfig=/tmp/sdk.config -Dsdf.defaultKEKId="xxxxxxxxx" -Dsdf.defaultRegionId="TestRegion" -Dsdf.defaultCdpId="cdp_xxxxxx" -jar target/benchmarks.jar SM3Benchmark
+```
 
 ## More JMH parameter introduction
 

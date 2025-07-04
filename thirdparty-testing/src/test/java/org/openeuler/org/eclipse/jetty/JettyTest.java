@@ -31,6 +31,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.openeuler.commons.BaseTest;
 
@@ -57,6 +58,11 @@ public class JettyTest extends BaseTest {
             ECDHE_SM4_GCM_SM3
     };
 
+    private static final String[] TEST_ENC_GM_CIPHER_SUITES = {
+            ECC_SM4_CBC_SM3,
+            ECDHE_SM4_CBC_SM3
+    };
+
     private static final String[] TEST_GM_ECC_CIPHER_SUITES = {
             ECC_SM4_CBC_SM3,
             ECC_SM4_GCM_SM3
@@ -64,6 +70,7 @@ public class JettyTest extends BaseTest {
 
     @Test
     public void testTLS() throws Exception {
+        super.initBGMProvider();
         Server server = null;
         try {
             server = startServer(true);
@@ -77,6 +84,7 @@ public class JettyTest extends BaseTest {
 
     @Test
     public void testGMTLSWithClientAuth() throws Exception {
+        super.initBGMProvider();
         Server server = null;
         try {
             server = startServer(true);
@@ -92,12 +100,47 @@ public class JettyTest extends BaseTest {
 
     @Test
     public void testGMTLSWithNoClientAuth() throws Exception {
+        super.initBGMProvider();
         Server server = null;
         try {
             server = startServer(false);
             for (String cipherSuite : TEST_GM_ECC_CIPHER_SUITES) {
                 startClient(GMTLS_PROTOCOL, cipherSuite);
             }
+        } finally {
+            if (server != null) {
+                server.stop();
+            }
+        }
+    }
+
+    // If run this testcase, prepare certs to resources/sdf/xxx
+    @Test
+    @Ignore
+    public void testSDFGMTLSWithClientAuth() throws Exception {
+        super.initSDFProvider();
+        Server server = null;
+        try {
+            server = startServer(true);
+            for (String cipherSuite : TEST_ENC_GM_CIPHER_SUITES) {
+                startClient(GMTLS_PROTOCOL, cipherSuite);
+            }
+        } finally {
+            if (server != null) {
+                server.stop();
+            }
+        }
+    }
+
+    // If run this testcase, prepare certs to resources/sdf/xxx
+    @Test
+    @Ignore
+    public void testSDFGMTLSWithNoClientAuth() throws Exception {
+        super.initSDFProvider();
+        Server server = null;
+        try {
+            server = startServer(false);
+            startClient(GMTLS_PROTOCOL, ECC_SM4_CBC_SM3);
         } finally {
             if (server != null) {
                 server.stop();
@@ -145,10 +188,10 @@ public class JettyTest extends BaseTest {
     private static SslContextFactory createServerSslContextFactory(boolean needClientAuth) {
         SslContextFactory.Server sslSocketFactory = new SslContextFactory.Server();
         sslSocketFactory.setProtocol(GMTLS_PROTOCOL);
-        sslSocketFactory.setKeyStorePath(SERVER_KEYSTORE_PATH);
-        sslSocketFactory.setKeyStorePassword(SERVER_KEYSTORE_PASSWORD);
-        sslSocketFactory.setTrustStorePath(CLIENT_TRUSTSTORE_PATH);
-        sslSocketFactory.setTrustStorePassword(CLIENT_TRUSTSTORE_PASSWORD);
+        sslSocketFactory.setKeyStorePath(serverKeyStorePath);
+        sslSocketFactory.setKeyStorePassword(serverKeyStorePass);
+        sslSocketFactory.setTrustStorePath(clientTrustStorePath);
+        sslSocketFactory.setTrustStorePassword(clientTrustStorePass);
         sslSocketFactory.setNeedClientAuth(needClientAuth);
         return sslSocketFactory;
     }
@@ -185,10 +228,10 @@ public class JettyTest extends BaseTest {
     private static SslContextFactory createClientSslContextFactory(String protocol, String cipherSuite) {
         SslContextFactory.Client sslContextFactory = new SslContextFactory.Client();
         sslContextFactory.setProtocol(GMTLS_PROTOCOL);
-        sslContextFactory.setKeyStorePath(CLIENT_KEYSTORE_PATH);
-        sslContextFactory.setKeyStorePassword(CLIENT_KEYSTORE_PASSWORD);
-        sslContextFactory.setTrustStorePath(SERVER_TRUSTSTORE_PATH);
-        sslContextFactory.setTrustStorePassword(SERVER_TRUSTSTORE_PASSWORD);
+        sslContextFactory.setKeyStorePath(clientKeyStorePath);
+        sslContextFactory.setKeyStorePassword(clientKeyStorePass);
+        sslContextFactory.setTrustStorePath(serverTrustStorePath);
+        sslContextFactory.setTrustStorePassword(serverTrustStorePass);
         sslContextFactory.setIncludeProtocols(protocol);
         sslContextFactory.setIncludeCipherSuites(cipherSuite);
         return sslContextFactory;
