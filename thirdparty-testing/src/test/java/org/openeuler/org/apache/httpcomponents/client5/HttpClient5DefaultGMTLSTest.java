@@ -24,6 +24,7 @@
 
 package org.openeuler.org.apache.httpcomponents.client5;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class HttpClient5DefaultGMTLSTest extends HttpClient5DefaultBaseTest {
@@ -34,6 +35,22 @@ public class HttpClient5DefaultGMTLSTest extends HttpClient5DefaultBaseTest {
 
     @Test
     public void testTwoWay() throws Exception {
+        test("GMTLS", true);
+    }
+
+    // If run this testcase, prepare certs to resources/sdf/xxx
+    @Test
+    @Ignore
+    public void testOneWayWithSDFProvider() throws Exception {
+        super.setUpWithSDFProvider();
+        test("GMTLS", false);
+    }
+
+    // If run this testcase, prepare certs to resources/sdf/xxx
+    @Test
+    @Ignore
+    public void testTwoWayWithSDFProvider() throws Exception {
+        super.setUpWithSDFProvider();
         test("GMTLS", true);
     }
 }

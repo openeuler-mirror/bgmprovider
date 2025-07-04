@@ -24,6 +24,8 @@
 
 package org.openeuler;
 
+import org.openeuler.sdf.commons.spec.SDFKEKInfoEntity;
+import org.openeuler.sdf.commons.spec.SDFKeyGeneratorParameterSpec;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Param;
@@ -31,6 +33,7 @@ import org.openjdk.jmh.annotations.Setup;
 
 import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
 
 public class SM4Benchmark extends BaseBenchmark {
@@ -83,9 +86,14 @@ public class SM4Benchmark extends BaseBenchmark {
         encryptedData = fillEncrypted(data, encryptCipher);
     }
 
-    private SecretKey generateKey(String keyAlgorithm) throws NoSuchAlgorithmException {
+    private SecretKey generateKey(String keyAlgorithm)
+            throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         KeyGenerator keyGenerator = KeyGenerator.getInstance(keyAlgorithm);
-        keyGenerator.init(keyLength);
+        if (sdfProviderFlag) {
+            keyGenerator.init(new SDFKeyGeneratorParameterSpec(SDFKEKInfoEntity.getDefaultKEKInfo(), keyLength));
+        } else {
+            keyGenerator.init(keyLength);
+        }
         return keyGenerator.generateKey();
     }
 

@@ -1,0 +1,21 @@
+package org.openeuler.sdf.commons.constant;
+
+public interface SDFConstant {
+    byte[] DEFAULT_ID = "1234567812345678".getBytes();
+
+    // SM1/SM4/SM7/Hmac Encrypted key size
+    int ENC_SYS_PRIVATE_KEY_SIZE = 1024;  // key size in bytes
+
+    // XTS Encrypted key size
+    int XTS_SYS_PRIVATE_KEY_SIZE = 2048;  // key size in bytes
+
+    // SM2 Encrypted key size
+    int ENC_SM2_PRIVATE_KEY_SIZE = 1024;  // key size in bytes
+
+    int SM2_PUBLIC_KEY_X_LEN = 32;
+    int SM2_PUBLIC_KEY_Y_LEN = 32;
+
+    int KEK_ID_MAX_LEN = 36;
+    int REGION_ID_MAX_LEN = 32;
+    int CDP_ID_MAX_LEN = 32;
+}
