@@ -33,6 +33,7 @@ import java.security.*;
 import java.security.interfaces.*;
 import java.security.spec.AlgorithmParameterSpec;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.sdf.jca.asymmetric.SDFRSACore;
 import sun.security.rsa.RSACore;
 import sun.security.rsa.RSAKeyFactory;
@@ -232,8 +233,9 @@ public abstract class SDFRSASignature extends SignatureSpi {
     public static byte[] encodeSignature(ObjectIdentifier oid, byte[] digest)
             throws IOException {
         DerOutputStream out = new DerOutputStream();
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
         new AlgorithmId(oid).encode(out);
-        out.putOctetString(digest);
+        outAdapter.putOctetString(digest);
         DerValue result =
             new DerValue(DerValue.tag_Sequence, out.toByteArray());
         return result.toByteArray();

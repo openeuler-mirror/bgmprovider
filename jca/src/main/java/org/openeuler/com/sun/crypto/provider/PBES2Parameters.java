@@ -36,6 +36,7 @@ import java.util.Set;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEParameterSpec;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import sun.security.util.*;
 
 import static org.openeuler.adaptor.ObjectIdentifierHandler.newObjectIdentifier;
@@ -355,46 +356,52 @@ abstract class PBES2Parameters extends AlgorithmParametersSpi {
 
     protected byte[] engineGetEncoded() throws IOException {
         DerOutputStream out = new DerOutputStream();
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
 
         DerOutputStream pBES2_params = new DerOutputStream();
+        DerOutputStreamAdapter pBES2_Adapter = new DerOutputStreamAdapter(pBES2_params);
 
         DerOutputStream keyDerivationFunc = new DerOutputStream();
-        keyDerivationFunc.putOID(GMT_0091_2020_PBKDF2_OID);
+        DerOutputStreamAdapter key_Adapter = new DerOutputStreamAdapter(keyDerivationFunc);
+        key_Adapter.putOID(GMT_0091_2020_PBKDF2_OID);
 
         DerOutputStream pBKDF2_params = new DerOutputStream();
-        pBKDF2_params.putOctetString(salt); // choice: 'specified OCTET STRING'
-        pBKDF2_params.putInteger(iCount);
+        DerOutputStreamAdapter pBKDF2_Adapter = new DerOutputStreamAdapter(pBKDF2_params);
+        pBKDF2_Adapter.putOctetString(salt); // choice: 'specified OCTET STRING'
+        pBKDF2_Adapter.putInteger(iCount);
 
         if (keysize > 0) {
-            pBKDF2_params.putInteger(keysize / 8); // derived key length (in octets)
+            pBKDF2_Adapter.putInteger(keysize / 8); // derived key length (in octets)
         }
 
         DerOutputStream prf = new DerOutputStream();
+        DerOutputStreamAdapter prf_Adapter = new DerOutputStreamAdapter(prf);
         // algorithm is id-hmacWithSM3
-        prf.putOID(kdfAlgo_OID);
+        prf_Adapter.putOID(kdfAlgo_OID);
         // parameters is 'NULL'
-        prf.putNull();
-        pBKDF2_params.write(DerValue.tag_Sequence, prf);
+        prf_Adapter.putNull();
+        pBKDF2_Adapter.write(DerValue.tag_Sequence, prf);
 
-        keyDerivationFunc.write(DerValue.tag_Sequence, pBKDF2_params);
-        pBES2_params.write(DerValue.tag_Sequence, keyDerivationFunc);
+        key_Adapter.write(DerValue.tag_Sequence, pBKDF2_params);
+        pBES2_Adapter.write(DerValue.tag_Sequence, keyDerivationFunc);
 
         DerOutputStream encryptionScheme = new DerOutputStream();
+        DerOutputStreamAdapter encryptionSchemeAdapter = new DerOutputStreamAdapter(encryptionScheme);
         // algorithm is id-aes128-CBC or id-aes256-CBC
-        encryptionScheme.putOID(cipherAlgo_OID);
+        encryptionSchemeAdapter.putOID(cipherAlgo_OID);
         // parameters is 'AES-IV ::= OCTET STRING (SIZE(16))'
         if (cipherParam != null && cipherParam instanceof IvParameterSpec) {
-            encryptionScheme.putOctetString(
+            encryptionSchemeAdapter.putOctetString(
                 ((IvParameterSpec) cipherParam).getIV());
         } else if (SM4_128_ECB_OID.equals((Object)cipherAlgo_OID)) {
             // optional
-            encryptionScheme.putOctetString(new byte[0]);
+            encryptionSchemeAdapter.putOctetString(new byte[0]);
         } else {
             throw new IOException("Wrong parameter type: IV expected");
         }
-        pBES2_params.write(DerValue.tag_Sequence, encryptionScheme);
+        pBES2_Adapter.write(DerValue.tag_Sequence, encryptionScheme);
 
-        out.write(DerValue.tag_Sequence, pBES2_params);
+        outAdapter.write(DerValue.tag_Sequence, pBES2_params);
 
         return out.toByteArray();
     }

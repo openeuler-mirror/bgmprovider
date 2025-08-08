@@ -24,6 +24,7 @@
 
 package org.openeuler;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.sun.security.ec.BGECPrivateKey;
 import org.openeuler.sun.security.ec.BGECPublicKey;
 import org.openeuler.com.sun.crypto.provider.ConstructKeys;
@@ -622,14 +623,15 @@ public class SM2Cipher extends CipherSpi {
         byte[] c3 = digest.digest();
 
         DerOutputStream out = new DerOutputStream();
-        out.putInteger(c1Point.getAffineX());
-        out.putInteger(c1Point.getAffineY());
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+        outAdapter.putInteger(c1Point.getAffineX());
+        outAdapter.putInteger(c1Point.getAffineY());
         if (outputMode == Mode.C1C3C2) {
-            out.putOctetString(c3);
-            out.putOctetString(c2);
+            outAdapter.putOctetString(c3);
+            outAdapter.putOctetString(c2);
         } else if (outputMode == Mode.C1C2C3) {
-            out.putOctetString(c2);
-            out.putOctetString(c3);
+            outAdapter.putOctetString(c2);
+            outAdapter.putOctetString(c3);
         }
         DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
         try {

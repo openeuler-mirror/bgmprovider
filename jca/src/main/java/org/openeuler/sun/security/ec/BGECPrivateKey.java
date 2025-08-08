@@ -34,6 +34,7 @@ import java.security.*;
 import java.security.interfaces.*;
 import java.security.spec.*;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.sun.security.util.ECParameters;
 
 import sun.security.util.*;
@@ -108,10 +109,11 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
                 (AlgorithmId.EC_oid, ECParameters.getAlgorithmParameters(params));
         try {
             DerOutputStream out = new DerOutputStream();
-            out.putInteger(1); // version 1
+            DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+            outAdapter.putInteger(1); // version 1
             byte[] privBytes = s.clone();
             ArrayUtil.reverse(privBytes);
-            out.putOctetString(privBytes);
+            outAdapter.putOctetString(privBytes);
             DerValue val =
                     new DerValue(DerValue.tag_Sequence, out.toByteArray());
             key = val.toByteArray();
@@ -135,8 +137,9 @@ public final class BGECPrivateKey extends PKCS8Key implements ECPrivateKey {
             System.arraycopy(sArr, inPos, sOctets, outPos, length);
 
             DerOutputStream out = new DerOutputStream();
-            out.putInteger(1); // version 1
-            out.putOctetString(sOctets);
+            DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+            outAdapter.putInteger(1); // version 1
+            outAdapter.putOctetString(sOctets);
             DerValue val =
                     new DerValue(DerValue.tag_Sequence, out.toByteArray());
             key = val.toByteArray();

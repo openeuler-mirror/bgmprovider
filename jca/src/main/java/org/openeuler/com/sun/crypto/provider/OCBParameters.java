@@ -26,6 +26,7 @@
 
 package org.openeuler.com.sun.crypto.provider;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.sun.misc.HexDumpEncoder;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
@@ -103,11 +104,14 @@ public final class OCBParameters extends AlgorithmParametersSpi {
 
     protected byte[] engineGetEncoded() throws IOException {
         DerOutputStream out = new DerOutputStream();
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
         DerOutputStream bytes = new DerOutputStream();
+        DerOutputStreamAdapter bytesAdapter = new DerOutputStreamAdapter(bytes);
 
-        bytes.putOctetString(iv);
-        bytes.putInteger(tLen);
-        out.write(DerValue.tag_Sequence, bytes);
+        bytesAdapter.putOctetString(iv);
+        bytesAdapter.putInteger(tLen);
+
+        outAdapter.write(DerValue.tag_Sequence, bytes);
         return out.toByteArray();
     }
 

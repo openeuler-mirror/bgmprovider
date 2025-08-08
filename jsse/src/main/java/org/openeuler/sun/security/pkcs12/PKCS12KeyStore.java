@@ -63,6 +63,7 @@ import javax.crypto.Mac;
 import javax.security.auth.DestroyFailedException;
 import javax.security.auth.x500.X500Principal;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.gm.PKCS12KeyStoreHandler;
 import sun.security.action.GetPropertyAction;
 import sun.security.util.Debug;
@@ -651,11 +652,13 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                 // Encode secret key in a PKCS#8
                 DerOutputStream pkcs8 = new DerOutputStream();
                 DerOutputStream secretKeyInfo = new DerOutputStream();
-                secretKeyInfo.putInteger(0);
+                DerOutputStreamAdapter secretKeyInfoAdapter = new DerOutputStreamAdapter(secretKeyInfo);
+                secretKeyInfoAdapter.putInteger(0);
                 AlgorithmId algId = AlgorithmId.get(key.getAlgorithm());
                 algId.encode(secretKeyInfo);
-                secretKeyInfo.putOctetString(key.getEncoded());
-                pkcs8.write(DerValue.tag_Sequence, secretKeyInfo);
+                secretKeyInfoAdapter.putOctetString(key.getEncoded());
+                DerOutputStreamAdapter pkcs8Adapter = new DerOutputStreamAdapter(pkcs8);
+                pkcs8Adapter.write(DerValue.tag_Sequence, secretKeyInfo);
 
                 // Encrypt the secret key (using same PBE as for private keys)
                 keyEntry.protectedSecretKey =
@@ -1195,7 +1198,8 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
 
         // PFX version (always write the latest version)
         DerOutputStream version = new DerOutputStream();
-        version.putInteger(VERSION_3);
+        DerOutputStreamAdapter versionAdapter = new DerOutputStreamAdapter(version);
+        versionAdapter.putInteger(VERSION_3);
         byte[] pfxVersion = version.toByteArray();
         pfx.write(pfxVersion);
 
@@ -1247,7 +1251,8 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
 
         // wrap as SequenceOf ContentInfos
         DerOutputStream cInfo = new DerOutputStream();
-        cInfo.write(DerValue.tag_SequenceOf, authSafeContentInfo);
+        DerOutputStreamAdapter cInfoAdapter = new DerOutputStreamAdapter(cInfo);
+        cInfoAdapter.write(DerValue.tag_SequenceOf, authSafeContentInfo);
         byte[] authenticatedSafe = cInfo.toByteArray();
 
         // Create Encapsulated ContentInfo
@@ -1269,7 +1274,8 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
         }
         // write PFX to output stream
         DerOutputStream pfxout = new DerOutputStream();
-        pfxout.write(DerValue.tag_Sequence, pfx);
+        DerOutputStreamAdapter pfxoutAdapter = new DerOutputStreamAdapter(pfxout);
+        pfxoutAdapter.write(DerValue.tag_Sequence, pfx);
         byte[] pfxData = pfxout.toByteArray();
         stream.write(pfxData);
         stream.flush();
@@ -1606,42 +1612,52 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
 
         // SafeBag Attributes
         DerOutputStream bagAttrs = new DerOutputStream();
+        DerOutputStreamAdapter bagAttrsAdapter = new DerOutputStreamAdapter(bagAttrs);
 
         // Encode the friendlyname oid.
         if (alias != null) {
             DerOutputStream bagAttr1 = new DerOutputStream();
-            bagAttr1.putOID(PKCS9FriendlyName_OID);
+            DerOutputStreamAdapter bagAttr1Adapter = new DerOutputStreamAdapter(bagAttr1);
+            bagAttr1Adapter.putOID(PKCS9FriendlyName_OID);
             DerOutputStream bagAttrContent1 = new DerOutputStream();
+            DerOutputStreamAdapter bagAttrContent1Adapter = new DerOutputStreamAdapter(bagAttrContent1);
             DerOutputStream bagAttrValue1 = new DerOutputStream();
-            bagAttrContent1.putBMPString(alias);
-            bagAttr1.write(DerValue.tag_Set, bagAttrContent1);
-            bagAttrValue1.write(DerValue.tag_Sequence, bagAttr1);
+            DerOutputStreamAdapter bagAttrValue1Adapter = new DerOutputStreamAdapter(bagAttrValue1);
+            bagAttrContent1Adapter.putBMPString(alias);
+            bagAttr1Adapter.write(DerValue.tag_Set, bagAttrContent1);
+            bagAttrValue1Adapter.write(DerValue.tag_Sequence, bagAttr1);
             friendlyName = bagAttrValue1.toByteArray();
         }
 
         // Encode the localkeyId oid.
         if (keyId != null) {
             DerOutputStream bagAttr2 = new DerOutputStream();
-            bagAttr2.putOID(PKCS9LocalKeyId_OID);
+            DerOutputStreamAdapter bagAttr2Adapter = new DerOutputStreamAdapter(bagAttr2);
+            bagAttr2Adapter.putOID(PKCS9LocalKeyId_OID);
             DerOutputStream bagAttrContent2 = new DerOutputStream();
+            DerOutputStreamAdapter bagAttrContent2Adapter = new DerOutputStreamAdapter(bagAttrContent2);
             DerOutputStream bagAttrValue2 = new DerOutputStream();
-            bagAttrContent2.putOctetString(keyId);
-            bagAttr2.write(DerValue.tag_Set, bagAttrContent2);
-            bagAttrValue2.write(DerValue.tag_Sequence, bagAttr2);
+            DerOutputStreamAdapter bagAttrValue2Adapter = new DerOutputStreamAdapter(bagAttrValue2);
+            bagAttrContent2Adapter.putOctetString(keyId);
+            bagAttr2Adapter.write(DerValue.tag_Set, bagAttrContent2);
+            bagAttrValue2Adapter.write(DerValue.tag_Sequence, bagAttr2);
             localKeyID = bagAttrValue2.toByteArray();
         }
 
         // Encode the trustedKeyUsage oid.
         if (trustedUsage != null) {
             DerOutputStream bagAttr3 = new DerOutputStream();
-            bagAttr3.putOID(TrustedKeyUsage_OID);
+            DerOutputStreamAdapter bagAttr3Adapter = new DerOutputStreamAdapter(bagAttr3);
+            bagAttr3Adapter.putOID(TrustedKeyUsage_OID);
             DerOutputStream bagAttrContent3 = new DerOutputStream();
+            DerOutputStreamAdapter bagAttrContent3Adapter = new DerOutputStreamAdapter(bagAttrContent3);
             DerOutputStream bagAttrValue3 = new DerOutputStream();
+            DerOutputStreamAdapter bagAttrValue3Adapter = new DerOutputStreamAdapter(bagAttrValue3);
             for (ObjectIdentifier usage : trustedUsage) {
-                bagAttrContent3.putOID(usage);
+                bagAttrContent3Adapter.putOID(usage);
             }
-            bagAttr3.write(DerValue.tag_Set, bagAttrContent3);
-            bagAttrValue3.write(DerValue.tag_Sequence, bagAttr3);
+            bagAttr3Adapter.write(DerValue.tag_Set, bagAttrContent3);
+            bagAttrValue3Adapter.write(DerValue.tag_Sequence, bagAttr3);
             trustedKeyUsage = bagAttrValue3.toByteArray();
         }
 
@@ -1669,7 +1685,7 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
             }
         }
 
-        bagAttrs.write(DerValue.tag_Set, attrs);
+        bagAttrsAdapter.write(DerValue.tag_Set, attrs);
         return bagAttrs.toByteArray();
     }
 
@@ -1683,6 +1699,7 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
         throws CertificateException, IOException
     {
         DerOutputStream out = new DerOutputStream();
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
         for (Enumeration<String> e = engineAliases(); e.hasMoreElements(); ) {
 
             String alias = e.nextElement();
@@ -1707,29 +1724,33 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
             for (int i = 0; i < certs.length; i++) {
                 // create SafeBag of Type CertBag
                 DerOutputStream safeBag = new DerOutputStream();
-                safeBag.putOID(CertBag_OID);
+                DerOutputStreamAdapter safeBagAdapter = new DerOutputStreamAdapter(safeBag);
+                safeBagAdapter.putOID(CertBag_OID);
 
                 // create a CertBag
                 DerOutputStream certBag = new DerOutputStream();
-                certBag.putOID(PKCS9CertType_OID);
+                DerOutputStreamAdapter certBagAdapter = new DerOutputStreamAdapter(certBag);
+                certBagAdapter.putOID(PKCS9CertType_OID);
 
                 // write encoded certs in a context-specific tag
                 DerOutputStream certValue = new DerOutputStream();
+                DerOutputStreamAdapter certValueAdapter = new DerOutputStreamAdapter(certValue);
                 X509Certificate cert = (X509Certificate) certs[i];
-                certValue.putOctetString(cert.getEncoded());
-                certBag.write(DerValue.createTag(DerValue.TAG_CONTEXT,
+                certValueAdapter.putOctetString(cert.getEncoded());
+                certBagAdapter.write(DerValue.createTag(DerValue.TAG_CONTEXT,
                                         true, (byte) 0), certValue);
 
                 // wrap CertBag in a Sequence
                 DerOutputStream certout = new DerOutputStream();
-                certout.write(DerValue.tag_Sequence, certBag);
+                DerOutputStreamAdapter certoutAdapter = new DerOutputStreamAdapter(certout);
+                certoutAdapter.write(DerValue.tag_Sequence, certBag);
                 byte[] certBagValue = certout.toByteArray();
 
                 // Wrap the CertBag encoding in a context-specific tag.
                 DerOutputStream bagValue = new DerOutputStream();
                 bagValue.write(certBagValue);
                 // write SafeBag Value
-                safeBag.write(DerValue.createTag(DerValue.TAG_CONTEXT,
+                safeBagAdapter.write(DerValue.createTag(DerValue.TAG_CONTEXT,
                                 true, (byte) 0), bagValue);
 
                 // write SafeBag Attributes
@@ -1766,13 +1787,14 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                 }
 
                 // wrap as Sequence
-                out.write(DerValue.tag_Sequence, safeBag);
+                outAdapter.write(DerValue.tag_Sequence, safeBag);
             } // for cert-chain
         }
 
         // wrap as SequenceOf SafeBag
         DerOutputStream safeBagValue = new DerOutputStream();
-        safeBagValue.write(DerValue.tag_SequenceOf, out);
+        DerOutputStreamAdapter safeBagValueAdapter = new DerOutputStreamAdapter(safeBagValue);
+        safeBagValueAdapter.write(DerValue.tag_SequenceOf, out);
         byte[] safeBagData = safeBagValue.toByteArray();
 
         // encrypt the content (EncryptedContentInfo)
@@ -1782,9 +1804,11 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
             // -- SEQUENCE of EncryptedData
             DerOutputStream encrData = new DerOutputStream();
             DerOutputStream encrDataContent = new DerOutputStream();
-            encrData.putInteger(0);
+            DerOutputStreamAdapter encrDataValueAdapter = new DerOutputStreamAdapter(encrData);
+            DerOutputStreamAdapter encrDataContentValueAdapter = new DerOutputStreamAdapter(encrDataContent);
+            encrDataValueAdapter.putInteger(0);
             encrData.write(encrContentInfo);
-            encrDataContent.write(DerValue.tag_Sequence, encrData);
+            encrDataContentValueAdapter.write(DerValue.tag_Sequence, encrData);
             return encrDataContent.toByteArray();
         } else {
             return safeBagData;
@@ -1802,6 +1826,7 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
         throws CertificateException, IOException {
 
         DerOutputStream out = new DerOutputStream();
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
         for (Enumeration<String> e = engineAliases(); e.hasMoreElements(); ) {
 
             String alias = e.nextElement();
@@ -1810,12 +1835,13 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                 continue;
             }
             DerOutputStream safeBag = new DerOutputStream();
+            DerOutputStreamAdapter safeBagAdapter = new DerOutputStreamAdapter(safeBag);
             KeyEntry keyEntry = (KeyEntry) entry;
 
             // DER encode the private key
             if (keyEntry instanceof PrivateKeyEntry) {
                 // Create SafeBag of type pkcs8ShroudedKeyBag
-                safeBag.putOID(PKCS8ShroudedKeyBag_OID);
+                safeBagAdapter.putOID(PKCS8ShroudedKeyBag_OID);
 
                 // get the encrypted private key
                 byte[] encrBytes = ((PrivateKeyEntry)keyEntry).protectedPrivKey;
@@ -1832,28 +1858,31 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                 // Wrap the EncryptedPrivateKeyInfo in a context-specific tag.
                 DerOutputStream bagValue = new DerOutputStream();
                 bagValue.write(encrInfo.getEncoded());
-                safeBag.write(DerValue.createTag(DerValue.TAG_CONTEXT,
+                safeBagAdapter.write(DerValue.createTag(DerValue.TAG_CONTEXT,
                                 true, (byte) 0), bagValue);
 
             // DER encode the secret key
             } else if (keyEntry instanceof SecretKeyEntry) {
                 // Create SafeBag of type SecretBag
-                safeBag.putOID(SecretBag_OID);
+                safeBagAdapter.putOID(SecretBag_OID);
 
                 // Create a SecretBag
                 DerOutputStream secretBag = new DerOutputStream();
-                secretBag.putOID(PKCS8ShroudedKeyBag_OID);
+                DerOutputStreamAdapter secretBagAdapter = new DerOutputStreamAdapter(secretBag);
+                secretBagAdapter.putOID(PKCS8ShroudedKeyBag_OID);
 
                 // Write secret key in a context-specific tag
                 DerOutputStream secretKeyValue = new DerOutputStream();
-                secretKeyValue.putOctetString(
+                DerOutputStreamAdapter secretKeyValueAdapter = new DerOutputStreamAdapter(secretKeyValue);
+                secretKeyValueAdapter.putOctetString(
                     ((SecretKeyEntry) keyEntry).protectedSecretKey);
-                secretBag.write(DerValue.createTag(DerValue.TAG_CONTEXT,
+                secretBagAdapter.write(DerValue.createTag(DerValue.TAG_CONTEXT,
                                         true, (byte) 0), secretKeyValue);
 
                 // Wrap SecretBag in a Sequence
                 DerOutputStream secretBagSeq = new DerOutputStream();
-                secretBagSeq.write(DerValue.tag_Sequence, secretBag);
+                DerOutputStreamAdapter secretBagSeqAdapter = new DerOutputStreamAdapter(secretBagSeq);
+                secretBagSeqAdapter.write(DerValue.tag_Sequence, secretBag);
                 byte[] secretBagValue = secretBagSeq.toByteArray();
 
                 // Wrap the secret bag in a context-specific tag.
@@ -1861,7 +1890,7 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
                 bagValue.write(secretBagValue);
 
                 // Write SafeBag value
-                safeBag.write(DerValue.createTag(DerValue.TAG_CONTEXT,
+                safeBagAdapter.write(DerValue.createTag(DerValue.TAG_CONTEXT,
                                     true, (byte) 0), bagValue);
             } else {
                 continue; // skip this entry
@@ -1873,12 +1902,13 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
             safeBag.write(bagAttrs);
 
             // wrap as Sequence
-            out.write(DerValue.tag_Sequence, safeBag);
+            outAdapter.write(DerValue.tag_Sequence, safeBag);
         }
 
         // wrap as Sequence
         DerOutputStream safeBagValue = new DerOutputStream();
-        safeBagValue.write(DerValue.tag_Sequence, out);
+        DerOutputStreamAdapter safeBagValueAdapter = new DerOutputStreamAdapter(safeBagValue);
+        safeBagValueAdapter.write(DerValue.tag_Sequence, out);
         return safeBagValue.toByteArray();
     }
 
@@ -1921,18 +1951,21 @@ public final class PKCS12KeyStore extends KeyStoreSpi {
 
             // create EncryptedContentInfo
             DerOutputStream bytes2 = new DerOutputStream();
-            bytes2.putOID(ContentInfo.DATA_OID);
+            DerOutputStreamAdapter bytes2Adapter = new DerOutputStreamAdapter(bytes2);
+            bytes2Adapter.putOID(ContentInfo.DATA_OID);
             bytes2.write(encodedAlgId);
 
             // Wrap encrypted data in a context-specific tag.
             DerOutputStream tmpout2 = new DerOutputStream();
-            tmpout2.putOctetString(encryptedData);
-            bytes2.writeImplicit(DerValue.createTag(DerValue.TAG_CONTEXT,
+            DerOutputStreamAdapter tmpout2Adapter = new DerOutputStreamAdapter(tmpout2);
+            tmpout2Adapter.putOctetString(encryptedData);
+            bytes2Adapter.writeImplicit(DerValue.createTag(DerValue.TAG_CONTEXT,
                     false, (byte) 0), tmpout2);
 
             // wrap EncryptedContentInfo in a Sequence
             DerOutputStream out = new DerOutputStream();
-            out.write(DerValue.tag_Sequence, bytes2);
+            DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+            outAdapter.write(DerValue.tag_Sequence, bytes2);
             return out.toByteArray();
         } catch (IOException ioe) {
             throw ioe;

@@ -28,6 +28,7 @@ package org.openeuler.sun.security.pkcs12;
 import java.io.*;
 import java.security.*;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
@@ -177,25 +178,28 @@ class MacData {
 
         DerOutputStream out = new DerOutputStream();
         DerOutputStream tmp = new DerOutputStream();
-
         DerOutputStream tmp2 = new DerOutputStream();
+
+        DerOutputStreamAdapter out_Adapter = new DerOutputStreamAdapter(out);
+        DerOutputStreamAdapter tmp_Adapter = new DerOutputStreamAdapter(tmp);
+        DerOutputStreamAdapter tmp2_Adapter = new DerOutputStreamAdapter(tmp2);
         // encode encryption algorithm
         AlgorithmId algid = AlgorithmId.get(digestAlgorithmName);
         algid.encode(tmp2);
 
         // encode digest data
-        tmp2.putOctetString(digest);
+        tmp2_Adapter.putOctetString(digest);
 
-        tmp.write(DerValue.tag_Sequence, tmp2);
+        tmp_Adapter.write(DerValue.tag_Sequence, tmp2);
 
         // encode salt
-        tmp.putOctetString(macSalt);
+        tmp_Adapter.putOctetString(macSalt);
 
         // encode iterations
-        tmp.putInteger(iterations);
+        tmp_Adapter.putInteger(iterations);
 
         // wrap everything into a SEQUENCE
-        out.write(DerValue.tag_Sequence, tmp);
+        out_Adapter.write(DerValue.tag_Sequence, tmp);
         this.encoded = out.toByteArray();
 
         return this.encoded.clone();

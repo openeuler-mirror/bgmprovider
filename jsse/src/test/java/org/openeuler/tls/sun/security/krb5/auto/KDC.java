@@ -36,6 +36,7 @@ import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import sun.net.spi.nameservice.NameService;
 import sun.net.spi.nameservice.NameServiceDescriptor;
 import sun.security.krb5.*;
@@ -1030,7 +1031,8 @@ public class KDC {
                     + tFlags);
 
             DerOutputStream out = new DerOutputStream();
-            out.write(DerValue.createTag(DerValue.TAG_APPLICATION,
+            DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+            outAdapter.write(DerValue.createTag(DerValue.TAG_APPLICATION,
                     true, (byte)Krb5.KRB_TGS_REP), tgsRep.asn1Encode());
             return out.toByteArray();
         } catch (KrbException ke) {
@@ -1279,14 +1281,17 @@ public class KDC {
             }
 
             DerOutputStream eid;
+            DerOutputStreamAdapter eidAdapter;
             if (pas2 != null) {
                 eid = new DerOutputStream();
-                eid.putSequence(pas2);
+                eidAdapter = new DerOutputStreamAdapter(eid);
+                eidAdapter.putSequence(pas2);
                 outPAs.add(new PAData(Krb5.PA_ETYPE_INFO2, eid.toByteArray()));
             }
             if (pas != null) {
                 eid = new DerOutputStream();
-                eid.putSequence(pas);
+                eidAdapter = new DerOutputStreamAdapter(eid);
+                eidAdapter.putSequence(pas);
                 outPAs.add(new PAData(Krb5.PA_ETYPE_INFO, eid.toByteArray()));
             }
 
@@ -1377,7 +1382,8 @@ public class KDC {
                     + tFlags);
 
             DerOutputStream out = new DerOutputStream();
-            out.write(DerValue.createTag(DerValue.TAG_APPLICATION,
+            DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+            outAdapter.write(DerValue.createTag(DerValue.TAG_APPLICATION,
                     true, (byte)Krb5.KRB_AS_REP), asRep.asn1Encode());
             byte[] result = out.toByteArray();
 
@@ -1418,7 +1424,8 @@ public class KDC {
                         bytes.write(p.asn1Encode());
                     }
                     DerOutputStream temp = new DerOutputStream();
-                    temp.write(DerValue.tag_Sequence, bytes);
+                    DerOutputStreamAdapter tempAdapter = new DerOutputStreamAdapter(temp);
+                    tempAdapter.write(DerValue.tag_Sequence, bytes);
                     eData = temp.toByteArray();
                 }
                 kerr = new KRBError(null, null, null,

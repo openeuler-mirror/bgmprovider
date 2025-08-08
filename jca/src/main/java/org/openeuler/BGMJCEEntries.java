@@ -79,6 +79,9 @@ public class BGMJCEEntries extends AbstractEntries {
         add(provider, "AlgorithmParameters", "SM2",
                 "org.openeuler.sun.security.util.ECParameters",
                 createAliasesWithOid("1.2.156.10197.1.301"));
+        add(provider, "AlgorithmParameters", "sm2p256v1",
+                "org.openeuler.sun.security.util.ECParameters",
+                createAliasesWithOid("1.2.156.10197.1.301"));
 
         if (BGMJCEConfig.enableRFC8998()) {
             add(provider, "KeyAgreement", "SM2DH",
