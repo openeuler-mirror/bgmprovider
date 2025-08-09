@@ -1,5 +1,6 @@
 package org.openeuler.sdf.jca.signature;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.org.bouncycastle.SM2ParameterSpec;
 import org.openeuler.sdf.commons.constant.SDFConstant;
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
@@ -239,9 +240,10 @@ public class SDFSM2Signature extends SignatureSpi {
     private byte[] encodeSignature(byte[][] params) throws SignatureException {
         byte[] signBytes;
         DerOutputStream out = new DerOutputStream();
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
         try {
-            out.putInteger(new BigInteger(1, params[0]));
-            out.putInteger(new BigInteger(1, params[1]));
+            outAdapter.putInteger(new BigInteger(1, params[0]));
+            outAdapter.putInteger(new BigInteger(1, params[1]));
             DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
             signBytes = result.toByteArray();
         } catch (Exception e) {

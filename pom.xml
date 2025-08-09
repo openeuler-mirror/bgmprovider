@@ -7,7 +7,7 @@
     <groupId>org.openeuler</groupId>
     <artifactId>gmssl</artifactId>
     <packaging>pom</packaging>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
 
     <name>gmssl</name>
     <url>https://gitee.com/openeuler/bgmprovider</url>
@@ -17,6 +17,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <!-- Set jdk21.home as the local JDK21 path -->
+        <jdk21.home>/usr/local/java-21/bin/java</jdk21.home>
     </properties>
 
     <dependencyManagement>

@@ -26,6 +26,7 @@ package org.openeuler.adaptor;
 
 import org.openeuler.util.JavaVersionUtil;
 
+import java.lang.ref.ReferenceQueue;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -48,6 +49,18 @@ public class CompatibleOracleJdkHandler {
      */
     private static Constructor<?> identityWrapperConstructor;
 
+    /**
+     * javax.crypto.JceSecurity$WeakIdentityWrapper constructor
+     * for Oracle JDK21
+     */
+    private static Constructor<?> weakIdentityWrapperConstructor;
+
+    /**
+     * javax.crypto.JceSecurity$WeakIdentityWrapper Parameter queue
+     * for Oracle JDK21
+     */
+    private static ReferenceQueue queue;
+
     static {
         init();
     }
@@ -59,6 +72,8 @@ public class CompatibleOracleJdkHandler {
             synchronized (jceSecurityClass) {
                 if (identityWrapperConstructor != null) {
                     verificationResults.put(newIdentityWrapper(provider), Boolean.TRUE);
+                } else if (weakIdentityWrapperConstructor != null){
+                    verificationResults.put(newWeakIdentityWrapper(provider), Boolean.TRUE);
                 } else {
                     verificationResults.put(provider, Boolean.TRUE);
                 }
@@ -88,10 +103,31 @@ public class CompatibleOracleJdkHandler {
             if (object instanceof Map) {
                 verificationResults = (Map) object;
             }
+        } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException e) {
+            // ignore exception
+        }
+
+        // JDK 17
+        try {
             Class<?> identityWrapperClass = Class.forName("javax.crypto.JceSecurity$IdentityWrapper");
             identityWrapperConstructor = identityWrapperClass.getDeclaredConstructor(Provider.class);
             identityWrapperConstructor.setAccessible(true);
-        } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException | NoSuchMethodException e) {
+        } catch (ClassNotFoundException | NoSuchMethodException e) {
+            // ignore exception
+        }
+
+        // Oracle jdk21
+        try {
+            Class<?> weakIdentityWrapperClass = Class.forName("javax.crypto.JceSecurity$WeakIdentityWrapper");
+            weakIdentityWrapperConstructor = weakIdentityWrapperClass.getDeclaredConstructor(Provider.class, ReferenceQueue.class);
+            weakIdentityWrapperConstructor.setAccessible(true);
+            Field queueField = jceSecurityClass.getDeclaredField("queue");
+            queueField.setAccessible(true);
+            Object object = queueField.get(null);
+            if (object instanceof ReferenceQueue) {
+                queue = (ReferenceQueue) object;
+            }
+        } catch (ClassNotFoundException | IllegalAccessException | NoSuchFieldException | NoSuchMethodException e) {
             // ignore exception
         }
     }
@@ -99,6 +135,15 @@ public class CompatibleOracleJdkHandler {
     private static Object newIdentityWrapper(Provider provider) {
         try {
             return identityWrapperConstructor.newInstance(provider);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            // ignore exception
+        }
+        return null;
+    }
+
+    private static Object newWeakIdentityWrapper(Provider provider) {
+        try {
+            return weakIdentityWrapperConstructor.newInstance(provider, queue);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
             // ignore exception
         }

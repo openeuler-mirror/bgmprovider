@@ -25,9 +25,11 @@
 package org.openeuler.adaptor;
 
 import sun.security.util.DerOutputStream;
+import sun.security.util.DerValue;
 import sun.security.util.ObjectIdentifier;
 import sun.security.x509.X509CertInfo;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 
@@ -41,9 +43,25 @@ public class DerOutputStreamAdapter extends AdapterBase {
 
     private static final Class<?> proxyClass;
 
-    private static Method putOID;
+    private static Method write_Buf;
+
+    private static Method write_Out;
+
+    private static Method writeImplicit;
 
     private static Method putInteger_BigInteger;
+
+    private static Method putInteger_Int;
+
+    private static Method putOctetString;
+
+    private static Method putNull;
+
+    private static Method putOID;
+
+    private static Method putSequence;
+
+    private static Method putBMPString;
 
     static {
         try {
@@ -65,10 +83,67 @@ public class DerOutputStreamAdapter extends AdapterBase {
             return;
         }
         try {
-            putOID = proxyClass.getDeclaredMethod("putOID", ObjectIdentifier.class);
+            write_Buf = proxyClass.getDeclaredMethod("write", byte.class, byte[].class);
+            write_Out = proxyClass.getDeclaredMethod("write", byte.class, DerOutputStream.class);
+            writeImplicit = proxyClass.getDeclaredMethod("writeImplicit", byte.class, DerOutputStream.class);
             putInteger_BigInteger = proxyClass.getDeclaredMethod("putInteger", BigInteger.class);
+            putInteger_Int = proxyClass.getDeclaredMethod("putInteger", int.class);
+            putOctetString = proxyClass.getDeclaredMethod("putOctetString", byte[].class);
+            putNull = proxyClass.getDeclaredMethod("putNull");
+            putOID = proxyClass.getDeclaredMethod("putOID", ObjectIdentifier.class);
+            putSequence = proxyClass.getDeclaredMethod("putSequence", DerValue[].class);
+            putBMPString = proxyClass.getDeclaredMethod("putBMPString", String.class);
         } catch (NoSuchMethodException e) {
             throw e;
+        }
+    }
+
+    public void write(byte tag, byte[] buf) {
+        ensureAvailable();
+        if(write_Buf != null) {
+            invoke(write_Buf, tag, buf);
+        }
+    }
+
+    public void write(byte tag, DerOutputStream out) {
+        ensureAvailable();
+        if(write_Out != null) {
+            invoke(write_Out, tag, out);
+        }
+    }
+
+    public void writeImplicit(byte tag, DerOutputStream value) {
+        ensureAvailable();
+        if(writeImplicit != null) {
+            invoke(writeImplicit, tag, value);
+        }
+    }
+
+    public void putInteger(BigInteger i) {
+        ensureAvailable();
+        if(putInteger_BigInteger != null) {
+            invoke(putInteger_BigInteger, i);
+        }
+    }
+
+    public void putInteger(int i) {
+        ensureAvailable();
+        if(putInteger_Int != null) {
+            invoke(putInteger_Int, i);
+        }
+    }
+
+    public void putOctetString(byte[] bits) {
+        ensureAvailable();
+        if(putOctetString != null) {
+            invoke(putOctetString, bits);
+        }
+    }
+
+    public void putNull() {
+        ensureAvailable();
+        if(putNull != null) {
+            invoke(putNull);
         }
     }
 
@@ -79,10 +154,17 @@ public class DerOutputStreamAdapter extends AdapterBase {
         }
     }
 
-    public void putInteger(BigInteger var1) {
+    public void putSequence(DerValue[] seq) {
         ensureAvailable();
-        if(putInteger_BigInteger != null) {
-            invoke(putInteger_BigInteger, var1);
+        if(putSequence != null) {
+            invoke(putSequence, seq);
+        }
+    }
+
+    public void putBMPString(String s) {
+        ensureAvailable();
+        if(putBMPString != null) {
+            invoke(putBMPString, s);
         }
     }
 }

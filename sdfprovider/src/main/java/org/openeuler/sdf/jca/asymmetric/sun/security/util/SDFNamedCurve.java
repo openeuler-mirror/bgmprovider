@@ -26,6 +26,7 @@
 
 package org.openeuler.sdf.jca.asymmetric.sun.security.util;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.adaptor.ObjectIdentifierHandler;
 import sun.security.util.DerOutputStream;
 import sun.security.util.ObjectIdentifier;
@@ -60,9 +61,10 @@ public final class SDFNamedCurve extends ECParameterSpec {
         this.oid = oid;
 
         DerOutputStream out = new DerOutputStream();
+        DerOutputStreamAdapter cInfoAdapter = new DerOutputStreamAdapter(out);
 
         try {
-            out.putOID(ObjectIdentifierHandler.newObjectIdentifier(oid));
+            cInfoAdapter.putOID(ObjectIdentifierHandler.newObjectIdentifier(oid));
         } catch (IOException e) {
             throw new RuntimeException("Internal error", e);
         }

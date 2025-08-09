@@ -24,6 +24,7 @@
 
 package org.openeuler.sdf.jca.commons;
 
+import org.openeuler.adaptor.DerOutputStreamAdapter;
 import org.openeuler.sdf.commons.key.SDFEncryptKey;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPrivateKeyImpl;
 import sun.security.util.DerInputStream;
@@ -94,14 +95,15 @@ public class SDFUtil {
         BigInteger y = new BigInteger(1, sm2CipherParams[1]);
 
         DerOutputStream out = new DerOutputStream();
-        out.putInteger(x);
-        out.putInteger(y);
+        DerOutputStreamAdapter outAdapter = new DerOutputStreamAdapter(out);
+        outAdapter.putInteger(x);
+        outAdapter.putInteger(y);
         if (outputMode == SDFSM2CipherMode.C1C3C2) {
-            out.putOctetString(sm2CipherParams[3]);
-            out.putOctetString(sm2CipherParams[2]);
+            outAdapter.putOctetString(sm2CipherParams[3]);
+            outAdapter.putOctetString(sm2CipherParams[2]);
         } else if (outputMode == SDFSM2CipherMode.C1C2C3) {
-            out.putOctetString(sm2CipherParams[2]);
-            out.putOctetString(sm2CipherParams[3]);
+            outAdapter.putOctetString(sm2CipherParams[2]);
+            outAdapter.putOctetString(sm2CipherParams[3]);
         }
         DerValue result = new DerValue(DerValue.tag_Sequence, out.toByteArray());
         return result.toByteArray();
