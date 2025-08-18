@@ -71,10 +71,10 @@ JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2KeyAgreementNa
 
     flag = useClientMode ? 1 : 0;
     ownPubKey = SDF_CreateSM2PublicKey(env, localPublicKeyArr, &ownPubKeyLen);
-    ownPriKeyHandle = SDF_CreateSM2PriKeyHandle(env, localCipherPriKeyArr);
+    ownPriKeyHandle = SDF_CreateSM2PriKeyHandle(env, localCipherPriKeyArr, NULL);
 
     ownTmpPubKey = SDF_CreateSM2PublicKey(env, localTempPublicKeyArr, &ownTmpPubKeyLen);
-    ownTmpPriKeyHandle = SDF_CreateSM2PriKeyHandle(env, localTempCipherPriKeyArr);
+    ownTmpPriKeyHandle = SDF_CreateSM2PriKeyHandle(env, localTempCipherPriKeyArr, NULL);
 
     keyBits = secretLen;
 

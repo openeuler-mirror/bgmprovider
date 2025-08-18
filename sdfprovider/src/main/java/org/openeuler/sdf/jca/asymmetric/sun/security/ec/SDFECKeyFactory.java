@@ -26,6 +26,9 @@
 
 package org.openeuler.sdf.jca.asymmetric.sun.security.ec;
 
+import org.openeuler.sdf.commons.spec.SDFECPrivateKeySpec;
+import org.openeuler.sdf.commons.spec.SDFPKCS8EncodedKeySpec;
+
 import java.security.*;
 import java.security.interfaces.*;
 import java.security.spec.*;
@@ -235,10 +238,18 @@ public final class SDFECKeyFactory extends KeyFactorySpi {
             throws GeneralSecurityException {
         if (keySpec instanceof PKCS8EncodedKeySpec) {
             PKCS8EncodedKeySpec pkcsSpec = (PKCS8EncodedKeySpec)keySpec;
-            return new SDFECPrivateKeyImpl(pkcsSpec.getEncoded());
+            byte[] pin = null;
+            if (keySpec instanceof SDFPKCS8EncodedKeySpec) {
+                pin = ((SDFPKCS8EncodedKeySpec) keySpec).getPin();
+            }
+            return new SDFECPrivateKeyImpl(pkcsSpec.getEncoded(), pin);
         } else if (keySpec instanceof ECPrivateKeySpec) {
             ECPrivateKeySpec ecSpec = (ECPrivateKeySpec)keySpec;
-            return new SDFECPrivateKeyImpl(ecSpec.getS(), ecSpec.getParams());
+            byte[] pin = null;
+            if (keySpec instanceof SDFECPrivateKeySpec) {
+                pin = ((SDFECPrivateKeySpec) keySpec).getPin();
+            }
+            return new SDFECPrivateKeyImpl(ecSpec.getS(), ecSpec.getParams(), pin);
         } else {
             throw new InvalidKeySpecException("Only ECPrivateKeySpec "
                 + "and PKCS8EncodedKeySpec supported for EC private keys");

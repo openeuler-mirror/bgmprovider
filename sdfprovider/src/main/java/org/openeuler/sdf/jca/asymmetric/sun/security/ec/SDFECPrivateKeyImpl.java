@@ -86,11 +86,18 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
 
     // use enc privateKey
     private boolean isEncKey = false;
+    private byte[] pin;
 
     /**
      * Construct a key from its encoding. Called by the ECKeyFactory.
      */
     public SDFECPrivateKeyImpl(byte[] encoded) throws InvalidKeyException {
+        decode(new ByteArrayInputStream(encoded));
+        parseKeyBits();
+    }
+
+    public SDFECPrivateKeyImpl(byte[] encoded, byte[] pin) throws InvalidKeyException {
+        this.pin = pin == null ? null : pin.clone();
         decode(new ByteArrayInputStream(encoded));
         parseKeyBits();
     }
@@ -103,6 +110,14 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
             throws InvalidKeyException {
         this.s = s;
         this.params = params;
+        makeEncoding(s);
+    }
+
+    public SDFECPrivateKeyImpl(BigInteger s, ECParameterSpec params, byte[] pin)
+            throws InvalidKeyException {
+        this.s = s;
+        this.params = params;
+        this.pin = pin == null ? null : pin.clone();
         makeEncoding(s);
     }
 
@@ -123,6 +138,15 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
         this.s = s;
         this.params = params;
         this.isEncKey = isEncKey;
+        makeEncoding(s);
+    }
+
+    public SDFECPrivateKeyImpl(BigInteger s, ECParameterSpec params, boolean isEncKey, byte[] pin)
+            throws InvalidKeyException {
+        this.s = s;
+        this.params = params;
+        this.isEncKey = isEncKey;
+        this.pin = pin == null ? null : pin.clone();
         makeEncoding(s);
     }
 
@@ -216,6 +240,10 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
         return arrayS.clone();
     }
 
+    public byte[] getPin() {
+        return pin;
+    }
+
     public boolean isEncKey() {
         return isEncKey;
     }
@@ -230,33 +258,42 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
      */
     protected void parseKeyBits() throws InvalidKeyException {
         try {
-            DerInputStream in = new DerInputStream(key);
-            DerValue derValue = in.getDerValue();
-            if (derValue.tag != DerValue.tag_Sequence) {
-                throw new IOException("Not a SEQUENCE");
+            if (key.length != ENC_SM2_PRIVATE_KEY_SIZE) {
+                DerInputStream in = new DerInputStream(key);
+                DerValue derValue = in.getDerValue();
+                if (derValue.tag != DerValue.tag_Sequence) {
+                    throw new IOException("Not a SEQUENCE");
+                }
+                DerInputStream data = derValue.data;
+                int version = data.getInteger();
+                if (version != 1) {
+                    throw new IOException("Version must be 1");
+                }
+                byte[] privData = data.getOctetString();
+                ArrayUtil.reverse(privData);
+                arrayS = privData;
+
+                while (data.available() != 0) {
+                    DerValue value = data.getDerValue();
+                    if (value.isContextSpecific((byte) 0)) {
+                        // ignore for now
+                    } else if (value.isContextSpecific((byte) 1)) {
+                        // ignore for now
+                    } else {
+                        throw new InvalidKeyException("Unexpected value: " + value);
+                    }
+                }
+            } else {
+                byte[] priData = key.clone();
+                ArrayUtil.reverse(priData);
+                arrayS = priData;
             }
-            DerInputStream data = derValue.data;
-            int version = data.getInteger();
-            if (version != 1) {
-                throw new IOException("Version must be 1");
-            }
-            byte[] privData = data.getOctetString();
-            ArrayUtil.reverse(privData);
-            arrayS = privData;
+            
             // enc private key
             if (arrayS.length == ENC_SM2_PRIVATE_KEY_SIZE) {
                 isEncKey = true;
             }
-            while (data.available() != 0) {
-                DerValue value = data.getDerValue();
-                if (value.isContextSpecific((byte) 0)) {
-                    // ignore for now
-                } else if (value.isContextSpecific((byte) 1)) {
-                    // ignore for now
-                } else {
-                    throw new InvalidKeyException("Unexpected value: " + value);
-                }
-            }
+            
             AlgorithmParameters algParams = this.algid.getParameters();
             if (algParams == null) {
                 throw new InvalidKeyException("EC domain parameters must be "
@@ -296,7 +333,6 @@ public final class SDFECPrivateKeyImpl extends PKCS8Key implements ECPrivateKey,
             }
             algid = AlgorithmId.parse (val.data.getDerValue ());
             key = val.data.getOctetString ();
-            parseKeyBits ();
             DerValue next;
             if (val.data.available() == 0) {
                 return;

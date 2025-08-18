@@ -103,7 +103,7 @@ unsigned char *SDF_CreateSM2PublicKey(JNIEnv *env, jobjectArray pubKeyArr, unsig
 // free sm2 public key
 void SDF_FreeSM2PublicKey(unsigned char *pubKey);
 
-void *SDF_CreateSM2PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr);
+void *SDF_CreateSM2PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr, jbyteArray pinArr);
 void SDF_FreeSM2PriKeyHandle(void *keyHandle);
 
 jobjectArray SDF_SM2CipherToObjectArray(JNIEnv *env, SM2Cipher *sm2Cipher);

@@ -44,9 +44,10 @@ public class SDFSM2CipherNative {
 
     /**
      * @param priKeyArr private key
+     * @param pinArr pin
      * @param sm2CipherParams sm2 enc data params
      * @return plain data
      */
-    public static native byte[] nativeSM2Decrypt(byte[] priKeyArr, byte[][] sm2CipherParams)
+    public static native byte[] nativeSM2Decrypt(byte[] priKeyArr, byte[] pinArr, byte[][] sm2CipherParams)
             throws SDFException;
 }

@@ -84,7 +84,7 @@ cleanup:
 }
 
 JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2CipherNative_nativeSM2Decrypt(JNIEnv *env, jclass cls,
-        jbyteArray priKeyArr, jobjectArray cipherParams) {
+        jbyteArray priKeyArr, jbyteArray pinArr, jobjectArray cipherParams) {
     unsigned int keType = DATA_KEY_SM2;
     void *keyHandle = NULL;
     unsigned char *encData = NULL;
@@ -95,7 +95,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2CipherNative_n
     SGD_RV rv;
 
     // keyHandle
-    keyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr);
+    keyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr, pinArr);
     SM2Cipher *sm2Cipher = SDF_ObjectArrayToSM2Cipher(env, cipherParams, &encDataLen);
 
     // encData

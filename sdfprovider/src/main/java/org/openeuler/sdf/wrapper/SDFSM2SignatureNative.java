@@ -30,13 +30,14 @@ public class SDFSM2SignatureNative {
      * SM2 sign
      * @param privateKeyArray private key in bytes
      * @param digestArray sm3 digest bytes
+     * @param pinArray pin in bytes
      * @return sm2 signature params
      * format {
      *     r[32],
      *     s[32]
      * }
      */
-    public static native byte[][] nativeSM2Sign(byte[] privateKeyArray, byte[] digestArray);
+    public static native byte[][] nativeSM2Sign(byte[] privateKeyArray, byte[] digestArray, byte[] pinArray);
 
     /**
      * SM2 verify

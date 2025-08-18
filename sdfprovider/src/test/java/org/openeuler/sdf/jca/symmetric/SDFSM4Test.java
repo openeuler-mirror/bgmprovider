@@ -25,6 +25,7 @@
 package org.openeuler.sdf.jca.symmetric;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.openeuler.sdf.commons.util.SDFKeyTestDB;
 import org.openeuler.sdf.provider.SDFProvider;
@@ -51,6 +52,12 @@ public class SDFSM4Test extends SDFSymmetricTest {
     @Test
     public void testECB() throws Exception {
         testECB(ALGO, BLOCK_SIZE, KEY_SIZE);
+    }
+
+    @Test
+    @Ignore
+    public void testECBWithDynamicPin() throws Exception {
+        testECBWithDynamicPin(ALGO, BLOCK_SIZE, KEY_SIZE);
     }
 
     @Test

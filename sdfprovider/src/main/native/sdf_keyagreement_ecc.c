@@ -42,7 +42,7 @@ Java_org_openeuler_sdf_wrapper_SDFECCKeyAgreementNative_decodeECCPreMasterKey(JN
     jbyteArray keyArr = NULL;
     SGD_RV rv;
 
-    priKeyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr);
+    priKeyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr, NULL);
     if ((*env)->ExceptionCheck(env)) {
         goto cleanup;
     }

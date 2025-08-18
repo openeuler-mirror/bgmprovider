@@ -33,6 +33,9 @@ public class SDFSecretKeySpec extends SecretKeySpec implements SDFEncryptKey {
 
     // use enc key
     private boolean isEncKey = false;
+    
+    // for dynamic pin
+    private byte[] pin = null;
 
     public SDFSecretKeySpec(byte[] key, String algorithm) {
         super(key, algorithm);
@@ -44,8 +47,18 @@ public class SDFSecretKeySpec extends SecretKeySpec implements SDFEncryptKey {
         this.isEncKey = isEncKey;
     }
 
+    public SDFSecretKeySpec(byte[] key, String algorithm, boolean isEncKey, byte[] pin) {
+        super(key, algorithm);
+        this.isEncKey = isEncKey;
+        this.pin = pin == null ? null : pin.clone();
+    }
+
     @Override
     public boolean isEncKey() {
         return isEncKey;
+    }
+
+    public byte[] getPin() {
+        return pin;
     }
 }

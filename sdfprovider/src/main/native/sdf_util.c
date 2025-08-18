@@ -491,19 +491,25 @@ void SDF_FreeSM2PublicKey(unsigned char *pubKey) {
     free(pubKey);
 }
 
-void *SDF_CreateSM2PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr) {
+void *SDF_CreateSM2PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr, jbyteArray pinArr) {
     void *keyHandle = NULL;
     const char *priKey = NULL;
     unsigned int priKeyLen;
+    jbyte *pin = NULL;
+    int pinLen = 0;
     SGD_RV rv;
-
+    // pin
+    if (pinArr != NULL) {
+        pin = (*env)->GetByteArrayElements(env, pinArr, NULL);
+        pinLen = (*env)->GetArrayLength(env, pinArr);
+    }
     priKeyLen = (*env)->GetArrayLength(env, priKeyArr);
     if ((priKey = malloc(priKeyLen)) == NULL) {
         throwOutOfMemoryError(env, "malloc priKey failed");
         goto cleanup;
     }
     (*env)->GetByteArrayRegion(env, priKeyArr, 0, priKeyLen, priKey);
-    if ((rv = CDM_ImportKeyHandle(priKey, priKeyLen, NULL, 0, &keyHandle)) != SDR_OK) {
+    if ((rv = CDM_ImportKeyHandle(priKey, priKeyLen, pin, pinLen, &keyHandle)) != SDR_OK) {
         throwSDFException(env, rv, "CDM_ImportKeyHandle");
         goto cleanup;
     }
@@ -511,6 +517,9 @@ void *SDF_CreateSM2PriKeyHandle(JNIEnv *env, jbyteArray priKeyArr) {
 cleanup:
     if (priKey) {
         free(priKey);
+    }
+    if (pin != NULL) {
+        (*env)->ReleaseByteArrayElements(env, pinArr, pin, 0);
     }
     return keyHandle;
 }

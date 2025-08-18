@@ -32,6 +32,6 @@ public class SDFSM2KeyPairGeneratorNative {
                                                         byte[] cdpId, byte[] pin) throws SDFException;
 
     // get SM2 public key from private key
-    public native static byte[][] nativeGeneratePublicKey(byte[] priKeyArr);
+    public native static byte[][] nativeGeneratePublicKey(byte[] priKeyArr, byte[] pinArr);
 
 }

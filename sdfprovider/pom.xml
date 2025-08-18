@@ -122,6 +122,7 @@
             <properties>
                 <surefire.argLine>
                     --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
+                    --add-exports=java.base/jdk.internal.access=ALL-UNNAMED
                     --add-exports=java.base/sun.security.x509=ALL-UNNAMED
                     --add-exports=java.base/sun.security.action=ALL-UNNAMED
                     --add-exports=java.base/sun.security.provider=ALL-UNNAMED
