@@ -30,7 +30,7 @@ public class SDFSymmetricCipherNative {
 
     // symmetric cipher init
     public static native long nativeCipherInit(int keyType, String mode, boolean padding, byte[] key,
-                                        byte[] iv, byte[] tag, boolean encrypt) throws SDFException;
+                                        byte[] iv, byte[] tag, byte[] pin, boolean encrypt) throws SDFException;
 
     // symmetric cipher update
     public static native int nativeCipherUpdate(long ctxAddress, byte[] in, int inOfs,

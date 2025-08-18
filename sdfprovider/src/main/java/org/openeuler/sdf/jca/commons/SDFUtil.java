@@ -140,4 +140,11 @@ public class SDFUtil {
                 c3
         };
     }
+
+    public static byte[] getPinOfPrivateKey(PrivateKey privateKey) {
+        if (!(privateKey instanceof SDFECPrivateKeyImpl)) {
+            return null;
+        }
+        return ((SDFECPrivateKeyImpl) privateKey).getPin();
+    }
 }

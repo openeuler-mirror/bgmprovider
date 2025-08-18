@@ -14,7 +14,7 @@ import java.security.spec.AlgorithmParameterSpec;
 abstract class SDFKeyPairGeneratorCore extends KeyPairGeneratorSpi {
     // current key size in bits
     protected int keySize;
-    private SDFKEKInfoEntity kekInfo;
+    protected SDFKEKInfoEntity kekInfo;
 
     SDFKeyPairGeneratorCore(int defaultKeySize) {
         initialize(defaultKeySize, null);

@@ -118,6 +118,6 @@ public abstract class SDFKeyGeneratorCore extends KeyGeneratorSpi {
         } catch (Exception e) {
             throw new SDFRuntimeException("engineGenerateKey failed.", e);
         }
-        return new SDFSecretKeySpec(encKey, algorithm, true);
+        return new SDFSecretKeySpec(encKey, algorithm, true, kekInfo.getPin());
     }
 }

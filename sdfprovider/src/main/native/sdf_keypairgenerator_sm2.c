@@ -265,7 +265,7 @@ cleanup:
 
 JNIEXPORT jobjectArray JNICALL
 Java_org_openeuler_sdf_wrapper_SDFSM2KeyPairGeneratorNative_nativeGeneratePublicKey(JNIEnv *env, jclass cls,
-        jbyteArray priKeyArr) {
+        jbyteArray priKeyArr, jbyteArray pinArr) {
     unsigned int uiKeyType = DATA_KEY_SM2;
     jbyteArray pbkXArr = NULL;
     jbyteArray pbkYArr = NULL;
@@ -277,7 +277,7 @@ Java_org_openeuler_sdf_wrapper_SDFSM2KeyPairGeneratorNative_nativeGeneratePublic
     jobjectArray params = NULL;
 
     // private key handle
-    keyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr);
+    keyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr, pinArr);
 
     // public key
     pubKeyLen = SDF_GetAsymmetricPRKLen(uiKeyType);

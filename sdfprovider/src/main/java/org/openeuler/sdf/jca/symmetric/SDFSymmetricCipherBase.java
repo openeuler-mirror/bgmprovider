@@ -29,6 +29,7 @@ import org.openeuler.sdf.commons.constant.SDFDataKeyType;
 import org.openeuler.sdf.commons.exception.SDFException;
 import org.openeuler.sdf.commons.exception.SDFRuntimeException;
 import org.openeuler.sdf.commons.key.SDFEncryptKey;
+import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
 import org.openeuler.sdf.jca.commons.SDFKeyUtil;
 
 import javax.crypto.BadPaddingException;
@@ -36,7 +37,6 @@ import javax.crypto.Cipher;
 import javax.crypto.CipherSpi;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
 import javax.crypto.ShortBufferException;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
@@ -65,7 +65,7 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     private final int blockSize;
     protected final int supportedKeySize;
     private String cipherAlgo;
-    private SecretKey secretKey;
+    private SDFSecretKeySpec secretKey;
     private byte[] iv;
     // GCM tag
     private byte[] tag = null;
@@ -405,7 +405,7 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
         if (!initialized) {
             // init cipher context
             long ctxHandleAddress = getContextHandleAddress(mode.getMode(), padding, secretKey.getEncoded(),
-                    iv, encrypt);
+                    iv, secretKey.getPin(), encrypt);
             context = new SDFSymmetricContext(ctxHandleAddress);
             initialized = true;
         }
@@ -467,7 +467,7 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
             }
             random.nextBytes(ivBytes);
         }
-        this.secretKey = (SecretKey) key;
+        this.secretKey = (SDFSecretKeySpec) key;
         this.iv = ivBytes;
         this.cipherAlgo = createCipherName(this.dataKeyType.getAlgorithm(), mode.getMode());
     }
@@ -538,11 +538,12 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     }
 
     // get new cipher context
-    protected long getContextHandleAddress(String mode, SDFPadding padding, byte[] keyValue, byte[] iv,
+    protected long getContextHandleAddress(String mode, SDFPadding padding, byte[] keyValue, byte[] iv, byte[] pin,
                                            boolean encrypt) {
         long ctxHandleAddress;
         try {
-            ctxHandleAddress = nativeCipherInit(dataKeyType.getType(), mode, SDFPadding.PKCS5PADDING.equals(padding), keyValue, iv, tag, encrypt);
+            ctxHandleAddress = nativeCipherInit(dataKeyType.getType(), mode, 
+                SDFPadding.PKCS5PADDING.equals(padding), keyValue, iv, tag, pin, encrypt);
         } catch (SDFException e) {
             throw new SDFRuntimeException("SDFSymmetricCipher nativeCipherInit failed for " + this.dataKeyType.getAlgorithm(), e);
         }

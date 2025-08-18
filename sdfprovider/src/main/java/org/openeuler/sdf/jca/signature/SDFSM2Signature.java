@@ -104,7 +104,7 @@ public class SDFSM2Signature extends SignatureSpi {
         try {
             byte[] digestBytes = this.digest.digest();
             signatureParams = SDFSM2SignatureNative.nativeSM2Sign(
-                    uiCipherPriKey, digestBytes);
+                    uiCipherPriKey, digestBytes, SDFUtil.getPinOfPrivateKey(this.privateKey));
         } finally {
             this.digest.reset();
         }
@@ -171,7 +171,8 @@ public class SDFSM2Signature extends SignatureSpi {
 
         byte[][] keys;
         try {
-            keys = SDFSM2KeyPairGeneratorNative.nativeGeneratePublicKey(SDFUtil.getPrivateKeyBytes(this.privateKey));
+            keys = SDFSM2KeyPairGeneratorNative.nativeGeneratePublicKey(SDFUtil.getPrivateKeyBytes(this.privateKey), 
+                SDFUtil.getPinOfPrivateKey(this.privateKey));
         } catch (Exception e) {
             throw new SDFRuntimeException("SDFSM2Signature failed. unable to generate PublicKey", e);
         }

@@ -26,8 +26,10 @@ package org.openeuler.sdf.jca.asymmetric;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.openeuler.BGMJCEProvider;
+import org.openeuler.sdf.commons.exception.SDFRuntimeException;
 import org.openeuler.sdf.commons.util.SDFTestCase;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.jca.asymmetric.sun.security.ec.SDFECPrivateKeyImpl;
@@ -100,6 +102,25 @@ public class SDFSM2CipherTest extends SDFTestCase {
             exception = e;
         }
         Assert.assertTrue(exception instanceof IllegalArgumentException);
+    }
+
+    @Test
+    @Ignore
+    public void testEncAndDecWithDynamicPin() throws Exception {
+        KeyPair keyPair = SDFSM2TestUtil.generateKeyPair(true);
+        byte[] data = new byte[10];
+        // use default pin encrypt
+        byte[] encData = SDFSM2TestUtil.encrypt(keyPair.getPublic(), data);
+        Exception exception = null;
+        try {
+            // use your pin to replace
+            byte[] pin = "your pin".getBytes();
+            SDFECPrivateKeyImpl privateKey = new SDFECPrivateKeyImpl(keyPair.getPrivate().getEncoded(), pin);
+            SDFSM2TestUtil.decrypt(privateKey, encData);
+        } catch (Exception e) {
+            exception = e;
+        }
+        Assert.assertTrue(exception instanceof SDFRuntimeException);
     }
 
     @Test

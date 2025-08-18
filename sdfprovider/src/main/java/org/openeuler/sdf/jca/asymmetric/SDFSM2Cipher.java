@@ -249,9 +249,10 @@ public class SDFSM2Cipher extends CipherSpi {
         ECPrivateKey privateKey = (ECPrivateKey) ecKey;
         try {
             byte[] priKeyArr = SDFUtil.getPrivateKeyBytes(privateKey);
+            byte[] pinArr = SDFUtil.getPinOfPrivateKey(privateKey);
             byte[][] sm2CipherParams = SDFUtil.decodeECCCipher(outputMode, in, curveLength);
             result = SDFSM2CipherNative.nativeSM2Decrypt(
-                    priKeyArr, sm2CipherParams
+                    priKeyArr, pinArr, sm2CipherParams
             );
         } catch (Exception e) {
             throw new SDFRuntimeException("decrypt failed.", e);

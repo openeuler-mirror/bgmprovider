@@ -46,6 +46,7 @@ public class SDFEntries extends AbstractEntries {
         putRandom(provider);
         putKeyExchange(provider);
         putPBKDF2(provider);
+        putKeyManagerFactory(provider);
     }
 
     private void putSymmetric(Provider provider) {
@@ -373,5 +374,9 @@ public class SDFEntries extends AbstractEntries {
             /*add(provider, "SecretKeyFactory", "PBKDF2WithHmacSHA512",
                     "org.openeuler.sdf.jca.pbkdf.SDFPBKDF2Core$HmacSHA512");*/
         }
+    }
+
+    private void putKeyManagerFactory(Provider provider) {
+        add(provider, "KeyManagerFactory", "SunX509", "org.openeuler.sdf.jsse.ssl.SDFKeyManagerFactory$SunX509");
     }
 }

@@ -2,6 +2,7 @@ package org.openeuler.sdf.jca.symmetric;
 
 import org.junit.Assert;
 import org.openeuler.BGMJCEProvider;
+import org.openeuler.sdf.commons.exception.SDFRuntimeException;
 import org.openeuler.sdf.commons.spec.SDFSecretKeySpec;
 import org.openeuler.sdf.commons.util.SDFKeyTestDB;
 import org.openeuler.sdf.commons.util.SDFTestCase;
@@ -127,6 +128,24 @@ public class SDFSymmetricTest extends SDFTestCase {
         // test randomly
         test(transformation, secretKey,
                 SDFTestUtil.generateRandomBytes(), null);
+    }
+
+    protected void testECBWithDynamicPin(String algorithm, int blockSize, int keySize) throws Exception {
+        SecretKey secretKey = SDFSymmetricTestUtil.generateKey(algorithm, sdf, keySize, true);
+        String transformation = algorithm + "/ECB/NoPadding";
+        AlgorithmParameterSpec spec = null;
+        byte[] data = new byte[blockSize];
+        byte[] encData = SDFSymmetricTestUtil.encryptDoFinal(transformation, sdf, secretKey, spec, data);
+        // use your pin to replace.
+        byte[] pin = "your pin".getBytes();
+        SDFSecretKeySpec sdfKey = new SDFSecretKeySpec(secretKey.getEncoded(), secretKey.getAlgorithm(), true, pin);
+        Exception exception = null;
+        try {
+            SDFSymmetricTestUtil.decryptDoFinal(transformation, sdf, sdfKey, spec, encData);
+        } catch (Exception e) {
+            exception = e;
+        }
+        Assert.assertTrue(exception instanceof SDFRuntimeException);
     }
 
     protected void testCBC(String algorithm, int blockSize, int keySize, int ivLen) throws Exception {

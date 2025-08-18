@@ -29,14 +29,16 @@ import org.openeuler.BGMJSSEProvider;
 import org.openeuler.sdf.commons.util.SDFTestUtil;
 import org.openeuler.sdf.provider.SDFProvider;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.*;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.security.KeyStore;
 import java.security.Provider;
+import java.security.SecureRandom;
 import java.security.Security;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
 public class SDFGMTLSClient {
     static {
@@ -68,6 +70,34 @@ public class SDFGMTLSClient {
         for (int i = 0; i < 2; i++) {
             handleMessage(outputStream, inputStream);
         }
+    }
+
+    private static SSLContext createGMTLSContext() throws Exception {
+        SSLContext sslContext = SSLContext.getInstance("GMTLS");
+        KeyStore keyStore = KeyStore.getInstance("PKCS12");
+        keyStore.load(null, null);
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        // dynamic pin, can use your pin to replace.
+        // byte[] pin = new byte[280];
+        // kmf.init(new SDFManagerFactoryParameters(pin));
+        kmf.init(keyStore, "12345678".toCharArray());
+        sslContext.init(kmf.getKeyManagers(), createTrustAllManagers(), new SecureRandom());
+        return sslContext;
+    }
+
+    private static TrustManager[] createTrustAllManagers() {
+        return new TrustManager[]{new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {}
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+        }};
     }
 
     public static void handleMessage(DataOutputStream outputStream, DataInputStream inputStream)

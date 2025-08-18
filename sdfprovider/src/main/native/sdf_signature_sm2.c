@@ -113,7 +113,7 @@ cleanup:
 }
 
 JNIEXPORT jobjectArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNative_nativeSM2Sign(JNIEnv *env, jclass clz,
-        jbyteArray priKeyArr, jbyteArray digestArray) {
+        jbyteArray priKeyArr, jbyteArray digestArray, jbyteArray pinArr) {
     unsigned int keyType = DATA_KEY_SM2;
     void *keyHandle = NULL;
     jbyte *data = NULL;
@@ -124,7 +124,7 @@ JNIEXPORT jobjectArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSM2SignatureNat
     jobjectArray params = NULL;
 
     // private key
-    keyHandle = SDF_CreateSM2PriKeyHandle(env,priKeyArr);
+    keyHandle = SDF_CreateSM2PriKeyHandle(env, priKeyArr, pinArr);
 
     // digest data
     dataLen = (*env)->GetArrayLength(env, digestArray);

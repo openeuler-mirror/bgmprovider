@@ -162,7 +162,7 @@ public class SDFSM2KeyPairGenerator extends SDFKeyPairGeneratorCore {
         ECParameterSpec ecParams = (ECParameterSpec) params;
         try {
             publicKey = new SDFECPublicKeyImpl(w, ecParams);
-            privateKey = new SDFECPrivateKeyImpl(s, ecParams, isEncKey());
+            privateKey = new SDFECPrivateKeyImpl(s, ecParams, isEncKey(), super.kekInfo.getPin());
         } catch (InvalidKeyException e) {
             throw new ProviderException(e);
         }

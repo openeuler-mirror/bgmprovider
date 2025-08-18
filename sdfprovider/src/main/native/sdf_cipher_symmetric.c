@@ -44,7 +44,7 @@ static void FreeMemoryFromInit(JNIEnv *env, jbyteArray ivArr, jbyte *iv, jbyteAr
 
 JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherInit(JNIEnv *env,
         jclass cls, jint keyType, jstring mode, jboolean isPadding, jbyteArray keyArr, jbyteArray ivArr,
-        jbyteArray tagArr, jboolean encrypt) {
+        jbyteArray tagArr, jbyteArray pinArr, jboolean encrypt) {
     void *keyHandle = NULL;
     void *sysCipher = NULL;
     int ctxType = CTX_TYPE_SYMM;
@@ -54,6 +54,8 @@ JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_
     jbyte *iv = NULL;
     int ivLen = 0;
     unsigned char *aad = NULL;
+    jbyte *pin = NULL;
+    int pinLen = 0;
     int aadLen = 16;
     unsigned char *tag = NULL;
     int tagLen = 16;
@@ -72,6 +74,11 @@ JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_
     if (ivArr != NULL) {
         iv = (*env)->GetByteArrayElements(env, ivArr, NULL);
         ivLen = (*env)->GetArrayLength(env, ivArr);
+    }
+    // pin
+    if (pinArr != NULL) {
+        pin = (*env)->GetByteArrayElements(env, pinArr, NULL);
+        pinLen = (*env)->GetArrayLength(env, pinArr);
     }
     if ((aad = (unsigned char *) malloc(aadLen)) == NULL) {
         throwOutOfMemoryError(env, "malloc aad failed.");
@@ -93,7 +100,7 @@ JNIEXPORT jlong JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_
     padding = isPadding ? PAD_PKCS7 : PAD_NO;
 
     // Import normal or encrypted key
-    if ((rv = CDM_ImportKeyHandle(key, keyLen, NULL, 0, &keyHandle)) != SDR_OK) {
+    if ((rv = CDM_ImportKeyHandle(key, keyLen, pin, pinLen, &keyHandle)) != SDR_OK) {
         throwSDFException(env, rv, "CDM_ImportKeyHandle");
         goto cleanup;
     }
@@ -131,6 +138,9 @@ cleanup:
     }
     if (tag != NULL) {
         (*env)->ReleaseByteArrayElements(env, tagArr, tag, 0);
+    }
+    if (pin != NULL) {
+        (*env)->ReleaseByteArrayElements(env, pinArr, pin, 0);
     }
     FreeMemoryFromInit(env, ivArr, iv, keyArr, key, keyLen, mode, modeName);
     return 0;
