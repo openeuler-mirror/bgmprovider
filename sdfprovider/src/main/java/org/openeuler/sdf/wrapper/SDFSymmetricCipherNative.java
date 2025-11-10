@@ -43,4 +43,7 @@ public class SDFSymmetricCipherNative {
 
     // symmetric cipher handle free
     public static native void nativeCipherCtxFree(long ctxAddress) throws SDFException;
+
+    // get cipher head bytes
+    public static native byte[] nativeCipherHead();
 }

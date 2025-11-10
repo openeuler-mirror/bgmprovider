@@ -79,4 +79,19 @@ public class SDFSM4Test extends SDFSymmetricTest {
     public void testGCM() throws Exception {
         testGCM(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN);
     }
+
+    @Test
+    public void testCBCWithHead() throws Exception {
+        testCBC(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN, true);
+    }
+
+    @Test
+    public void testCTRWithHead() throws Exception {
+        testCTR(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN, true);
+    }
+
+    @Test
+    public void testGCMWithHead() throws Exception {
+        testGCM(ALGO, BLOCK_SIZE, KEY_SIZE, IV_LEN, true);
+    }
 }

@@ -149,33 +149,41 @@ public class SDFSymmetricTest extends SDFTestCase {
     }
 
     protected void testCBC(String algorithm, int blockSize, int keySize, int ivLen) throws Exception {
+        testCBC(algorithm, blockSize, keySize, ivLen, false);
+    }
+
+    protected void testCBC(String algorithm, int blockSize, int keySize, int ivLen, boolean withHead) throws Exception {
         SecretKey secretKey = SDFSymmetricTestUtil.generateKey(algorithm, sdf, keySize, true);
         byte[] ivBytes = SDFTestUtil.generateRandomBytes(ivLen);
 
         String transformation = algorithm + "/CBC/NoPadding";
-        test(transformation, secretKey, new byte[0], ivBytes);
-        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes);
+        test(transformation, secretKey, new byte[0], ivBytes, withHead);
+        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes, withHead);
         test(transformation, secretKey,
-                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes);
+                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes, withHead);
 
         transformation = algorithm + "/CBC/PKCS5Padding";
-        test(transformation, secretKey, new byte[0], ivBytes);
-        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes);
+        test(transformation, secretKey, new byte[0], ivBytes, withHead);
+        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes, withHead);
         test(transformation, secretKey,
-                SDFTestUtil.generateRandomBytesByBound(blockSize), ivBytes);
+                SDFTestUtil.generateRandomBytesByBound(blockSize), ivBytes, withHead);
         test(transformation, secretKey,
-                SDFTestUtil.generateRandomBytes(), ivBytes);
+                SDFTestUtil.generateRandomBytes(), ivBytes, withHead);
     }
 
     protected void testCTR(String algorithm, int blockSize, int keySize, int ivLen) throws Exception {
+        testCTR(algorithm, blockSize, keySize, ivLen, false);
+    }
+
+    protected void testCTR(String algorithm, int blockSize, int keySize, int ivLen, boolean withHead) throws Exception {
         SecretKey secretKey = SDFSymmetricTestUtil.generateKey(algorithm, sdf, keySize, true);
         byte[] ivBytes = SDFTestUtil.generateRandomBytes(ivLen);
 
         String transformation = algorithm + "/CTR/NoPadding";
-        test(transformation, secretKey, new byte[0], ivBytes);
-        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes);
+        test(transformation, secretKey, new byte[0], ivBytes, withHead);
+        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes, withHead);
         test(transformation, secretKey,
-                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes);
+                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes, withHead);
     }
 
     protected void testXTS(String algorithm, int blockSize, int keySize, int ivLen) throws Exception {
@@ -196,17 +204,26 @@ public class SDFSymmetricTest extends SDFTestCase {
     }
 
     protected void testGCM(String algorithm, int blockSize, int keySize, int ivLen) throws Exception {
+        testGCM(algorithm, blockSize, keySize, ivLen, false);
+    }
+
+    protected void testGCM(String algorithm, int blockSize, int keySize, int ivLen, boolean withHead) throws Exception {
         SecretKey secretKey = SDFSymmetricTestUtil.generateKey(algorithm, sdf, keySize, true);
         byte[] ivBytes = SDFTestUtil.generateRandomBytes(ivLen);
 
         String transformation = algorithm + "/GCM/NoPadding";
-        test(transformation, secretKey, new byte[0], ivBytes);
-        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes);
+        test(transformation, secretKey, new byte[0], ivBytes, withHead);
+        test(transformation, secretKey, SDFTestUtil.generateRandomBytes(blockSize), ivBytes, withHead);
         test(transformation, secretKey,
-                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes);
+                SDFTestUtil.generateRandomBytes(blockSize * SDFTestUtil.generateRandomInt()), ivBytes, withHead);
     }
 
     private static void test(String algorithm, SecretKey secretKey, byte[] data, byte[] ivBytes) throws Exception {
+        test(algorithm, secretKey, data, ivBytes, false);
+    }
+
+    private static void test(String algorithm, SecretKey secretKey, byte[] data, byte[] ivBytes, boolean withHead)
+            throws Exception {
         System.out.println("----------------------------------------------------------");
         System.out.println("algorithm=" + algorithm);
         System.out.println("secretKey=" + Arrays.toString(secretKey.getEncoded()));
@@ -214,13 +231,7 @@ public class SDFSymmetricTest extends SDFTestCase {
         if (ivBytes != null) {
             System.out.println("ivBytes.length= " + ivBytes.length + ", ivBytes=" + Arrays.toString(ivBytes));
         }
-        AlgorithmParameterSpec spec = null;
-        if (ivBytes != null) {
-            spec = new IvParameterSpec(ivBytes);
-        }
-        if (algorithm.contains("GCM")) {
-            spec = new SDFGCMParameterSpec(128, ivBytes);
-        }
+        AlgorithmParameterSpec spec = getAlgorithmParameter(algorithm, ivBytes, withHead);
         byte[] encData;
         byte[] decData;
 
@@ -238,6 +249,17 @@ public class SDFSymmetricTest extends SDFTestCase {
         System.out.println("case 2 decData.length= " + decData.length + " decData=" + Arrays.toString(decData));
         Assert.assertArrayEquals("test case 2 failed", data, decData);
         System.out.println("----------------------------------------------------------");
+    }
+
+    private static AlgorithmParameterSpec getAlgorithmParameter(String algorithm, byte[] ivBytes, boolean withHead) {
+        AlgorithmParameterSpec spec = null;
+        if (ivBytes != null) {
+            spec = withHead ? new SDFIvParameterSpec(ivBytes, true) : new IvParameterSpec(ivBytes);
+        }
+        if (algorithm.contains("GCM")) {
+            spec = withHead ? new SDFGCMParameterSpec(128, ivBytes, true) : new SDFGCMParameterSpec(128, ivBytes);
+        }
+        return spec;
     }
 
     private static void testEncryptBaseLine(String algorithm, SDFKeyTestDB keyDB, byte[] data, int splitOffset,

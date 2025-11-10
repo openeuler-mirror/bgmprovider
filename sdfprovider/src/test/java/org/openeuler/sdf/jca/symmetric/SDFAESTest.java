@@ -90,6 +90,40 @@ public class SDFAESTest extends SDFTestCase {
         }
     }
 
+    @Test
+    public void testCTR() throws Exception {
+        for (String algo : ALGORITHMS) {
+            System.out.println("TEST:" + algo + "/CTR/NoPadding");
+            testAES(algo, "CTR", "NoPadding", true);
+        }
+    }
+
+    @Test
+    public void testCBCWithHead() throws Exception {
+        for (String algo : ALGORITHMS) {
+            for (String padding : PADDINGS) {
+                System.out.println("TEST:" + algo + "/CBC/" + padding);
+                testAESWithHead(algo, "CBC", padding, true);
+            }
+        }
+    }
+
+    @Test
+    public void testGCMWithHead() throws Exception {
+        for (String algo : ALGORITHMS) {
+            System.out.println("TEST:" + algo + "/GCM/NoPadding");
+            testAESWithHead(algo, "GCM", "NoPadding", true);
+        }
+    }
+
+    @Test
+    public void testCTRWithHead() throws Exception {
+        for (String algo : ALGORITHMS) {
+            System.out.println("TEST:" + algo + "/CTR/NoPadding");
+            testAESWithHead(algo, "CTR", "NoPadding", true);
+        }
+    }
+
     private static void testAES(String algo, String mo, String pad, boolean isEncKey) throws Exception {
         AlgorithmParameterSpec aps = null;
 
@@ -116,6 +150,36 @@ public class SDFAESTest extends SDFTestCase {
         } else {
             aps = null;
         }
+
+        cipher.init(Cipher.DECRYPT_MODE, key, aps);
+        String decryptPlainText = new String(cipher.doFinal(cipherText));
+
+        if (!cipherString.equals(decryptPlainText)) {
+            throw new RuntimeException("aes decryption failed, algo = " + algo + ", mo = " + mo + ", pad = " + pad);
+        }
+    }
+
+    private static void testAESWithHead(String algo, String mo, String pad, boolean isEncKey) throws Exception {
+        AlgorithmParameterSpec aps = null;
+
+        Cipher cipher = Cipher.getInstance(algo + "/" + mo + "/" + pad);
+        SecretKey key = isEncKey ? getEncSecretKey(algo, mo) : getNormalSecretKey(algo);
+
+        // encrypt
+        if (mo.equalsIgnoreCase("GCM")) {
+            aps = new SDFGCMParameterSpec(128, new byte[16], true);
+        } else if (!mo.equalsIgnoreCase("ECB")) {
+            aps = new SDFIvParameterSpec(new byte[16], true);
+        }
+        cipher.init(Cipher.ENCRYPT_MODE, key, aps);
+
+        String cipherString = null;
+        if (!pad.equalsIgnoreCase("NoPadding")) {
+            cipherString = shortPlainText;
+        } else {
+            cipherString = plainText;
+        }
+        byte[] cipherText = cipher.doFinal(cipherString.getBytes(StandardCharsets.UTF_8));
 
         cipher.init(Cipher.DECRYPT_MODE, key, aps);
         String decryptPlainText = new String(cipher.doFinal(cipherText));
