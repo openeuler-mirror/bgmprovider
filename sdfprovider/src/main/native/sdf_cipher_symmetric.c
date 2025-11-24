@@ -289,3 +289,35 @@ JNIEXPORT void JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_n
         return;
     }
 }
+
+JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNative_nativeCipherHead(
+        JNIEnv *env, jclass cls) {
+    unsigned int headLen = 0;
+    SGD_RV rv;
+    char *head = NULL;
+
+    if ((rv = CDM_GetCipherHead(head, &headLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_GetCipherHead");
+        return;
+    }
+    if ((head = (unsigned char *) malloc(headLen)) == NULL) {
+        throwOutOfMemoryError(env, "nativeCipherHead failed. Unable to allocate in 'out' buffer");
+        goto cleanup;
+    }
+    if ((rv = CDM_GetCipherHead(head, &headLen)) != SDR_OK) {
+        throwSDFException(env, rv, "CDM_GetCipherHead");
+        goto cleanup;
+    }
+
+    jbyteArray result = (*env)->NewByteArray(env, headLen);
+    if (result == NULL) {
+        throwOutOfMemoryError(env, "nativeCipherHead failed. Unable to create byteArray");
+        goto cleanup;
+    }
+    (*env)->SetByteArrayRegion(env, result, 0, headLen, (jbyte*)head);
+cleanup:
+    if (head != NULL) {
+        free(head);
+    }
+    return result;
+}

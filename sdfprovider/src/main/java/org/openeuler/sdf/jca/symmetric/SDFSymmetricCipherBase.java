@@ -79,6 +79,11 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     private boolean encrypt = false;
     // Cache length need to doFinal
     private int bytesBuffered = 0;
+    // need cipher head flag
+    private boolean withCipherHead = false;
+    private byte[] cipherHeadBytes;
+    // if first time doUpdate
+    private boolean firstUpdate = true;
 
     SDFSymmetricCipherBase(SDFDataKeyType dataKeyType, SDFMode mode, SDFPadding padding, int blockSize, int supportedKeySize) {
         this.dataKeyType = dataKeyType;
@@ -398,6 +403,9 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
             len += (len % blockSize != 0 || encrypt) ? blockSize : 0;
             ret = len - (len % blockSize);
         }
+        if (encrypt && withCipherHead && firstUpdate) {
+            ret += cipherHeadBytes.length;
+        }
         return ret;
     }
 
@@ -447,6 +455,16 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
                             ("Unsupported parameter: " + params);
                 }
             }
+            // cipher head init
+            if (params instanceof SDFCipherHeadSpec) {
+                SDFCipherHeadSpec spec = (SDFCipherHeadSpec) params;
+                this.withCipherHead = spec.withCipherHead();
+                this.cipherHeadBytes = spec.getCipherHeadBytes();
+            } else {
+                // if init with cipher head first then init without cipher head, should reset.
+                this.withCipherHead = false;
+                this.cipherHeadBytes = null;
+            }
         }
         if (mode == SDFMode.ECB) {
             if (ivBytes != null) {
@@ -477,6 +495,11 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     }
 
     private int implUpdate(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) {
+        if (!encrypt && withCipherHead && firstUpdate) {
+            firstUpdate = false;
+            inputOffset += cipherHeadBytes.length;
+            inputLen -= cipherHeadBytes.length;
+        }
         if (inputLen <= 0) {
             return 0;
         }
@@ -490,13 +513,22 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
             throw new SDFRuntimeException("SDFSymmetricCipher nativeUpdate failed for " + dataKeyType.getAlgorithm(), e);
         }
         bytesBuffered += (inputLen - outLen);
-
+        if (encrypt && withCipherHead && firstUpdate) {
+            firstUpdate = false;
+            System.arraycopy(output, outputOffset, output, outputOffset + cipherHeadBytes.length, outLen);
+            System.arraycopy(cipherHeadBytes, 0, output, outputOffset, cipherHeadBytes.length);
+            outLen += cipherHeadBytes.length;
+        }
         return outLen;
     }
 
 
     private int implDoFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset)
             throws ShortBufferException {
+        if (!encrypt && withCipherHead && firstUpdate) {
+            inputOffset += cipherHeadBytes.length;
+            inputLen -= cipherHeadBytes.length;
+        }
         int outLen = 0;
         int min = getOutputSizeByOperation(inputLen, true);
         try {
@@ -518,6 +550,11 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
             if (mode == SDFMode.GCM) {
                 paramSpec.setTag(tag);
             }
+            if (encrypt && withCipherHead && firstUpdate) {
+                System.arraycopy(output, outputOffset, output, outputOffset + cipherHeadBytes.length, outLen);
+                System.arraycopy(cipherHeadBytes, 0, output, outputOffset, cipherHeadBytes.length);
+                outLen += cipherHeadBytes.length;
+            }
         } catch (SDFException e) {
             throw new SDFRuntimeException("SDFSymmetricCipher nativeCipherFinal failed for " + dataKeyType.getAlgorithm(), e);
         } finally {
@@ -529,6 +566,7 @@ public abstract class SDFSymmetricCipherBase extends CipherSpi {
     protected void reset() {
         initialized = false;
         bytesBuffered = 0;
+        firstUpdate = true;
 
         // free cipher context
         if (context != null) {

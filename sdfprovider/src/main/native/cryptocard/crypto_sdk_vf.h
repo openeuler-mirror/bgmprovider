@@ -745,6 +745,14 @@ int CDM_SymmDecryptFinal(void* sysCipher, const unsigned char* encData, unsigned
                          unsigned char* lastData, unsigned int* lastDataLen);
 
 /**
+ * @brief 获取密文头
+ * @param buf        【OUT】输出密文头
+ * @param bufLen     【OUT】输出密文头的长度
+ * @return 错误码
+ */
+int CDM_GetCipherHead(unsigned char* buf, unsigned int *bufLen);
+
+/**
  * @brief 多包MAC计算初始化
  * @param keyHandle             【IN】【是】指定的密钥句柄
  * @param iv                    【IN】【是】缓冲区指针IV

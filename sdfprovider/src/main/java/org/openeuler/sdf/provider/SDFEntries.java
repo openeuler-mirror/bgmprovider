@@ -207,6 +207,8 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES_XTS_NoPadding");
         add(provider, "Cipher", "AES/GCM/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES_GCM_NoPadding");
+        add(provider, "Cipher", "AES/CTR/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES_CTR_NoPadding");
 
         add(provider, "Cipher", "AES_128/CBC/PKCS5Padding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_CBC_PKCS5Padding");
@@ -220,6 +222,8 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_XTS_NoPadding");
         add(provider, "Cipher", "AES_128/GCM/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_GCM_NoPadding");
+        add(provider, "Cipher", "AES_128/CTR/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES128_CTR_NoPadding");
 
         add(provider, "Cipher", "AES_192/CBC/PKCS5Padding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_CBC_PKCS5Padding");
@@ -233,6 +237,8 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_XTS_NoPadding");
         add(provider, "Cipher", "AES_192/GCM/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_GCM_NoPadding");
+        add(provider, "Cipher", "AES_192/CTR/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES192_CTR_NoPadding");
 
         add(provider, "Cipher", "AES_256/CBC/PKCS5Padding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_CBC_PKCS5Padding");
@@ -246,6 +252,8 @@ public class SDFEntries extends AbstractEntries {
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_XTS_NoPadding");
         add(provider, "Cipher", "AES_256/GCM/NoPadding",
                 "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_GCM_NoPadding");
+        add(provider, "Cipher", "AES_256/CTR/NoPadding",
+                "org.openeuler.sdf.jca.symmetric.SDFAESCipher$AES256_CTR_NoPadding");
     }
 
     private void putSM2(Provider provider) {

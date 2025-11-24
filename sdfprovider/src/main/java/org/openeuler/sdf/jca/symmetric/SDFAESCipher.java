@@ -37,6 +37,7 @@ import java.security.InvalidKeyException;
  * - AES/CBC/PKCS5PADDING
  * - AES/XTS/NOPADDING
  * - AES/GCM/NOPADDING
+ * - AES/CTR/NOPADDING
  */
 abstract class SDFAESCipher extends SDFSymmetricCipherBase {
 
@@ -70,6 +71,11 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
             super(SDFMode.GCM, SDFPadding.NOPADDING, -1);
         }
     }
+    public static final class AES_CTR_NoPadding extends SDFAESCipher {
+        public AES_CTR_NoPadding() {
+            super(SDFMode.CTR, SDFPadding.NOPADDING, -1);
+        }
+    }
 
     public static final class AES128_ECB_NoPadding extends SDFAESCipher {
         public AES128_ECB_NoPadding() {
@@ -99,6 +105,11 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
     public static final class AES128_GCM_NoPadding extends SDFAESCipher {
         public AES128_GCM_NoPadding() {
             super(SDFMode.GCM, SDFPadding.NOPADDING, 16);
+        }
+    }
+    public static final class AES128_CTR_NoPadding extends SDFAESCipher {
+        public AES128_CTR_NoPadding() {
+            super(SDFMode.CTR, SDFPadding.NOPADDING, 16);
         }
     }
 
@@ -132,6 +143,11 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
             super(SDFMode.GCM, SDFPadding.NOPADDING, 24);
         }
     }
+    public static final class AES192_CTR_NoPadding extends SDFAESCipher {
+        public AES192_CTR_NoPadding() {
+            super(SDFMode.CTR, SDFPadding.NOPADDING, 24);
+        }
+    }
 
     public static final class AES256_ECB_NoPadding extends SDFAESCipher {
         public AES256_ECB_NoPadding() {
@@ -161,6 +177,11 @@ abstract class SDFAESCipher extends SDFSymmetricCipherBase {
     public static final class AES256_GCM_NoPadding extends SDFAESCipher {
         public AES256_GCM_NoPadding() {
             super(SDFMode.GCM, SDFPadding.NOPADDING, 32);
+        }
+    }
+    public static final class AES256_CTR_NoPadding extends SDFAESCipher {
+        public AES256_CTR_NoPadding() {
+            super(SDFMode.CTR, SDFPadding.NOPADDING, 32);
         }
     }
 
