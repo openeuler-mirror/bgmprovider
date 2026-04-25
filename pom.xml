@@ -10,7 +10,7 @@
     <version>2.0.3</version>
 
     <name>gmssl</name>
-    <url>https://gitee.com/openeuler/bgmprovider</url>
+    <url>https://gitcode.com/openeuler/bgmprovider</url>
     <description>Java Support for GMTLS</description>
 
     <properties>
@@ -146,8 +146,8 @@
         </license>
     </licenses>
     <scm>
-        <connection>https://gitee.com/openeuler/bgmprovider.git</connection>
-        <url>https://gitee.com/openeuler/bgmprovider</url>
+        <connection>https://gitcode.com/openeuler/bgmprovider.git</connection>
+        <url>https://gitcode.com/openeuler/bgmprovider</url>
     </scm>
     <developers>
         <developer>

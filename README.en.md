@@ -8,7 +8,7 @@ BGMProvider is another Java Cryptography Architecture(JCA) Provider,
 including a JCE Provider and a JSSE Provider.
 
 #### Installation
-See the [Installation Guide](https://gitee.com/openeuler/bgmprovider/wikis/English%20Documentation/BGMProvider%20Installation%20Guide)
+See the [Installation Guide](https://gitcode.com/openeuler/bgmprovider/wiki/English%20Documentation%2FBGMProvider%20Installation%20Guide.md)
 
 #### Contribution
 code contribution is welcome!
@@ -18,4 +18,4 @@ code contribution is welcome!
 4.  Create Pull Request
 
 #### LICENSE
-BGMProvider is licensed under GPLv2 with Classpath Exception, see [LICENSE](https://gitee.com/openeuler/bgmprovider/blob/master/LICENSE)
+BGMProvider is licensed under GPLv2 with Classpath Exception, see [LICENSE](https://gitcode.com/openeuler/bgmprovider/blob/master/LICENSE)
