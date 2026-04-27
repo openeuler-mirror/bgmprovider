@@ -8,7 +8,7 @@ BGMProvider 基于 Java Cryptography Architecture(JCA) 框架，
 提供一个JCE provider 和 JSSE provider。
 
 #### 安装指南
-请见[安装指南](https://gitee.com/openeuler/bgmprovider/wikis/中文文档/BGMProvider安装指南)
+请见[安装指南](https://gitcode.com/openeuler/bgmprovider/wiki/中文文档%2FBGMProvider安装指南.md)
 
 #### 参与贡献
 欢迎所有人提交代码
@@ -18,4 +18,4 @@ BGMProvider 基于 Java Cryptography Architecture(JCA) 框架，
 4.  新建 Pull Request
 
 #### LICENSE
-BGMProvider使用GPLv2 with Classpath Exception, 请见[LICENSE](https://gitee.com/openeuler/bgmprovider/blob/master/LICENSE)
+BGMProvider使用GPLv2 with Classpath Exception, 请见[LICENSE](https://gitcode.com/openeuler/bgmprovider/blob/master/LICENSE)
