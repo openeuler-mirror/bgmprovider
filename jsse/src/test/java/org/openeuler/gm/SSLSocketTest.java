@@ -65,8 +65,8 @@ public class SSLSocketTest extends SSLSocketTestBase {
     @Test
     public void testGMTLSAdaptive() {
         test("GMTLS", null, null,
-                "TLSv1.2", new String[]{"TLSv1.2"}, new String[]{"TLS_RSA_WITH_AES_256_CBC_SHA256"},
-                "TLSv1.2", "TLS_RSA_WITH_AES_256_CBC_SHA256");
+                "TLSv1.2", new String[]{"TLSv1.2"}, new String[]{"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA"},
+                "TLSv1.2", "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
         //TLS_DHE_RSA_WITH_AES_256_CBC_SHA process ServerKeyExchange Message
         test("GMTLS", null, null,
                 "TLSv1.2", new String[]{"TLSv1.2"}, new String[]{"TLS_DHE_RSA_WITH_AES_256_CBC_SHA"},
@@ -76,7 +76,7 @@ public class SSLSocketTest extends SSLSocketTestBase {
     @Test
     public void testGMTLSProtocolPriority() {
         test("GMTLS", null, null,
-                "TLS", null, new String[]{"TLS_RSA_WITH_AES_256_CBC_SHA256",
+                "TLS", null, new String[]{"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA",
                         "ECC_SM4_CBC_SM3"},
                 "GMTLS", "ECC_SM4_CBC_SM3");
     }

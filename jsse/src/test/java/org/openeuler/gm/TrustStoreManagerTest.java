@@ -241,7 +241,7 @@ public class TrustStoreManagerTest extends BaseTest {
         tlsResult.assertClientException(actualMessage);
 
         tlsResult = testTLS(SERVER_PORT, storeFileNames, null, new String[]{"TLSv1.2"},
-                new String[]{"TLS_RSA_WITH_AES_256_GCM_SHA384"});
+                new String[]{"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"});
         tlsResult.assertSuccess();
     }
 
