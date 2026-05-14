@@ -27,6 +27,7 @@ package org.openeuler.gm;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.openeuler.adaptor.X509CertImplAdapter;
 import sun.security.x509.X509CertImpl;
 
 import java.io.FileInputStream;
@@ -55,14 +56,14 @@ public class X509CertImplHandlerTest extends BaseTest {
     public void testNonStaticGetFingerprintMethod() throws KeyStoreException, CertificateException {
         Certificate certificate = trustStore.getCertificate("server-sm2-sig");
         X509CertImpl x509Cert = new X509CertImpl(certificate.getEncoded());
-        String fingerprint = X509CertImplHandler.getFingerprint("SM3", x509Cert);
+        String fingerprint = X509CertImplAdapter.getFingerprint("SM3", x509Cert);
         Assert.assertEquals(EXPECTED_FINGERPRINT, fingerprint);
     }
 
     @Test
     public void testStaticGetFingerprintMethod() throws KeyStoreException {
         Certificate certificate = trustStore.getCertificate("server-sm2-sig");
-        String fingerprint = X509CertImplHandler.getFingerprint("SM3", (X509Certificate) certificate);
+        String fingerprint = X509CertImplAdapter.getFingerprint("SM3", (X509Certificate) certificate);
         Assert.assertEquals(EXPECTED_FINGERPRINT, fingerprint);
     }
 

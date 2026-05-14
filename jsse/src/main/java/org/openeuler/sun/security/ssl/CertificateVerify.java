@@ -1494,6 +1494,14 @@ final class CertificateVerify {
             // Clean up this consumer
             hc.handshakeConsumers.remove(SSLHandshake.CERTIFICATE_VERIFY.id);
 
+            // Ensure that the Certificate Verify message has not been sent w/o
+            // a Certificate message preceding
+            if (hc.handshakeConsumers.containsKey(
+                    SSLHandshake.CERTIFICATE.id)) {
+                throw hc.conContext.fatal(Alert.UNEXPECTED_MESSAGE,
+                                  "Unexpected Certificate Verify handshake message");
+            }
+
             T13CertificateVerifyMessage cvm =
                     new T13CertificateVerifyMessage(hc, message);
             if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {

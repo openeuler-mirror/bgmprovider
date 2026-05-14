@@ -37,7 +37,7 @@ import java.util.Set;
 
 import sun.security.x509.X509CertImpl;
 
-import static org.openeuler.gm.X509CertImplHandler.getFingerprint;
+import static org.openeuler.adaptor.X509CertImplAdapter.getFingerprint;
 
 /**
  * This class checks if Symantec issued TLS Server certificates should be

@@ -64,7 +64,7 @@ import javax.security.auth.DestroyFailedException;
 import javax.security.auth.x500.X500Principal;
 
 import org.openeuler.adaptor.DerOutputStreamAdapter;
-import org.openeuler.gm.PKCS12KeyStoreHandler;
+import org.openeuler.adaptor.PKCS12KeyStoreHandler;
 import sun.security.action.GetPropertyAction;
 import sun.security.util.Debug;
 import sun.security.util.DerInputStream;

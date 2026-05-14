@@ -50,4 +50,12 @@ public class AdapterBase {
             throw new AssertionError(e);
         }
     }
+
+    protected static Object invokeStatic(Method method, Object... args) {
+    try {
+        return method.invoke(null, args);
+    } catch (InvocationTargetException | IllegalAccessException e) {
+        throw new AssertionError(e);
+    }
+}
 }

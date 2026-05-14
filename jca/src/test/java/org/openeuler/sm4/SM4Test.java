@@ -55,6 +55,7 @@ public class SM4Test {
         try {
             Class<?> clazz = Class.forName("org.bouncycastle.jce.provider.BouncyCastleProvider");
             Provider bcProvider = (Provider) clazz.newInstance();
+            Security.addProvider(bcProvider);
             Security.insertProviderAt(bcProvider, 2);
         } catch (Exception e) {
             System.err.println("BouncyCastleProvider does not exist");

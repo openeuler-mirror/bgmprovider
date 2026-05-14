@@ -25,6 +25,7 @@
 package org.openeuler.gm;
 
 import org.junit.Test;
+import org.openeuler.adaptor.PKCS12KeyStoreHandler;
 
 public class PKCS12KeyStoreHandlerTest {
 
