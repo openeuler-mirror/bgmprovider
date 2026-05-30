@@ -24,11 +24,13 @@
 
 package org.openeuler.adaptor;
 
+import sun.security.util.Debug;
 import sun.security.x509.AlgorithmId;
 import sun.security.x509.X509CertImpl;
 import sun.security.x509.X509CertInfo;
 
 import java.lang.reflect.Method;
+import java.security.cert.X509Certificate;
 
 public class X509CertImplAdapter extends AdapterBase {
 
@@ -50,7 +52,21 @@ public class X509CertImplAdapter extends AdapterBase {
 
     private static Method getInfo;
 
+    private static Method getFingerprint;
+
+    private static Method getFingerprintWithDebug;
+
+
     private static final Class<?> proxyClass;
+
+    // Non-static getFingerprint methods
+    // JDK 17.0.2 adds a Debug parameter to the getFingerprint function.
+    // For more information refer to <a href="https://bugs.openjdk.org/browse/JDK-8270946">JDK-8270946</a>
+    private static Method nonStaticGetFingerprint;
+
+    private static Method nonStaticGetFingerprintWithDebug;
+
+    private static final Debug certPathDebug = Debug.getInstance("certpath");
 
     static {
         try {
@@ -77,6 +93,18 @@ public class X509CertImplAdapter extends AdapterBase {
             getSigAlg = proxyClass.getDeclaredMethod("getSigAlg");
             getInfo = proxyClass.getDeclaredMethod("getInfo");
         }
+
+        try {
+            getFingerprint = proxyClass.getDeclaredMethod("getFingerprint", String.class, X509Certificate.class);
+        } catch (NoSuchMethodException e) {
+            getFingerprintWithDebug = proxyClass.getDeclaredMethod("getFingerprint", String.class, X509Certificate.class, Debug.class);
+        }
+
+        try {
+            nonStaticGetFingerprint = proxyClass.getDeclaredMethod("getFingerprint", String.class);
+        } catch (NoSuchMethodException e) {
+            nonStaticGetFingerprintWithDebug = proxyClass.getDeclaredMethod("getFingerprint", String.class, Debug.class);
+        }
     }
 
     /**
@@ -96,5 +124,21 @@ public class X509CertImplAdapter extends AdapterBase {
             return (X509CertInfo) invoke(get, NAME + "." + INFO);
         }
         return (X509CertInfo) invoke(getInfo);
+    }
+
+    public String getFingerprint(String algorithm) {
+        ensureAvailable();
+        if(nonStaticGetFingerprint != null) {
+            return (String) invoke(nonStaticGetFingerprint, algorithm);
+        }
+        return (String) invoke(nonStaticGetFingerprintWithDebug, algorithm, certPathDebug);
+    }
+
+    public static String getFingerprint(String algorithm, X509Certificate cert) {
+        // ensureAvailable();
+        if(getFingerprint != null) {
+            return (String) invokeStatic(getFingerprint, algorithm, cert);
+        }
+        return (String) invokeStatic(getFingerprintWithDebug, algorithm, cert, certPathDebug);
     }
 }

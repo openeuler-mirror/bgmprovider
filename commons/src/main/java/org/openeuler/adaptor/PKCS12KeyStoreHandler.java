@@ -22,7 +22,7 @@
  * information or have any questions.
  */
 
-package org.openeuler.gm;
+package org.openeuler.adaptor;
 
 import sun.security.util.Debug;
 
