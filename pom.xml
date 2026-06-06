@@ -17,6 +17,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <jacoco.version>0.8.12</jacoco.version>
+        <jacoco.argLine/>
+        <surefire.argLine/>
+        <jdk.module.options/>
     </properties>
 
     <dependencyManagement>
@@ -72,14 +76,19 @@
                         <forkCount>0.5C</forkCount>
                         <parallel>none</parallel>
                         <reuseForks>false</reuseForks>
-                        <forkedProcessTimeoutInSeconds>90</forkedProcessTimeoutInSeconds>
+                        <forkedProcessTimeoutInSeconds>180</forkedProcessTimeoutInSeconds>
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <goal>aggregate</goal>
+                        <argLine>${jacoco.argLine}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
                     <artifactId>maven-jar-plugin</artifactId>
                     <version>3.0.2</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>3.7.1</version>
                 </plugin>
                 <plugin>
                     <artifactId>maven-install-plugin</artifactId>
@@ -119,7 +128,7 @@
                                 <!--                                the aggregated project,please execute the following command-->
                                 <!--                                in the root directory of the project-->
                                 <!--                                mvn source:aggregate-->
-                                <goal>aggregate</goal>
+                                <goal>jar-no-fork</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -134,8 +143,37 @@
                     <artifactId>versions-maven-plugin</artifactId>
                     <version>2.7</version>
                 </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
+                </plugin>
             </plugins>
         </pluginManagement>
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                        <configuration>
+                            <propertyName>jacoco.argLine</propertyName>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
     <licenses>
         <license>
