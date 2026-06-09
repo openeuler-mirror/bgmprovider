@@ -14,7 +14,6 @@
     <name>sdfprovider</name>
     
     <properties>
-        <native-maven-plugin.version>1.0-M1</native-maven-plugin.version>
         <native.compiler.startOptions>
             -g
             -fPIC
@@ -86,7 +85,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>native-maven-plugin</artifactId>
-                <version>${native-maven-plugin.version}</version>
                 <extensions>true</extensions>
                 <executions>
                     <!-- x86_64 -->
@@ -256,7 +254,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
-                <version>3.3.1</version>
                 <executions>
                     <execution>
                         <id>copy-resources</id>
