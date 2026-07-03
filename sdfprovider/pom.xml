@@ -66,6 +66,12 @@
     <build>
         <plugins>
             <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <descriptorRefs>
@@ -83,46 +89,22 @@
                 </executions>
             </plugin>
             <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-h</arg>
+                        <arg>${project.build.directory}/include</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>native-maven-plugin</artifactId>
-                <extensions>true</extensions>
                 <executions>
                     <!-- x86_64 -->
                     <execution>
-                        <id>javah</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>javah</goal>
-                        </goals>
-                        <configuration>
-                            <javahClassNames>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSDKNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFDigestNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFLogNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFRandomNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSymmetricCipherNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFKeyGeneratorNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM2KeyPairGeneratorNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM2CipherNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM2SignatureNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM2KeyAgreementNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFRSAKeyPairGeneratorNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFRSACipherNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFHmacNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFECCKeyAgreementNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFPRFNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFInternalNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFPBKDF2Native</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM9KeyPairGeneratorNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM9CipherNative</javahClassName>
-                                <javahClassName>org.openeuler.sdf.wrapper.SDFSM9SignatureNative</javahClassName>
-                            </javahClassNames>
-                            <javahOutputDirectory>${project.build.directory}/include</javahOutputDirectory>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>compile_linux_x86_64</id>
-                        <phase>compile</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
@@ -165,7 +147,7 @@
                     </execution>
                     <execution>
                         <id>link_linux_x86_64</id>
-                        <phase>compile</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>link</goal>
                         </goals>
@@ -181,13 +163,14 @@
                             <linkerFinalName>libsdfcrypto_linux_x86_64</linkerFinalName>
                             <linkerFinalNameExt>so</linkerFinalNameExt>
                             <linkerOutputDirectory>${project.build.directory}</linkerOutputDirectory>
+                            <attach>false</attach>
                         </configuration>
                     </execution>
 
                     <!-- aarch64 -->
                     <execution>
                         <id>compile_linux_aarch64</id>
-                        <phase>compile</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
@@ -230,7 +213,7 @@
                     </execution>
                     <execution>
                         <id>link_linux_aarch64</id>
-                        <phase>compile</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>link</goal>
                         </goals>
@@ -246,6 +229,7 @@
                             <linkerFinalName>libsdfcrypto_linux_aarch64</linkerFinalName>
                             <linkerFinalNameExt>so</linkerFinalNameExt>
                             <linkerOutputDirectory>${project.build.directory}</linkerOutputDirectory>
+                            <attach>false</attach>
                         </configuration>
                     </execution>
                 </executions>
@@ -257,7 +241,7 @@
                 <executions>
                     <execution>
                         <id>copy-resources</id>
-                        <phase>compile</phase>
+                        <phase>process-classes</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
@@ -275,40 +259,6 @@
                     </execution>
                 </executions>
             </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <finalName>${project.artifactId}</finalName>
-                    <classifier>${project.version}</classifier>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <skipTests>true</skipTests>
-                    <argLine>
-                        ${jacoco.argLine}
-                        ${jdk.module.options}
-                    </argLine>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 
@@ -322,6 +272,7 @@
                 <jdk.module.options>
                     --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
                     --add-exports=java.base/jdk.internal.access=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.util=ALL-UNNAMED
                     --add-exports=java.base/sun.security.x509=ALL-UNNAMED
                     --add-exports=java.base/sun.security.action=ALL-UNNAMED
                     --add-exports=java.base/sun.security.provider=ALL-UNNAMED

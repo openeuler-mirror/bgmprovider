@@ -60,23 +60,7 @@
                         <exclude>**/CheckLimitedCipherSuitesTest.java</exclude>
                         <exclude>org/openeuler/gm/javax/net/ssl/ServerName/EndingDotHostnameTest.java</exclude>
                     </excludes>
-                    <argLine>
-                        ${jacoco.argLine}
-                        ${jdk.module.options}
-                    </argLine>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>jar-no-fork</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
@@ -91,6 +75,7 @@
                 <jdk.module.options>
                     --add-exports=java.base/jdk.internal.misc=ALL-UNNAMED
                     --add-exports=java.base/jdk.internal.access=ALL-UNNAMED
+                    --add-exports=java.base/sun.security.util=ALL-UNNAMED
                     --add-exports=java.base/sun.security.x509=ALL-UNNAMED
                     --add-exports=java.base/sun.security.action=ALL-UNNAMED
                     --add-exports=java.base/sun.security.provider=ALL-UNNAMED
