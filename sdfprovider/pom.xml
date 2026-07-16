@@ -29,10 +29,10 @@
         </native.compiler.startOptions>
         <native.link.startOptions>-shared</native.link.startOptions>
         <native.link.library>-lcrypto_card_sdk</native.link.library>
-        <compiler.executable.x86_64>${env.SDF_EXECUTABLE_X86_64}</compiler.executable.x86_64>
-        <compiler.executable.aarch64>${env.SDF_EXECUTABLE_AARCH64}</compiler.executable.aarch64>
-        <compiler.library_path.x86_64>${env.SDF_LIBRARY_PATH_X86_64}</compiler.library_path.x86_64>
-        <compiler.library_path.aarch64>${env.SDF_LIBRARY_PATH_AARCH64}</compiler.library_path.aarch64>
+        <compiler.executable.x86_64>${SDF_EXECUTABLE_X86_64}</compiler.executable.x86_64>
+        <compiler.executable.aarch64>${SDF_EXECUTABLE_AARCH64}</compiler.executable.aarch64>
+        <compiler.library_path.x86_64>${SDF_LIBRARY_PATH_X86_64}</compiler.library_path.x86_64>
+        <compiler.library_path.aarch64>${SDF_LIBRARY_PATH_AARCH64}</compiler.library_path.aarch64>
     </properties>
 
     <dependencies>
@@ -255,6 +255,47 @@
                                     </includes>
                                 </resource>
                             </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- plugin for compile with sdk -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>prepare-environment</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <!-- interupt build when shell failed -->
+                            <failOnError>true</failOnError>
+                            <target>
+                                <exec executable="sh" dir="${project.basedir}" failonerror="true">
+                                    <arg value="${project.basedir}/build/pre-env.sh"/>
+                                </exec>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <files>
+                                <file>target/antrun/env.properties</file>
+                            </files>
                         </configuration>
                     </execution>
                 </executions>
