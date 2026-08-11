@@ -298,7 +298,7 @@ JNIEXPORT jbyteArray JNICALL Java_org_openeuler_sdf_wrapper_SDFSymmetricCipherNa
 
     if ((rv = CDM_GetCipherHead(head, &headLen)) != SDR_OK) {
         throwSDFException(env, rv, "CDM_GetCipherHead");
-        return;
+        return NULL;
     }
     if ((head = (unsigned char *) malloc(headLen)) == NULL) {
         throwOutOfMemoryError(env, "nativeCipherHead failed. Unable to allocate in 'out' buffer");
